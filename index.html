@@ -326,7 +326,7 @@ const CORE=[1,2,3,5],ENR=[4,6,7];const ORDER=CORE.concat(ENR);
 const LEVELS=[['حبة',0],['برعم',.25],['سنبلة',.5],['سنبلة ذهبية',.8],['حقل',1]];
 const REASONS=['ضعف التأسيس في المادة من الأعوام السابقة','صعوبة بعض الدروس وتراكمها','قلة المذاكرة والمراجعة اليومية','الغياب أو التأخر عن الحصص','إدارة الوقت أثناء الاختبار','القلق والتوتر من الاختبار','عدم حل الواجبات والتدريبات بانتظام','الانشغال بأمور خارج الدراسة'];
 const STORE='sab3_sanabil_v1';
-const DEFAULT_SETTINGS={threshold:75,tests:['التقرير الأول','التقرير الثاني','التقرير الثالث','التقرير الرابع'],minStep:2,tracks:{'11-1':'علمي','11-2':'علمي','11-3':'علمي','11-4':'علمي','11-5':'علمي','11-6':'أدبي','11-7':'أدبي','12-1':'علمي','12-2':'علمي','12-3':'علمي','12-4':'علمي','12-5':'علمي','12-6':'أدبي','12-7':'أدبي','12-8':'علمي'},year:'2026–2027',vp:'آسيا الذبياني'};
+const DEFAULT_SETTINGS={threshold:70,tests:['التقرير الأول','التقرير الثاني','التقرير الثالث','التقرير الرابع'],minStep:2,tracks:{'11-1':'علمي','11-2':'علمي','11-3':'علمي','11-4':'علمي','11-5':'علمي','11-6':'أدبي','11-7':'أدبي','12-1':'علمي','12-2':'علمي','12-3':'علمي','12-4':'علمي','12-5':'علمي','12-6':'أدبي','12-7':'أدبي','12-8':'علمي'},year:'2026–2027',vp:'آسيا الذبياني'};
 
 /* ---------- helpers ---------- */
 const $=s=>document.querySelector(s);
@@ -450,7 +450,7 @@ function level(r){if(r>=1)return{c:'gold',t:'حقل مكتمل'};if(r>=.8)return
 /* ---------- state ---------- */
 let BOOT_ERR=null,RAW_STORE=null;try{RAW_STORE=localStorage.getItem(STORE)}catch(e){}
 let S=load();try{if(S&&typeof S!=='object')S=null;if(S){S.roster=Array.isArray(S.roster)?S.roster.filter(r=>r&&r.name):null;S.actions=Array.isArray(S.actions)?S.actions.filter(Boolean):[];S.charters=Array.isArray(S.charters)?S.charters.filter(c=>c&&Array.isArray(c.items)):[];if(S.roster)S.roster.forEach(r=>{if(!Array.isArray(r.scores))r.scores=[];while(r.scores.length<4)r.scores.push(null);r.section=String(r.section||'');r.subject=String(r.subject||'');r.teacher=String(r.teacher||'')});if(S.staff&&!Array.isArray(S.staff))S.staff=null;if(S.settings&&!Array.isArray(S.settings.tests))delete S.settings.tests}}catch(e){BOOT_ERR=e;S=null}
-if(!S||!S.roster)S=makeDemo();if(!S.staff||!S.staff.length)S.staff=DEFAULT_STAFF.map(t=>Object.assign({email:'',phone:''},t));S.settings=Object.assign({},DEFAULT_SETTINGS,S.settings||{});if(S.settings.tests[0]==='الاختبار الأول')S.settings.tests=DEFAULT_SETTINGS.tests.slice();if(S.demo&&S.roster.length&&(S.roster[0].nat===undefined||!S.realT||S.demoV!==2)){const keep={vp:S.settings.vp,staff:S.staff,contacts:S.contacts};S=makeDemo();S.settings.vp=keep.vp;S.staff=keep.staff;S.contacts=keep.contacts;}
+if(!S||!S.roster)S=makeDemo();if(!S.staff||!S.staff.length)S.staff=DEFAULT_STAFF.map(t=>Object.assign({email:'',phone:''},t));S.settings=Object.assign({},DEFAULT_SETTINGS,S.settings||{});if(!S.settings.thr70){S.settings.threshold=70;S.settings.thr70=1}if(S.settings.tests[0]==='الاختبار الأول')S.settings.tests=DEFAULT_SETTINGS.tests.slice();if(S.demo&&S.roster.length&&(S.roster[0].nat===undefined||!S.realT||S.demoV!==2)){const keep={vp:S.settings.vp,staff:S.staff,contacts:S.contacts};S=makeDemo();S.settings.vp=keep.vp;S.staff=keep.staff;S.contacts=keep.contacts;}
 let D;try{D=derive(S)}catch(e){BOOT_ERR=e;const vp=S.settings&&S.settings.vp;S=makeDemo();if(vp)S.settings.vp=vp;D=derive(S)}
 const UI={tab:'home',fSec:'',fSub:'',q:'',fKey:0,impA:0,impB:null};
 const dlP=(window.claude&&window.claude.use)?window.claude.use('downloads').catch(()=>null):Promise.resolve(null);
