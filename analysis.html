@@ -478,7 +478,7 @@ function subjFor(t,sec){const s=t.subject||'',g=lvlOf(sec),tr=trackOf(sec);
   if(/والدراسات الاجتماعية/.test(s))return g==='10'?'الدراسات الاجتماعية':(/تاريخ/.test(s)?'التاريخ':'الجغرافيا');
   if(/الحوسبة \+ الفنون/.test(s))return'الحوسبة وتكنولوجيا المعلومات';
   if(/علوم الحاسب/.test(s))return tr==='تكنولوجي'?'علوم الحاسب':'الحوسبة وتكنولوجيا المعلومات';
-  if(/^الفنون/.test(s))return'الفنون';return canon(s)}
+  if(/^الفنون/.test(s))return'الفنون';if(s==='الرياضيات'&&g!=='10'&&tr==='أدبي')return'الرياضيات العامة';return canon(s)}
 function build(){
   const staff=S.staff||sanStaff()||[];const T={};
   staff.forEach(t=>(t.sections||[]).forEach(sec=>{const k=secKey(sec)+'|'+subjFor(t,secKey(sec));(T[k]=T[k]||[]).push(t.name)}));
@@ -486,7 +486,7 @@ function build(){
   if(UI.per==null||!S.cur[UI.per])UI.per=pers.length?pers[pers.length-1]:0;
   const cur=S.cur[UI.per]||{};
   const stu=Object.entries(cur).map(([pid,o])=>{const rg=S.reg[pid]||{};const nums=Object.entries(o.g).filter(([,v])=>typeof v==='number');
-    return{pid,n:o.n||rg.n,s:o.s,l:lvlOf(o.s),nat:rg.nat||'',g:o.g,avg:nums.length?mean(nums.map(x=>x[1])):null,ng:nums.length}});
+    return{pid,n:o.n||rg.n,s:o.s,l:lvlOf(o.s),nat:rg.nat||'',g:o.g,avg:nums.length?r1(mean(nums.map(x=>x[1]))):null,ng:nums.length}});
   // expected subjects per section: subjects with grades for >=60% of section (non-electives) or per staff
   const secs={};stu.forEach(x=>{(secs[x.s]=secs[x.s]||{n:0,subs:{}}).n++;Object.keys(x.g).forEach(k=>{secs[x.s].subs[k]=(secs[x.s].subs[k]||0)+1})});
   Object.keys(T).forEach(k=>{const[sec,sub]=k.split('|');if(secs[sec]&&!(sub in secs[sec].subs)&&sub!=='المهارات الحياتية والمهنية')secs[sec].subs[sub]=0});
@@ -667,6 +667,36 @@ function vData(){const sf=sanStaff();
   '<div class="box"><h3>الملفات المحفوظة</h3>'+(f?'<ul class="stl">'+f+'</ul>':'<p class="stl">لا توجد ملفات بعد.</p>')+'<div class="chips noprint"><button class="btn" data-backup="1">تنزيل نسخة احتياطية</button><label class="btn">استعادة نسخة احتياطية<input type="file" accept=".json" data-restore="1" style="display:none"></label><button class="btn" data-wipe="1" style="color:var(--bad)">مسح بيانات التحليل</button></div></div>'}
 
 
+
+/* ---------- الفئات بالأسماء (برقم سري) ---------- */
+const PINK='sab3_pin_h';
+function phash(p){let h=2166136261;for(const c of 'shaimaa:'+p){h^=c.charCodeAt(0);h=Math.imul(h,16777619)>>>0}let g=5381;for(const c of p+':sanabel'){g=((g<<5)+g+c.charCodeAt(0))>>>0}return h.toString(16)+g.toString(16)}
+function pinSet(){try{return localStorage.getItem(PINK)}catch(e){return null}}
+function unlocked(){try{return sessionStorage.getItem('sab3_pin_ok')===pinSet()&&!!pinSet()}catch(e){return false}}
+function lockView(){const has=!!pinSet();return head('محتوى محمي برقم سري','هذه الصفحة فيها أسماء الطالبات ونسبهن، ولا تُفتح إلا بالرقم السري.')+
+  '<div class="box" style="max-width:420px"><h3>'+(has?'أدخلي الرقم السري':'إنشاء رقم سري')+'</h3>'+(has?'':'<p class="stl">أول مرة فقط: اختاري رقماً سرياً من 4 أرقام فأكثر. يُطلب بعد ذلك عند كل فتح للمتصفح.</p>')+
+  '<input id="pin1" type="password" inputmode="numeric" autocomplete="off" placeholder="الرقم السري" style="border:1px solid var(--line);border-radius:12px;padding:10px;font-size:18px;text-align:center;letter-spacing:6px">'+(has?'':'<input id="pin2" type="password" inputmode="numeric" autocomplete="off" placeholder="تأكيد الرقم السري" style="border:1px solid var(--line);border-radius:12px;padding:10px;font-size:18px;text-align:center;letter-spacing:6px">')+
+  '<div id="pinErr" class="stl" style="color:var(--bad)"></div><button class="btn pri" data-pin="'+(has?'open':'set')+'" style="align-self:flex-start;background:var(--maroon);color:#fff">'+(has?'فتح':'حفظ الرقم السري')+'</button>'+(has?'<button class="btn" data-pin="forgot" style="align-self:flex-start;font-size:12.5px">نسيت الرقم السري</button>':'')+'</div>'}
+function levelStatus(l){const secs=Object.keys(M.secs).filter(s=>lvlOf(s)===l).sort(secSort);const miss=[];secs.forEach(s=>{const o=M.secs[s];Object.entries(o.status).forEach(([k,v])=>{if(v!=='ok'&&!ELECT.has(k)&&k!=='المهارات الحياتية والمهنية')miss.push(k+' '+s+(v==='none'?'':' ('+o.subs[k]+' من '+o.n+')'))})});return{ok:!miss.length,miss}}
+const CK=[['fail','الراسبات'],['b70','دون 70'],['t90','90 فأعلى'],['topall','الأوائل — العام'],['topq','الأوائل — القطريات']];
+function catList(k,L){if(k==='fail')return L.filter(x=>Object.values(x.g).some(v=>typeof v==='number'&&v<50)).map(x=>({x,subs:Object.entries(x.g).filter(([,v])=>typeof v==='number'&&v<50)}));
+  if(k==='b70')return L.filter(x=>Object.values(x.g).some(v=>typeof v==='number'&&v<70)).map(x=>({x,subs:Object.entries(x.g).filter(([,v])=>typeof v==='number'&&v<70).sort((a,b)=>a[1]-b[1])}));
+  if(k==='t90')return L.filter(x=>x.avg!=null&&x.avg>=90).map(x=>({x,subs:[]}));return[]}
+function vCats(){if(!M.stu.length)return noData();if(!unlocked())return lockView();
+  const k=UI.ck||'fail';const L=M.stu.filter(x=>(!UI.lvl||x.l===UI.lvl)&&(!UI.sec||x.s===UI.sec)&&(!UI.nat||(UI.nat==='q'?isQ(x.nat):!isQ(x.nat))));
+  let h=head('الفئات بالأسماء',esc(scopeTitle())+' — اختاري الفئة، فتظهر الطالبات بأسمائهن ونسبهن.');
+  h+='<div class="box noprint"><div class="toolbar"><div class="chips">'+CK.map(([id,t])=>'<button class="chip" data-ck="'+id+'" aria-pressed="'+(k===id)+'">'+t+'</button>').join('')+'</div><div class="chips"><button class="btn" data-export="cat_'+k+'">تصدير Excel</button><button class="btn" onclick="window.print()">طباعة</button><button class="btn" data-pin="lock">قفل</button></div></div></div>';
+  const lvls=[...new Set(L.map(x=>x.l))].sort();const out=[];
+  lvls.forEach(l=>{const P=L.filter(x=>x.l===l);const st=levelStatus(l);const nm={10:'العاشر',11:'الحادي عشر',12:'الثاني عشر'}[l];
+    if(k==='topall'||k==='topq'){const R=P.filter(x=>x.avg!=null&&!x.barred&&(k==='topall'||isQ(x.nat))).sort((a,b)=>b.avg-a.avg);let rank=0,prev=null;const T=[];for(let i=0;i<R.length;i++){if(R[i].avg!==prev){rank=i+1;prev=R[i].avg}if(rank>10)break;T.push({x:R[i],rank})}
+      out.push(...T.map(t=>({l,...t})));
+      h+='<div class="box"><div class="toolbar"><h3>أوائل المستوى '+nm+' — '+(k==='topq'?'القطريات':'العام')+'</h3>'+(st.ok?'<span class="pill ok">رصد المستوى: مكتمل</span>':'<span class="pill warn">رصد المستوى: غير مكتمل — الترتيب مبدئي</span>')+'</div>'+(st.ok?'':'<p class="stl">لم يكتمل: '+esc(st.miss.join('، '))+'</p>')+
+       '<div class="tw"><table class="gt"><thead><tr><th>الترتيب</th><th>الطالبة</th><th>الشعبة</th><th>الجنسية</th><th>النسبة العامة</th><th>المواد المرصودة</th></tr></thead><tbody>'+T.map(t=>'<tr><td><b>'+t.rank+'</b></td><td class="nm">'+esc(t.x.n)+'</td><td>'+t.x.s+'</td><td>'+esc(t.x.nat)+'</td>'+cellH(t.x.avg)+'<td>'+t.x.ng+'</td></tr>').join('')+'</tbody></table></div></div>'}
+    else{const C=catList(k,P).sort((a,b)=>secSort(a.x.s,b.x.s)||a.x.n.localeCompare(b.x.n,'ar'));out.push(...C.map(c=>({l,...c})));const q=C.filter(c=>isQ(c.x.nat)).length;const cases=C.reduce((s,c)=>s+c.subs.length,0);
+      h+='<div class="box"><div class="toolbar"><h3>المستوى '+nm+' — '+CK.find(c=>c[0]===k)[1]+': '+C.length+' طالبة<small>القطريات '+q+' · غير القطريات '+(C.length-q)+(k!=='t90'?' · '+cases+' حالة مادة':'')+'</small></h3>'+(st.ok?'':'<span class="pill warn">رصد المستوى غير مكتمل</span>')+'</div>'+
+       (C.length?'<div class="tw"><table class="gt"><thead><tr><th>م</th><th>الطالبة</th><th>الشعبة</th><th>الجنسية</th><th>النسبة العامة</th>'+(k==='t90'?'':'<th>المواد ونسبها</th>')+'</tr></thead><tbody>'+C.map((c,i)=>'<tr><td>'+(i+1)+'</td><td class="nm">'+esc(c.x.n)+'</td><td>'+c.x.s+'</td><td>'+esc(c.x.nat)+'</td>'+cellH(c.x.avg)+(k==='t90'?'':'<td style="white-space:normal;text-align:right">'+c.subs.map(([s,v])=>esc(s)+' <b class="dn">'+fmt(v)+'</b>').join('، ')+'</td>')+'</tr>').join('')+'</tbody></table></div>':'<p class="stl">لا توجد طالبات.</p>')+'</div>'}});
+  window.__cat=out;
+  h+='<p class="stl">الراسبة: درجتها أقل من 50% في مادة واحدة على الأقل · دون 70: مادة واحدة على الأقل أقل من 70% · 90 فأعلى: النسبة العامة 90% فأكثر · الأوائل حسب النسبة العامة على المواد المرصودة، والتساوي في النسبة تساوٍ في الترتيب، ولا تدخل الطالبة المحرومة.</p>';return h}
 /* ---------- القيمة المضافة ---------- */
 function goalOf(v){if(v<70)return{t:Math.min(100,r1(v+4)),k:'add',d:'قيمة مضافة 4 درجات'};
   const nb=v<80?80:v<90?90:null;if(nb&&v>=nb-3)return{t:nb,k:'up',d:'الانتقال إلى فئة '+(nb===90?'90 فأعلى':'80 – 89')};
@@ -691,7 +721,7 @@ function vValue(){if(!M.stu.length)return noData();const prev=UI.per-1;const P=S
   window.__goals=G;return h}
 const short2=n=>String(n||'').split(' و')[0].split(' ').slice(0,2).join(' ');
 /* ---------- shell ---------- */
-const TABS=[['overview','الملخص'],['class','الشعبة'],['sections','مقارنة الشعب'],['subjects','مقارنة المواد'],['teachers','المعلمات'],['last','العام الماضي'],['top','الأوائل والفئات'],['value','القيمة المضافة'],['reading','القراءة'],['data','البيانات']];
+const TABS=[['overview','الملخص'],['class','الشعبة'],['sections','مقارنة الشعب'],['subjects','مقارنة المواد'],['teachers','المعلمات'],['last','العام الماضي'],['cats','الفئات بالأسماء'],['top','الأوائل والفئات'],['value','القيمة المضافة'],['reading','القراءة'],['data','البيانات']];
 function sidebar(){const lv=[...new Set(M.stu.map(x=>x.l))].sort();const secs=Object.keys(M.secs).filter(s=>!UI.lvl||lvlOf(s)===UI.lvl).sort(secSort);
   const subs=subjectsIn(M.stu.filter(x=>(!UI.lvl||x.l===UI.lvl)&&(!UI.sec||x.s===UI.sec)));
   const opt=(v,t,cur)=>'<option value="'+esc(v)+'"'+(v===cur?' selected':'')+'>'+esc(t)+'</option>';
@@ -705,7 +735,7 @@ function sidebar(){const lv=[...new Set(M.stu.map(x=>x.l))].sort();const secs=Ob
   '<button class="btn reset" data-reset="1">إلغاء التصفية</button>'+(M.stu.length&&!Object.keys(S.reg).length?'<p class="hint">ارفعي سجل القيد لتظهر الجنسيات.</p>':'')+'</aside>'}
 function render(){try{
   $('#nav').innerHTML=TABS.map(([id,l])=>'<button type="button" data-tab="'+id+'"'+(UI.tab===id?' aria-current="page"':'')+'>'+l+'</button>').join('')+'<a class="backlink" href="./">العودة إلى سبع سنابل ←</a>';
-  const v={overview:vOverview,class:vClass,sections:vSections,subjects:vSubjects,teachers:vTeachers,last:vLast,top:vTop,value:vValue,reading:vReading,data:vData}[UI.tab]||vOverview;
+  const v={overview:vOverview,class:vClass,sections:vSections,subjects:vSubjects,teachers:vTeachers,last:vLast,top:()=>unlocked()?vTop():lockView(),cats:vCats,value:vValue,reading:vReading,data:vData}[UI.tab]||vOverview;
   $('#view').innerHTML=UI.tab==='data'?'<div class="content">'+v()+'</div>':'<div class="an-layout">'+sidebar()+'<div class="content">'+v()+'</div></div>';
   const n=M.stu.length;$('#marq').textContent='تحليل النتائج · '+(n?n+' طالبة في '+PERIODS[UI.per]+' · '+Object.keys(M.secs).length+' شعبة · المقارنة بالعام الماضي · الأوائل وفئات الدعم':'ارفعي كشف الدرجات من صفحة البيانات')+' · «وَقُل رَّبِّ زِدْنِي عِلْمًا»';
 }catch(e){console.error(e);$('#view').innerHTML='<div class="box"><div class="empty">حدث خطأ أثناء العرض: '+esc(e.message)+'</div></div>'}}
@@ -716,12 +746,13 @@ function exportX(kind){const wb=XLSX.utils.book_new();let rows=[],name='';
   if(kind==='subjects'){const L=filtered({noSub:true});rows=subjectsIn(L).map(s=>{const st=statOf(vals(L,s));return Object.assign({'المادة':s,'الطالبات':st.n,'نسبة التحصيل':r1(st.m),'نسبة النجاح':r1(st.pass)},Object.fromEntries(CATS.map((c,i)=>[c.t,st.c[i]])))});name='مقارنة المواد'}
   if(kind==='teachers'){Object.entries(M.T).forEach(([k,ns])=>{const[sec,sub]=k.split('|');if(UI.lvl&&lvlOf(sec)!==UI.lvl)return;const st=statOf(vals(M.stu.filter(x=>x.s===sec),sub));if(st)ns.forEach(n=>rows.push({'المعلمة':n,'المادة':sub,'الشعبة':sec,'الطالبات':st.n,'نسبة التحصيل':r1(st.m),'90 فأعلى':st.c[0],'دون 70':st.c[3]+st.c[4]}))});name='المعلمات'}
   if(kind==='top'){filtered({noCat:true}).filter(x=>x.avg!=null&&!x.barred).sort((a,b)=>secSort(a.s,b.s)||b.avg-a.avg).forEach(x=>rows.push({'الشعبة':x.s,'الاسم':x.n,'الجنسية':x.nat,'النسبة':r1(x.avg)}));name='الترتيب'}
+  if(/^cat_/.test(kind)){(window.__cat||[]).forEach(c=>rows.push(Object.assign(c.rank?{'الترتيب':c.rank}:{},{'المستوى':c.l,'الاسم':c.x.n,'الرقم الشخصي':c.x.pid,'الشعبة':c.x.s,'الجنسية':c.x.nat,'النسبة العامة':c.x.avg!=null?r1(c.x.avg):''},c.subs&&c.subs.length?{'المواد':c.subs.map(([s,v])=>s+' ('+v+')').join('، ')}:{})));name=(CK.find(c=>'cat_'+c[0]===kind)||['',''])[1]}
   if(/^sup/.test(kind)){const q=kind==='supq';filtered({noCat:true}).filter(x=>(q?isQ(x.nat):!isQ(x.nat))).forEach(x=>Object.entries(x.g).forEach(([s,v])=>{if(typeof v==='number'&&v<70)rows.push({'الاسم':x.n,'الرقم الشخصي':x.pid,'الشعبة':x.s,'الجنسية':x.nat,'المادة':s,'النسبة':v,'المعلمة':teacherOf(x.s,s)})}));name='فئة الدعم '+(q?'القطريات':'غير القطريات')}
   if(kind==='vadd'){(window.__vrows||[]).forEach(r=>rows.push({'الاسم':r.x.n,'الرقم الشخصي':r.x.pid,'الشعبة':r.x.s,'الجنسية':r.x.nat,'المادة':r.s,'المعلمة':teacherOf(r.x.s,r.s),'الدرجة السابقة':r.b,'الهدف':r.g.t,'نوع الهدف':r.g.d,'الدرجة الحالية':r.v,'تحقق الهدف':r.ok?'نعم':'لا'}));name='القيمة المضافة'}
   if(kind==='goals'){(window.__goals||[]).forEach(r=>rows.push({'الاسم':r.x.n,'الرقم الشخصي':r.x.pid,'الشعبة':r.x.s,'الجنسية':r.x.nat,'المادة':r.s,'المعلمة':teacherOf(r.x.s,r.s),'الدرجة الحالية':r.v,'الهدف':r.g.t,'نوع الهدف':r.g.d}));name='أهداف التقرير القادم'}
   const ws=XLSX.utils.json_to_sheet(rows);ws['!views']=[{RTL:true}];wb.Workbook={Views:[{RTL:true}]};XLSX.utils.book_append_sheet(wb,ws,'البيانات');
   const out=XLSX.write(wb,{bookType:'xlsx',type:'array'});download(name+' - '+PERIODS[UI.per]+'.xlsx',new Blob([out],{type:'application/octet-stream'}))}
-document.addEventListener('click',e=>{const b=e.target.closest('[data-tab],[data-sec],[data-cat],[data-sort],[data-export],[data-reset],[data-regen],[data-copy],[data-backup],[data-wipe]');if(!b)return;
+document.addEventListener('click',e=>{const pb=e.target.closest('[data-pin],[data-ck]');if(pb){pinClick(pb);return}const b=e.target.closest('[data-tab],[data-sec],[data-cat],[data-sort],[data-export],[data-reset],[data-regen],[data-copy],[data-backup],[data-wipe]');if(!b)return;
   if(b.dataset.tab){UI.tab=b.dataset.tab;render();window.scrollTo({top:0})}
   else if(b.dataset.sec!=null){UI.sec=b.dataset.sec;UI.lvl=lvlOf(UI.sec);render()}
   else if(b.dataset.cat!=null){UI.cat=UI.cat===b.dataset.cat?'':b.dataset.cat;render()}
@@ -740,6 +771,12 @@ document.addEventListener('input',e=>{if(e.target.id==='rd'){S.readings[String(U
 ['dragover','dragenter'].forEach(ev=>document.addEventListener(ev,e=>{const d=e.target.closest&&e.target.closest('[data-drop]');if(d){e.preventDefault();d.classList.add('over')}}));
 document.addEventListener('dragleave',e=>{const d=e.target.closest&&e.target.closest('[data-drop]');if(d)d.classList.remove('over')});
 document.addEventListener('drop',e=>{const d=e.target.closest&&e.target.closest('[data-drop]');if(d){e.preventDefault();d.classList.remove('over');handleFiles([...e.dataTransfer.files])}});
+function pinClick(b){if(b.dataset.ck){UI.ck=b.dataset.ck;render();return}const a=b.dataset.pin,v1=($('#pin1')||{}).value||'',v2=($('#pin2')||{}).value||'',err=m=>{const x=$('#pinErr');if(x)x.textContent=m};
+  if(a==='set'){if(!/^\d{4,}$/.test(v1))return err('الرقم السري 4 أرقام فأكثر');if(v1!==v2)return err('الرقمان غير متطابقين');try{localStorage.setItem(PINK,phash(v1));sessionStorage.setItem('sab3_pin_ok',phash(v1))}catch(_){}toast('تم حفظ الرقم السري');render()}
+  else if(a==='open'){if(phash(v1)!==pinSet())return err('الرقم السري غير صحيح');try{sessionStorage.setItem('sab3_pin_ok',pinSet())}catch(_){}render()}
+  else if(a==='lock'){try{sessionStorage.removeItem('sab3_pin_ok')}catch(_){}render()}
+  else if(a==='forgot'){if(confirm('لإعادة تعيين الرقم السري تُمسح بيانات التحليل من هذا المتصفح، ثم ترفعين الملفات من جديد. متابعة؟')){try{localStorage.removeItem(PINK);sessionStorage.removeItem('sab3_pin_ok')}catch(_){}S=blank();save();build();render()}}}
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.target.id==='pin1'||e.target.id==='pin2')){const b=document.querySelector('[data-pin="open"],[data-pin="set"]');if(b)pinClick(b)}});
 build();render();
 
 </script>

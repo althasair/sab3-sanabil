@@ -720,7 +720,7 @@ function vData(){
   return crown('كتابٌ مرقوم','البيانات والنماذج','كِتَابٌ مَّرْقُومٌ ۝ يَشْهَدُهُ الْمُقَرَّبُونَ','المطففين: 20–21','تُقرأ الملفات داخل متصفحك فقط، ولا تُرفع إلى أي خادم. وتبقى محفوظة في هذا المتصفح للزيارة التالية؛ لذلك احتفظي بنسخة احتياطية.')+
   '<div class="grid2">'+
   dropBox('roster','1. ملف الطالبات والدرجات','ملف تحليل النتائج المعتمد في المدرسة كما هو (أوراق المقارنة: منتصف الفصل ونهايته لكل مادة)، وتُربط كل مادة بمعلمتها تلقائيًا من توزيع الشعب. ملف الفصل الثاني يُضاف لاحقًا فيُكمل التقريرين الثالث والرابع. ويُقبل أيضًا ملف بسيط: صف لكل طالبة في كل مادة.',S.roster.length+' صف · '+D.targets.length+' حالة مستهدفة · آخر اختبار مُدخل: '+esc(S.settings.tests[L]),'<button class="btn sm" id="tplRoster">تنزيل القالب</button>')+
-  dropBox('actions','2. ردود نموذج «سجّلي إجراءك»','من Forms: الردود ← فتح في Excel ← تنزيل الملف. يُقبل نموذج «سجّلي إجراءك»، ونموذج الحصص الإثرائية الجماعية كما هو، وكشف الحصص الفردية (اسم الطالبة، الشعبة، المادة، المعلمة، التاريخ). ولكل نوع مكانه، فلا يحذف ملفٌ ملفًا آخر.',S.actions.length+' إجراء مرصود','')+
+  dropBox('actions','2. ردود نموذج «سجّلي إجراءك»','من Forms: الردود ← فتح في Excel ← تنزيل الملف. يُقبل نموذج «سجّلي إجراءك»، ونموذج الحصص الإثرائية الجماعية كما هو، وكشف الحصص الفردية (اسم الطالبة، الشعبة، المادة، المعلمة، التاريخ). ولكل نوع مكانه، فلا يحذف ملفٌ ملفًا آخر. والحصة المكررة (نفس التاريخ والمعلمة والشعبة والمادة والطالبات) تُستبعد تلقائيًا.',S.actions.length+' إجراء مرصود','<span class="small" style="display:flex;gap:12px;flex-wrap:wrap"><label><input type="radio" name="actMode" value="append"'+((S.settings.actMode||'append')==='append'?' checked':'')+'> إضافة إلى السابق (تراكمي)</label><label><input type="radio" name="actMode" value="replace"'+(S.settings.actMode==='replace'?' checked':'')+'> حذف السابق من النوع نفسه وإضافة الجديد</label></span><button class="btn sm" id="wipeActs" style="color:var(--bad)">حذف كل الإجراءات والحصص</button>')+
   dropBox('charter','3. ردود نموذج «ميثاق الشراكة»','ملف ردود الطالبات من Forms.',S.charters.length+' ميثاق','')+
   dropBox('contacts','4. المعلمات وتوزيع الشعب','ملف توزيع معلمات المواد الأساسية (الاسم، الصفة، المادة، الشعب، النصاب، البريد، الهاتف)، أو قالب التواصل البسيط.',(S.staff?S.staff.length+' معلمة مستوردة · ':'')+Object.values(S.contacts||{}).filter(c=>c.phone||c.email).length+' معلمة لديها بيانات تواصل','<button class="btn sm" id="tplContacts">تنزيل القالب</button>')+
   '<section class="panel"><h3>الإعدادات</h3><div class="row" style="gap:16px"><label>حد التدني <input type="number" id="thr" min="40" max="100" value="'+S.settings.threshold+'" style="width:80px"></label><label>القيمة المضافة المستهدفة في كل تقرير <input type="number" id="mstep" min="1" max="10" value="'+(S.settings.minStep||4)+'" style="width:70px"></label><label>نائب المديرة للشؤون الأكاديمية <input type="text" id="vp" value="'+esc(S.settings.vp)+'" style="width:170px"></label></div><div class="row" style="margin-top:16px"><button class="btn sm" id="bkOut">تنزيل نسخة احتياطية</button><label class="btn sm">استعادة نسخة<input type="file" id="bkIn" accept=".json" hidden></label><span class="sp"></span><button class="btn sm" id="toDemo">عرض البيانات التجريبية</button><button class="btn sm" id="wipe" style="color:var(--bad)">مسح كل البيانات</button></div><div id="wipeConfirm" class="hide demo-bar" style="margin-top:12px"><span>سيتم مسح كل بيانات الطالبات والإجراءات من هذا المتصفح.</span><span class="sp"></span><button class="btn sm" id="wipeYes" style="color:var(--bad)">تأكيد المسح</button><button class="btn sm" id="wipeNo">إلغاء</button></div></section>'+
@@ -884,6 +884,10 @@ function typeOf(v){const n=norm(v);for(const k of MATCH_ORDER){if(KEYS[k-1].kw.s
 function nameMatch(a,b){const A=norm(a).split(' ').filter(Boolean),B=norm(b).split(' ').filter(Boolean);if(!A.length||!B.length)return false;if(A.join(' ')===B.join(' '))return true;if(A[0]!==B[0])return false;if(A.length===1)return false;return A.slice(1).every(w=>B.slice(1).includes(w))}
 const LVL=x=>{const n=norm(x);const o=[];if(n.includes('عاشر'))o.push('10');if(n.includes('حادي'))o.push('11');if(n.includes('ثاني عشر'))o.push('12');return o};
 function officialTeacher(typed,sec,sub){const t=staffFor(sec,sub);if(t)return t.name;const w=norm(typed).split(' ').filter(Boolean);if(!w.length)return '';const st=S.staff||[];const same=st.filter(x=>norm(x.name).split(' ')[0]===w[0]);let c=same.filter(x=>w.slice(1).length&&w.slice(1).every(t=>norm(x.name).split(' ').includes(t)));if(c.length!==1)c=same.filter(x=>subjKeys(x.subject).has(subjKey(sub)));return c.length===1?c[0].name:String(typed||'').trim()}
+function actKey(a){return [a.src||'form',String(a.date||'').slice(0,10),norm(a.teacher),secKey(a.section),norm(a.subject),a.type,a.whole?'*':(a.students||[]).map(norm).sort().join(','),norm(a.detail)].join('|')}
+function mergeActs(out,sameKind){const replace=(S.settings.actMode||'append')==='replace';let base=replace?S.actions.filter(a=>!sameKind(a)):S.actions.slice();const removed=S.actions.length-base.length;
+  const seen=new Set(base.map(actKey));let added=0,dup=0;out.forEach(a=>{const k=actKey(a);if(seen.has(k)){dup++;return}seen.add(k);base.push(a);added++});S.actions=base;
+  return{added,note:(dup?'، واستُبعد '+dup+' مكرر سبق رفعه أو تكرر في الملف':'')+(replace&&removed?'، وحُذف '+removed+' إجراء سابق من النوع نفسه':'')}}
 function importEnrichForm(rows){
   const h=rows[0].map(x=>String(x).replace(/ /g,' '));const cDate=findCol(h,['وقت الاكمال','completion time','وقت البدء','start time']);
   const cT=findCol(h,['اسم المعلمه']),cSub=findCol(h,['الماده']),cL=findCol(h,['المستوي']),cSec=findCol(h,['الشعبه']),cP=findCol(h,['الحصه']),cIn=findCol(h,['بدلا عن','بدلاَ']),cHow=findCol(h,['من خلال']),cWhen=findCol(h,['خلال'],['من خلال']);
@@ -893,16 +897,16 @@ function importEnrichForm(rows){
       out.push({date:String(r[cDate]||'').slice(0,10),teacher:officialTeacher(r[cT],sec,su),section:sec,subject:su,students:[],whole:true,type:3,detail:det,evidence:'',src:'group'})}))});
   if(!out.length)throw new Error('لم يتم العثور على ردود صالحة في نموذج الحصص الجماعية.');
   if(S.demo){S.actions=[];S.charters=[];S.demo=false}
-  S.actions=S.actions.filter(a=>a.src!=='group').concat(out);
-  return 'تم استيراد '+out.length+' حصة إثرائية جماعية من '+(rows.length-1)+' ردًا'+(multi?' (منها '+multi+' رد اختارت فيه المعلمة أكثر من مستوى، فاحتُسب لكل مستوى)':'')+'.';
+  const mg=mergeActs(out,a=>a.src==='group');
+  return 'تم استيراد '+mg.added+' حصة إثرائية جماعية من '+(rows.length-1)+' ردًا'+mg.note+(multi?' (منها '+multi+' رد اختارت فيه المعلمة أكثر من مستوى، فاحتُسب لكل مستوى)':'')+'.';
 }
 function importIndivList(rows){
   const h=rows[0].map(String);const g=k=>findCol(h,k);const cD=g(['التاريخ']),cT=g(['المعلمه']),cSec=g(['الشعبه']),cSub=g(['الماده']),cN=g(['اسم الطالبه']),cDet=g(['التفاصيل','من خلال']),cEv=g(['الدليل','الملف']);
   const by={};rows.slice(1).forEach(r=>{const n=String(r[cN]||'').trim();if(!n)return;const sec=secKey(r[cSec]),su=String(r[cSub]||'').trim();const k=[r[cD],r[cT],sec,su,r[cEv]].join('|');(by[k]=by[k]||{date:String(r[cD]||'').slice(0,10),teacher:officialTeacher(r[cT],sec,su),section:sec,subject:su,students:[],whole:false,type:3,detail:'حصة إثرائية فردية'+(cDet>=0&&r[cDet]?' — '+String(r[cDet]).trim():''),evidence:cEv>=0?String(r[cEv]||''):'',src:'indiv'}).students.push(n)});
   const out=Object.values(by);if(!out.length)throw new Error('لم يتم العثور على أسماء طالبات.');
   if(S.demo){S.actions=[];S.charters=[];S.demo=false}
-  S.actions=S.actions.filter(a=>a.src!=='indiv').concat(out);
-  return 'تم استيراد '+out.length+' جلسة إثرائية فردية تضم '+out.reduce((s,a)=>s+a.students.length,0)+' اسم طالبة.';
+  const mg=mergeActs(out,a=>a.src==='indiv');
+  return 'تم استيراد '+mg.added+' جلسة إثرائية فردية تضم '+out.reduce((s,a)=>s+a.students.length,0)+' اسم طالبة'+mg.note+'.';
 }
 function importActions(rows){
   if(rows.book){const sh=Object.values(rows.book).find(t=>t[0]&&t[0].some(x=>norm(x)==='اسم الطالبه')&&t[0].some(x=>norm(x)==='الشعبه'));if(sh)return importIndivList(sh)}
@@ -925,8 +929,8 @@ function importActions(rows){
   if(!out.length)throw new Error('لم يتم العثور على ردود صالحة.');
   if(S.demo){S.actions=[];}
   const subs=new Set(out.map(a=>norm(a.subject)).filter(Boolean));const teach=new Set(out.map(a=>norm(a.teacher)));
-  S.actions=S.actions.filter(a=>a.src||(subs.size?!subs.has(norm(a.subject)):!teach.has(norm(a.teacher)))).concat(out);
-  return 'تم استيراد '+out.length+' إجراء.';
+  const mg=mergeActs(out,a=>!a.src&&(subs.size?subs.has(norm(a.subject)):teach.has(norm(a.teacher))));
+  return 'تم استيراد '+mg.added+' إجراء'+mg.note+'.';
 }
 function importCharter(rows){
   const h=rows[0].map(String);const cN=findCol(h,['اسم'],['معلم','ماده']);const cS=findCol(h,['شعبه','الصف']);const cD=findCol(h,['وقت الاكمال','completion','التاريخ']);
@@ -1028,6 +1032,8 @@ document.documentElement.style.setProperty('--emb','url("data:image/webp;base64,
 (function(){const Q=['معلماتي الغاليات، ثقتي بقدراتكنّ لا حدود لها؛ فمعلمة الشيماء لا تتكرر.','ما تغرسْنَه اليوم بإتقان، يُثمر غدًا أجرًا وتميّزًا وأثرًا يبقى.','علِّمْنَ كأن الله يراكنّ، وأتقِنَّ غرسكنّ كأنه الحبة الأخيرة، والله لا يُضيع أجر المحسنين.'];let i=0;const el=$('#wordQ');const rm=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
 setInterval(()=>{i=(i+1)%Q.length;if(rm){el.textContent=Q[i];return}el.classList.add('fade');setTimeout(()=>{el.textContent=Q[i];el.classList.remove('fade')},600)},8000)})();
 const h=(location.hash||'').slice(1);if(TABS.some(t=>t[0]===h))UI.tab=h;
+document.addEventListener('change',e=>{if(e.target&&e.target.name==='actMode'){S.settings.actMode=e.target.value;save();toast(e.target.value==='replace'?'سيُحذف السابق من النوع نفسه عند رفع ملف جديد':'سيُضاف الجديد إلى السابق مع استبعاد المكرر')}});
+document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('#wipeActs')){if(confirm('حذف جميع الإجراءات والحصص الإثرائية المرفوعة؟ تبقى الدرجات والمواثيق كما هي.')){S.actions=[];refresh();toast('تم حذف الإجراءات والحصص')}}});
 render();
 })();
 </script>
