@@ -592,6 +592,23 @@ function honorDoc(){const T=UI.anTop;if(!T)return '';const a=UI.an;
   return docShell('لوحة الشرف','<section class="page"><div class="ttl"><h1>لوحة الشرف</h1><div class="s">'+esc(S.settings.tests[a.rep])+(a.nat==='q'?' · القطريات':'')+'</div></div><p class="verse">﴿يَرْفَعِ اللَّهُ الَّذِينَ آمَنُوا مِنكُمْ وَالَّذِينَ أُوتُوا الْعِلْمَ دَرَجَاتٍ﴾</p>'+
    tb('أوائل المدرسة',T.top,10)+Object.entries(T.byG).sort().map(([g,arr])=>tb('أوائل '+esc(g),arr,3)).join('')+Object.entries(T.byT).map(([t,arr])=>tb('أوائل المسار '+esc(t),arr,3)).join('')+'</section>')}
 
+
+function enrKind(a){return a.src==='indiv'?'فردية':a.src==='group'?'جماعية':a.whole?'جماعية':'فردية'}
+function enrichPanel(){const A=S.actions.map((a,i)=>Object.assign({i},a)).filter(a=>a.type===3);
+  const lv=['10','11','12'];const by={};A.forEach(a=>{const k=subjKey(a.subject)||a.subject||'غير محددة';const o=by[k]=by[k]||{name:a.subject||'غير محددة',c:{},list:[]};o.list.push(a);const L=String(secKey(a.section)).split('-')[0];const kk=L+'|'+enrKind(a);o.c[kk]=(o.c[kk]||0)+1});
+  const subs=Object.entries(by).sort((x,y)=>y[1].list.length-x[1].list.length);const mode=S.settings.actMode||'append';
+  const tot=k=>A.filter(a=>enrKind(a)===k).length;
+  let h='<section class="panel"><h3>الحصص الإثرائية الفردية والجماعية</h3>'+
+   '<div class="row" style="gap:10px;flex-wrap:wrap;align-items:center"><label class="btn sm pri">رفع ملف حصص (جماعية أو فردية)<input type="file" data-enr-up="1" accept=".xlsx,.xls,.csv" multiple hidden></label>'+
+   '<label class="small"><input type="radio" name="actMode" value="append"'+(mode==='append'?' checked':'')+'> إضافة إلى السابق (تراكمي)</label><label class="small"><input type="radio" name="actMode" value="replace"'+(mode==='replace'?' checked':'')+'> حذف السابق من النوع نفسه وإضافة الجديد</label>'+
+   '<span class="sp" style="flex:1"></span><button class="btn sm" data-enr-wipe="1" style="color:var(--bad)">حذف كل الحصص الإثرائية</button></div>'+
+   '<p class="small muted" style="margin:6px 0 10px">الحصة المكررة (نفس التاريخ والمعلمة والشعبة والمادة والطالبات) تُستبعد تلقائيًا عند الرفع. <span data-msg-for="actions"></span></p>'+
+   '<div class="row" style="gap:10px;margin-bottom:10px"><span class="pill gold">المجموع: '+A.length+' حصة</span><span class="pill">فردية: '+tot('فردية')+'</span><span class="pill">جماعية: '+tot('جماعية')+'</span></div>';
+  if(!A.length)return h+'<p class="muted">لم تُرفع حصص إثرائية بعد.</p></section>';
+  h+='<div class="tbl-wrap"><table><thead><tr><th rowspan="2">المادة</th>'+lv.map(l=>'<th colspan="2" style="text-align:center">'+({10:'العاشر',11:'الحادي عشر',12:'الثاني عشر'}[l])+'</th>').join('')+'<th rowspan="2">المجموع</th><th rowspan="2"></th></tr><tr>'+lv.map(()=>'<th>فردية</th><th>جماعية</th>').join('')+'</tr></thead><tbody>'+
+   subs.map(([k,o])=>{const open=UI.enrSub===k;let r='<tr data-enr-sub="'+esc(k)+'" style="cursor:pointer'+(open?';background:var(--cream)':'')+'"><td><b>'+esc(o.name)+'</b></td>'+lv.map(l=>'<td class="num">'+(o.c[l+'|فردية']||'—')+'</td><td class="num">'+(o.c[l+'|جماعية']||'—')+'</td>').join('')+'<td class="num"><b>'+o.list.length+'</b></td><td class="small">'+(open?'إخفاء ▲':'عرض الحصص ▼')+'</td></tr>';
+     if(open)r+='<tr><td colspan="'+(lv.length*2+3)+'" style="padding:0"><div class="tbl-wrap" style="margin:6px 0 12px"><table><thead><tr><th>التاريخ</th><th>النوع</th><th>المعلمة</th><th>الشعبة</th><th>الطالبات</th><th>التفاصيل</th><th></th></tr></thead><tbody>'+o.list.slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))||String(a.section).localeCompare(String(b.section))).map(a=>'<tr><td class="small">'+esc(a.date)+'</td><td><span class="pill '+(enrKind(a)==='فردية'?'ok':'gold')+'">'+enrKind(a)+'</span></td><td>'+esc(a.teacher)+'</td><td>'+esc(a.section)+'</td><td class="small">'+(a.whole?'الشعبة كاملة':esc(a.students.join('، ')))+'</td><td class="small">'+esc(a.detail)+'</td><td><button class="btn sm" data-enr-del="'+a.i+'" style="color:var(--bad)" title="حذف هذه الحصة">حذف</button></td></tr>').join('')+'</tbody></table></div></td></tr>';return r}).join('')+'</tbody></table></div><p class="small muted">اضغطي على اسم المادة لعرض حصصها وأسماء الطالبات.</p></section>';
+  return h}
 function vSeven(){
   const cnt={};KEYS.forEach(k=>cnt[k.k]={n:0,stu:0});
   S.actions.forEach(a=>cnt[a.type]&&cnt[a.type].n++);
@@ -600,7 +617,7 @@ function vSeven(){
   const list=UI.fKey?(UI.fKey===2?[]:S.actions.filter(a=>a.type===UI.fKey)):[];
   return demoBar()+crown('السنابل السبع','إجراءات رفع التحصيل','فَمَن يَعْمَلْ مِثْقَالَ ذَرَّةٍ خَيْرًا يَرَهُ','الزلزلة: 7','سبعة إجراءات معتمدة، كل منها سنبلة. اضغطي على أي إجراء لعرض سجله.')+
   '<div class="seven">'+KEYS.map(k=>'<button type="button" class="sv" data-key="'+k.k+'" aria-pressed="'+(UI.fKey===k.k)+'"><span class="row" style="gap:6px"><span class="no">السنبلة '+['الأولى','الثانية','الثالثة','الرابعة','الخامسة','السادسة','السابعة'][k.k-1]+'</span><span class="pill '+(CORE.includes(k.k)?'gold':'ok')+'">'+(CORE.includes(k.k)?'أساسية':'إثرائية ⭐')+'</span></span><span class="t">'+k.full+'</span><span class="row" style="gap:12px;align-items:flex-end">'+earSVG(true).replace('<svg','<svg style="width:16px;height:32px"')+'<span class="c">'+cnt[k.k].n+'</span><span class="d">'+(k.k===2?'ميثاق':'إجراء مرصود')+' · '+pct(cnt[k.k].stu/(D.targets.length||1))+' من الحالات</span></span><span class="d">'+k.desc+'</span></button>').join('')+'</div>'+
-  (UI.fKey?'<section class="panel"><h3>سجل: '+KEYS[UI.fKey-1].full+'</h3>'+(UI.fKey===2?'<p class="muted">مواثيق الشراكة معروضة في قسم «ميثاق الشراكة».</p><button class="btn sm pri" data-go="charter">فتح ميثاق الشراكة</button>':
+  (UI.fKey===3?enrichPanel():'')+(UI.fKey&&UI.fKey!==3?'<section class="panel"><h3>سجل: '+KEYS[UI.fKey-1].full+'</h3>'+(UI.fKey===2?'<p class="muted">مواثيق الشراكة معروضة في قسم «ميثاق الشراكة».</p><button class="btn sm pri" data-go="charter">فتح ميثاق الشراكة</button>':
   '<div class="tbl-wrap"><table><thead><tr><th>التاريخ</th><th>المعلمة</th><th>الشعبة</th><th>الطالبات</th><th>التفاصيل</th><th>الدليل</th></tr></thead><tbody>'+list.slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))).map(a=>'<tr><td class="small">'+esc(a.date)+'</td><td>'+esc(a.teacher)+'</td><td>'+esc(a.section)+'</td><td class="small">'+(a.whole?'<span class="pill gold">الشعبة كاملة</span>':esc(a.students.join('، ')))+'</td><td class="small">'+esc(a.detail)+'</td><td>'+(a.evidence&&/^https?:/.test(a.evidence)?'<a href="'+esc(a.evidence)+'" target="_blank" rel="noopener">فتح</a>':'<span class="muted">—</span>')+'</td></tr>').join('')+'</tbody></table></div>')+'</section>':'');
 }
 
@@ -1032,6 +1049,12 @@ document.documentElement.style.setProperty('--emb','url("data:image/webp;base64,
 (function(){const Q=['معلماتي الغاليات، ثقتي بقدراتكنّ لا حدود لها؛ فمعلمة الشيماء لا تتكرر.','ما تغرسْنَه اليوم بإتقان، يُثمر غدًا أجرًا وتميّزًا وأثرًا يبقى.','علِّمْنَ كأن الله يراكنّ، وأتقِنَّ غرسكنّ كأنه الحبة الأخيرة، والله لا يُضيع أجر المحسنين.'];let i=0;const el=$('#wordQ');const rm=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
 setInterval(()=>{i=(i+1)%Q.length;if(rm){el.textContent=Q[i];return}el.classList.add('fade');setTimeout(()=>{el.textContent=Q[i];el.classList.remove('fade')},600)},8000)})();
 const h=(location.hash||'').slice(1);if(TABS.some(t=>t[0]===h))UI.tab=h;
+document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-enr-sub],[data-enr-del],[data-enr-wipe]');if(!t)return;
+  if(t.dataset.enrDel!=null){e.stopPropagation();const i=+t.dataset.enrDel;const a=S.actions[i];if(a&&confirm('حذف حصة '+(a.subject||'')+' — '+(a.section||'')+' بتاريخ '+(a.date||'')+'؟')){S.actions.splice(i,1);refresh();toast('تم حذف الحصة')}return}
+  if(t.dataset.enrWipe){if(confirm('حذف جميع الحصص الإثرائية الفردية والجماعية؟ تبقى بقية الإجراءات والدرجات.')){S.actions=S.actions.filter(a=>a.type!==3);refresh();toast('تم حذف الحصص الإثرائية')}return}
+  if(t.dataset.enrSub!=null){UI.enrSub=UI.enrSub===t.dataset.enrSub?'':t.dataset.enrSub;render()}});
+document.addEventListener('change',e=>{if(e.target&&e.target.dataset&&e.target.dataset.enrUp&&e.target.files.length){(async()=>{for(const f of [...e.target.files])await handleFile('actions',f)})();}});
+
 document.addEventListener('change',e=>{if(e.target&&e.target.name==='actMode'){S.settings.actMode=e.target.value;save();toast(e.target.value==='replace'?'سيُحذف السابق من النوع نفسه عند رفع ملف جديد':'سيُضاف الجديد إلى السابق مع استبعاد المكرر')}});
 document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('#wipeActs')){if(confirm('حذف جميع الإجراءات والحصص الإثرائية المرفوعة؟ تبقى الدرجات والمواثيق كما هي.')){S.actions=[];refresh();toast('تم حذف الإجراءات والحصص')}}});
 render();
