@@ -467,7 +467,8 @@ const ICON={
  data:'<ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3"/>'
 };
 const TABS=[['home','الرئيسية','home'],['analysis','تحليل النتائج','imp'],['students','الطالبات المستهدفات','stu'],['teachers','المعلمات','tch'],['seven','السنابل السبع','seven'],['impact','الأثر','imp'],['charter','ميثاق الشراكة','ch'],['data','البيانات والنماذج','data']];
-function renderNav(){$('#nav').innerHTML=TABS.map(([id,l,ic])=>'<button type="button" data-tab="'+id+'"'+(UI.tab===id?' aria-current="page"':'')+'><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'+ICON[ic]+'</svg>'+l+'</button>').join('')}
+function renderNav(){$('#nav').innerHTML=TABS.map(([id,l,ic])=>'<button type="button" data-tab="'+id+'"'+(UI.tab===id?' aria-current="page"':'')+'><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'+ICON[ic]+'</svg>'+l+'</button>').join('').replace('</button>','</button>'+EXTRA_NAV)}
+const EXTRA_NAV='<a href="analysis.html" style="display:flex;align-items:center;gap:8px;padding:9px 18px;border-radius:14px;color:#fff;background:#16233F;font-weight:800;font-size:15px;white-space:nowrap;flex:none;text-decoration:none"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16M7 16v-4M12 16V8M17 16V5"/></svg>لوحة التحليل الشاملة</a>';
 $('#nav').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(!b)return;UI.tab=b.dataset.tab;try{history.replaceState(null,'','#'+UI.tab)}catch(_){}render();window.scrollTo({top:0})});
 
 function crown(eyebrow,title,verse,cite,p){return '<header class="crown"><span class="eyebrow">'+eyebrow+'</span><h2>'+title+'</h2><div class="orn" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 1l2.6 4.7L20 4l-1.7 5.4L23 12l-4.7 2.6L20 20l-5.4-1.7L12 23l-2.6-4.7L4 20l1.7-5.4L1 12l4.7-2.6L4 4l5.4 1.7z" fill="currentColor"/></svg></div>'+(verse?'<p class="verse">﴿'+verse+'﴾<cite>'+cite+'</cite></p>':'')+(p?'<p>'+p+'</p>':'')+'</header>'}
@@ -829,7 +830,7 @@ function plainDownload(filename,data){try{const mime=/\.html$/.test(filename)?'t
 async function offer(filename,data){const d=await dlP;if(!d){plainDownload(filename,data);return}try{await d.save({filename,data});toast('تم التنزيل')}catch(e){if(e&&e.code==='declined')return;toast('تعذّر التنزيل')}}
 
 /* ---------- import ---------- */
-function readSheet(file){return new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>{try{const wb=XLSX.read(new Uint8Array(fr.result),{type:'array',cellDates:true});const book={};wb.SheetNames.forEach(n=>book[n]=XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,defval:'',raw:false,dateNF:'yyyy-mm-dd'}));const first=book[wb.SheetNames[0]];first.book=book;res(first)}catch(e){rej(e)}};fr.onerror=rej;fr.readAsArrayBuffer(file)})}
+function readSheet(file){return new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>{try{const wb=XLSX.read(new Uint8Array(fr.result),{type:'array',cellDates:true});const book={};wb.SheetNames.forEach(n=>{const ws=wb.Sheets[n];let R=0,C=0,any=false;for(const k in ws){if(k[0]==='!')continue;const a=XLSX.utils.decode_cell(k);any=true;if(a.r>R)R=a.r;if(a.c>C)C=a.c}if(any)ws['!ref']=XLSX.utils.encode_range({s:{r:0,c:0},e:{r:R,c:C}});book[n]=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:false,dateNF:'yyyy-mm-dd'})});const first=book[wb.SheetNames[0]];first.book=book;res(first)}catch(e){rej(e)}};fr.onerror=rej;fr.readAsArrayBuffer(file)})}
 const splitList=v=>String(v||'').split(/[;؛\n]+/).map(s=>s.trim()).filter(Boolean);
 function findCol(h,inc,exc){return h.findIndex(x=>has(x,inc)&&!(exc&&has(x,exc)))}
 function isResultsBook(book){return !!book&&Object.values(book).some(sh=>sh.slice(0,6).some(r=>r.filter(x=>/منتصف|نهاي/.test(String(x))).length>=4))}
@@ -839,13 +840,14 @@ function importResults(book){
   Object.entries(book).forEach(([sn,rows])=>{
     const hi=rows.slice(0,8).findIndex(r=>r.filter(x=>/منتصف|نهاي/.test(String(x))).length>=4);if(hi<0)return;
     const H=rows[hi].map(x=>String(x||'').trim()),U=(rows[hi+1]||[]).map(x=>String(x||'').trim());
+    const MAIN=H.includes('التقييم الرئيسي'),perTxt=norm(rows.slice(0,hi).map(r=>r.join(' ')).join(' '));
     const lab=i=>norm((H[i]||'')+' '+(U[i]||'')).replace(/ـ/g,'');
     let cN=-1;for(let i=0;i<Math.max(H.length,U.length);i++){if(/^الاس+م$/.test(norm(U[i]||'').replace(/ـ/g,''))||/^الاس+م$/.test(norm(H[i]||'').replace(/ـ/g,''))){cN=i;break}}
     const cNat=[...Array(Math.max(H.length,U.length)).keys()].find(i=>lab(i).includes('جنسيه'));
     if(cN<0)return;
     const tn=norm(sn);const trk=tn.includes('علمي')?'علمي':tn.includes('ادبي')?'أدبي':tn.includes('تكنو')?'تكنولوجي':'';
     let lastSub='';const cols=[];
-    H.forEach((h,i)=>{if(U[i])lastSub=U[i];const nh=norm(h);if(!/منتصف|نهاي/.test(nh)||/تحويل|مجموع|نسبه|القيمه/.test(nh))return;
+    H.forEach((h,i)=>{if(U[i])lastSub=U[i];const nh=MAIN?(h==='التقييم الرئيسي'?perTxt:''):norm(h);if(!/منتصف|نهاي/.test(nh)||/تحويل|مجموع|نسبه|القيمه/.test(nh))return;
       const sem=/فصل\s*2|الثاني/.test(nh)?2:/فصل\s*3|الثالث/.test(nh)?2:0;const rep=sem+(nh.includes('نهاي')?1:0);const sub=(U[i]||lastSub).trim();if(!sub)return;const key=subjKey(sub);if(SKIP.has(key))return;
       cols.push({i,rep,sub,key,den:nh.includes('منتصف')?30:50});semSeen.add(rep)});
     if(!cols.length)return;
