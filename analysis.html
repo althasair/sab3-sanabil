@@ -666,8 +666,32 @@ function vData(){const sf=sanStaff();
     '<label class="drop" data-drop="'+k+'"><h4>'+t+'</h4><div class="stl">'+d+'</div><input type="file" accept=".xlsx,.xlsm,.xls" multiple><span class="btn">اختيار الملفات</span></label>').join('')+'</div>'+
   '<div class="box"><h3>الملفات المحفوظة</h3>'+(f?'<ul class="stl">'+f+'</ul>':'<p class="stl">لا توجد ملفات بعد.</p>')+'<div class="chips noprint"><button class="btn" data-backup="1">تنزيل نسخة احتياطية</button><label class="btn">استعادة نسخة احتياطية<input type="file" accept=".json" data-restore="1" style="display:none"></label><button class="btn" data-wipe="1" style="color:var(--bad)">مسح بيانات التحليل</button></div></div>'}
 
+
+/* ---------- القيمة المضافة ---------- */
+function goalOf(v){if(v<70)return{t:Math.min(100,r1(v+3)),k:'add',d:'قيمة مضافة 3 درجات'};
+  const nb=v<80?80:v<90?90:null;if(nb&&v>=nb-3)return{t:nb,k:'up',d:'الانتقال إلى فئة '+(nb===90?'90 فأعلى':'80 – 89')};
+  return{t:v>=90?90:v<80?70:80,k:'keep',d:v>=90?'المحافظة على فئة المتفوقات':'المحافظة على الفئة'}}
+function vValue(){if(!M.stu.length)return noData();const prev=UI.per-1;const P=S.cur[prev];
+  const L=filtered({noCat:true,noSub:true});const subs=UI.sub?[UI.sub]:null;
+  let h=head('القيمة المضافة','الهدف لكل طالبة في كل مادة: دون 70 قيمة مضافة 3 درجات، وفي آخر الفئة (77–79 أو 87–89) الانتقال إلى الفئة الأعلى، وفي غير ذلك المحافظة على الفئة، والمتفوقات (90 فأعلى) المحافظة على مستواهن.');
+  if(P){const rows=[];L.forEach(x=>{const o=P[x.pid];if(!o)return;Object.entries(x.g).forEach(([s,v])=>{if(subs&&!subs.includes(s))return;const b=o.g[s];if(typeof v!=='number'||typeof b!=='number')return;const g=goalOf(b);rows.push({x,s,b,v,g,ok:v>=g.t})})});
+    const grp=(f)=>{const m={};rows.forEach(r=>{const k=f(r);if(!k)return;(m[k]=m[k]||{n:0,ok:0}).n++;if(r.ok)m[k].ok++});return Object.entries(m).map(([k,o])=>({l:k,a:o.ok/o.n*100,n:o.n}))};
+    const all=rows.length?rows.filter(r=>r.ok).length/rows.length*100:null;
+    h+='<div class="kpis"><div class="kpi"><span class="l">حققن الهدف</span><span class="v up">'+fmt(all)+'%</span><span class="d eq">'+rows.filter(r=>r.ok).length+' من '+rows.length+' حالة مادة</span></div>'+['add','up','keep'].map(k=>{const a=rows.filter(r=>r.g.k===k);return'<div class="kpi"><span class="l">'+{add:'دون 70: قيمة مضافة 3',up:'الانتقال إلى فئة أعلى',keep:'المحافظة على الفئة'}[k]+'</span><span class="v">'+(a.length?fmt(a.filter(r=>r.ok).length/a.length*100)+'%':'—')+'</span><span class="d eq">'+a.filter(r=>r.ok).length+' من '+a.length+'</span></div>'}).join('')+'</div>';
+    h+='<div class="box"><h3>تحقق الهدف — '+esc(PERIODS[UI.per])+' مقارنة بـ'+esc(PERIODS[prev])+'</h3>'+(UI.sec?'':hbars(grp(r=>'الشعبة '+r.x.s).sort((a,b)=>b.a-a.a),{lw:110}))+'</div>';
+    h+='<div class="box"><h3>حسب المعلمة</h3>'+hbars(grp(r=>{const t=teacherOf(r.x.s,r.s);return t?short2(t)+' — '+r.s:''}).sort((a,b)=>b.a-a.a),{lw:300})+'</div>';
+    const bad=rows.filter(r=>!r.ok).sort((a,b)=>secSort(a.x.s,b.x.s)||(a.v-a.g.t)-(b.v-b.g.t));
+    h+='<div class="box"><div class="toolbar"><h3>لم يتحقق الهدف ('+bad.length+')</h3><button class="btn" data-export="vadd">تصدير Excel</button></div><div class="tw"><table class="gt"><thead><tr><th>الطالبة</th><th>الشعبة</th><th>المادة</th><th>'+esc(PERIODS[prev])+'</th><th>الهدف</th><th>'+esc(PERIODS[UI.per])+'</th><th>الفارق عن الهدف</th></tr></thead><tbody>'+bad.slice(0,400).map(r=>'<tr><td class="nm">'+esc(r.x.n)+'</td><td>'+r.x.s+'</td><td>'+esc(r.s)+'</td>'+cellH(r.b)+'<td>'+fmt(r.g.t)+'<br><small class="cna">'+r.g.d+'</small></td>'+cellH(r.v)+'<td><b class="dn">'+fmt(r.v-r.g.t)+'</b></td></tr>').join('')+'</tbody></table></div></div>';
+    window.__vrows=rows}
+  else h+='<div class="box"><div class="empty">ستظهر نسبة تحقق الأهداف عند رفع درجات '+esc(PERIODS[UI.per+1]||'الفترة التالية')+'.<br>وهذه أهداف الطالبات للتقرير القادم، محسوبة من درجات '+esc(PERIODS[UI.per])+'.</div></div>';
+  const G=[];L.forEach(x=>Object.entries(x.g).forEach(([s,v])=>{if(typeof v!=='number'||(subs&&!subs.includes(s)))return;G.push({x,s,v,g:goalOf(v)})}));
+  const cnt=k=>G.filter(r=>r.g.k===k).length;
+  h+='<div class="box"><div class="toolbar"><h3>أهداف التقرير القادم<small>من درجات '+esc(PERIODS[UI.per])+'</small></h3><button class="btn" data-export="goals">تصدير Excel</button></div><div class="stl">دون 70 (قيمة مضافة 3): <b>'+cnt('add')+'</b> · في آخر الفئة (انتقال): <b>'+cnt('up')+'</b> · محافظة: <b>'+cnt('keep')+'</b></div>'+
+   '<div class="tw"><table class="gt"><thead><tr><th>الطالبة</th><th>الشعبة</th><th>المادة</th><th>الدرجة الحالية</th><th>الهدف</th><th>نوع الهدف</th></tr></thead><tbody>'+G.filter(r=>r.g.k!=='keep').sort((a,b)=>secSort(a.x.s,b.x.s)||a.v-b.v).slice(0,500).map(r=>'<tr><td class="nm">'+esc(r.x.n)+'</td><td>'+r.x.s+'</td><td>'+esc(r.s)+'</td>'+cellH(r.v)+'<td class="tot">'+fmt(r.g.t)+'</td><td>'+r.g.d+'</td></tr>').join('')+'</tbody></table></div><p class="stl">يعرض الجدول حالات القيمة المضافة والانتقال فقط، أما المحافظة فتظهر في ملف Excel.</p></div>';
+  window.__goals=G;return h}
+const short2=n=>String(n||'').split(' و')[0].split(' ').slice(0,2).join(' ');
 /* ---------- shell ---------- */
-const TABS=[['overview','الملخص'],['class','الشعبة'],['sections','مقارنة الشعب'],['subjects','مقارنة المواد'],['teachers','المعلمات'],['last','العام الماضي'],['top','الأوائل والفئات'],['reading','القراءة'],['data','البيانات']];
+const TABS=[['overview','الملخص'],['class','الشعبة'],['sections','مقارنة الشعب'],['subjects','مقارنة المواد'],['teachers','المعلمات'],['last','العام الماضي'],['top','الأوائل والفئات'],['value','القيمة المضافة'],['reading','القراءة'],['data','البيانات']];
 function sidebar(){const lv=[...new Set(M.stu.map(x=>x.l))].sort();const secs=Object.keys(M.secs).filter(s=>!UI.lvl||lvlOf(s)===UI.lvl).sort(secSort);
   const subs=subjectsIn(M.stu.filter(x=>(!UI.lvl||x.l===UI.lvl)&&(!UI.sec||x.s===UI.sec)));
   const opt=(v,t,cur)=>'<option value="'+esc(v)+'"'+(v===cur?' selected':'')+'>'+esc(t)+'</option>';
@@ -681,7 +705,7 @@ function sidebar(){const lv=[...new Set(M.stu.map(x=>x.l))].sort();const secs=Ob
   '<button class="btn reset" data-reset="1">إلغاء التصفية</button>'+(M.stu.length&&!Object.keys(S.reg).length?'<p class="hint">ارفعي سجل القيد لتظهر الجنسيات.</p>':'')+'</aside>'}
 function render(){try{
   $('#nav').innerHTML=TABS.map(([id,l])=>'<button type="button" data-tab="'+id+'"'+(UI.tab===id?' aria-current="page"':'')+'>'+l+'</button>').join('')+'<a class="backlink" href="./">العودة إلى سبع سنابل ←</a>';
-  const v={overview:vOverview,class:vClass,sections:vSections,subjects:vSubjects,teachers:vTeachers,last:vLast,top:vTop,reading:vReading,data:vData}[UI.tab]||vOverview;
+  const v={overview:vOverview,class:vClass,sections:vSections,subjects:vSubjects,teachers:vTeachers,last:vLast,top:vTop,value:vValue,reading:vReading,data:vData}[UI.tab]||vOverview;
   $('#view').innerHTML=UI.tab==='data'?'<div class="content">'+v()+'</div>':'<div class="an-layout">'+sidebar()+'<div class="content">'+v()+'</div></div>';
   const n=M.stu.length;$('#marq').textContent='تحليل النتائج · '+(n?n+' طالبة في '+PERIODS[UI.per]+' · '+Object.keys(M.secs).length+' شعبة · المقارنة بالعام الماضي · الأوائل وفئات الدعم':'ارفعي كشف الدرجات من صفحة البيانات')+' · «وَقُل رَّبِّ زِدْنِي عِلْمًا»';
 }catch(e){console.error(e);$('#view').innerHTML='<div class="box"><div class="empty">حدث خطأ أثناء العرض: '+esc(e.message)+'</div></div>'}}
@@ -693,6 +717,8 @@ function exportX(kind){const wb=XLSX.utils.book_new();let rows=[],name='';
   if(kind==='teachers'){Object.entries(M.T).forEach(([k,ns])=>{const[sec,sub]=k.split('|');if(UI.lvl&&lvlOf(sec)!==UI.lvl)return;const st=statOf(vals(M.stu.filter(x=>x.s===sec),sub));if(st)ns.forEach(n=>rows.push({'المعلمة':n,'المادة':sub,'الشعبة':sec,'الطالبات':st.n,'نسبة التحصيل':r1(st.m),'90 فأعلى':st.c[0],'دون 70':st.c[3]+st.c[4]}))});name='المعلمات'}
   if(kind==='top'){filtered({noCat:true}).filter(x=>x.avg!=null&&!x.barred).sort((a,b)=>secSort(a.s,b.s)||b.avg-a.avg).forEach(x=>rows.push({'الشعبة':x.s,'الاسم':x.n,'الجنسية':x.nat,'النسبة':r1(x.avg)}));name='الترتيب'}
   if(/^sup/.test(kind)){const q=kind==='supq';filtered({noCat:true}).filter(x=>(q?isQ(x.nat):!isQ(x.nat))).forEach(x=>Object.entries(x.g).forEach(([s,v])=>{if(typeof v==='number'&&v<70)rows.push({'الاسم':x.n,'الرقم الشخصي':x.pid,'الشعبة':x.s,'الجنسية':x.nat,'المادة':s,'النسبة':v,'المعلمة':teacherOf(x.s,s)})}));name='فئة الدعم '+(q?'القطريات':'غير القطريات')}
+  if(kind==='vadd'){(window.__vrows||[]).forEach(r=>rows.push({'الاسم':r.x.n,'الرقم الشخصي':r.x.pid,'الشعبة':r.x.s,'الجنسية':r.x.nat,'المادة':r.s,'المعلمة':teacherOf(r.x.s,r.s),'الدرجة السابقة':r.b,'الهدف':r.g.t,'نوع الهدف':r.g.d,'الدرجة الحالية':r.v,'تحقق الهدف':r.ok?'نعم':'لا'}));name='القيمة المضافة'}
+  if(kind==='goals'){(window.__goals||[]).forEach(r=>rows.push({'الاسم':r.x.n,'الرقم الشخصي':r.x.pid,'الشعبة':r.x.s,'الجنسية':r.x.nat,'المادة':r.s,'المعلمة':teacherOf(r.x.s,r.s),'الدرجة الحالية':r.v,'الهدف':r.g.t,'نوع الهدف':r.g.d}));name='أهداف التقرير القادم'}
   const ws=XLSX.utils.json_to_sheet(rows);ws['!views']=[{RTL:true}];wb.Workbook={Views:[{RTL:true}]};XLSX.utils.book_append_sheet(wb,ws,'البيانات');
   const out=XLSX.write(wb,{bookType:'xlsx',type:'array'});download(name+' - '+PERIODS[UI.per]+'.xlsx',new Blob([out],{type:'application/octet-stream'}))}
 document.addEventListener('click',e=>{const b=e.target.closest('[data-tab],[data-sec],[data-cat],[data-sort],[data-export],[data-reset],[data-regen],[data-copy],[data-backup],[data-wipe]');if(!b)return;
