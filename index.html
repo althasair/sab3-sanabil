@@ -864,7 +864,7 @@ function importResults(book){
   const firstSem=semSeen.has(0)||semSeen.has(1);
   let added=out.length,merged=0;
   if(!firstSem&&S.roster.length&&!S.demo){const m=new Map(S.roster.map(r=>[norm(r.name)+'|'+secKey(r.section)+'|'+subjDK(r.subject),r]));added=0;out.forEach(o=>{const r=m.get(norm(o.name)+'|'+o.section+'|'+subjDK(o.subject));if(r){[2,3].forEach(i=>{if(o.scores[i]!=null){r.scores[i]=o.scores[i];r.raw=r.raw||[null,null,null,null];r.den=r.den||[null,null,null,null];r.raw[i]=o.raw[i];r.den[i]=o.den[i]}});merged++}else{S.roster.push(o);added++}})}
-  else{if(S.demo){S.actions=[];S.charters=[]}S.roster=out}
+  else{if(S.demo){S.actions=[];S.charters=[];S.roster=out}else{const lv=new Set(out.map(o=>String(o.section).split('-')[0]));S.roster=S.roster.filter(r=>!lv.has(String(secKey(r.section)).split('-')[0])).concat(out)}}
   S.demo=false;S.settings.tests=['منتصف الفصل الأول','نهاية الفصل الأول','منتصف الفصل الثاني','نهاية الفصل الثاني'];
   const stuSet=new Set(out.map(o=>norm(o.name)+'|'+o.section)),stu=stuSet.size,noT=out.filter(o=>!o.teacher).length;const bAll=[...barred.entries()].filter(([k])=>!stuSet.has(k)).map(x=>x[1]);S.barred=[...barred.values()];
   return 'تم استيراد نتائج '+stu+' طالبة ('+out.length+' درجة مادة)'+(merged?'، وتحديث '+merged+' صف بدرجات الفصل الثاني':'')+'، منها '+derive(S).targets.length+' حالة مستهدفة.'+(noT?' تعذّر ربط '+noT+' صف بمعلمة (شعبة أو مادة غير موجودة في توزيع المعلمات).':'')+(bAll.length?' لم تُحتسب '+bAll.length+' طالبة لأنها «محرومة» في جميع المواد: '+bAll.join('، ')+'.':'');
