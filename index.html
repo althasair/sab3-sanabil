@@ -613,11 +613,11 @@ function vSeven(){
   const cnt={};KEYS.forEach(k=>cnt[k.k]={n:0,stu:0});
   S.actions.forEach(a=>cnt[a.type]&&cnt[a.type].n++);
   D.targets.forEach(t=>t.ears.forEach(k=>cnt[k].stu++));
-  cnt[2].n=S.charters.length;
+  cnt[2].n=S.charters.length;cnt[6].n+=(S.honors||[]).length;
   const list=UI.fKey?(UI.fKey===2?[]:S.actions.filter(a=>a.type===UI.fKey)):[];
   return demoBar()+crown('السنابل السبع','إجراءات رفع التحصيل','فَمَن يَعْمَلْ مِثْقَالَ ذَرَّةٍ خَيْرًا يَرَهُ','الزلزلة: 7','سبعة إجراءات معتمدة، كل منها سنبلة. اضغطي على أي إجراء لعرض سجله.')+
   '<div class="seven">'+KEYS.map(k=>'<button type="button" class="sv" data-key="'+k.k+'" aria-pressed="'+(UI.fKey===k.k)+'"><span class="row" style="gap:6px"><span class="no">السنبلة '+['الأولى','الثانية','الثالثة','الرابعة','الخامسة','السادسة','السابعة'][k.k-1]+'</span><span class="pill '+(CORE.includes(k.k)?'gold':'ok')+'">'+(CORE.includes(k.k)?'أساسية':'إثرائية ⭐')+'</span></span><span class="t">'+k.full+'</span><span class="row" style="gap:12px;align-items:flex-end">'+earSVG(true).replace('<svg','<svg style="width:16px;height:32px"')+'<span class="c">'+cnt[k.k].n+'</span><span class="d">'+(k.k===2?'ميثاق':'إجراء مرصود')+' · '+pct(cnt[k.k].stu/(D.targets.length||1))+' من الحالات</span></span><span class="d">'+k.desc+'</span></button>').join('')+'</div>'+
-  (UI.fKey===3?enrichPanel():'')+(UI.fKey&&UI.fKey!==3?'<section class="panel"><h3>سجل: '+KEYS[UI.fKey-1].full+'</h3>'+(UI.fKey===2?'<p class="muted">مواثيق الشراكة معروضة في قسم «ميثاق الشراكة».</p><button class="btn sm pri" data-go="charter">فتح ميثاق الشراكة</button>':
+  (UI.fKey===3?enrichPanel():'')+(UI.fKey===6?honorPanel():'')+(UI.fKey&&UI.fKey!==3?'<section class="panel"><h3>سجل: '+KEYS[UI.fKey-1].full+'</h3>'+(UI.fKey===2?'<p class="muted">مواثيق الشراكة معروضة في قسم «ميثاق الشراكة».</p><button class="btn sm pri" data-go="charter">فتح ميثاق الشراكة</button>':
   '<div class="tbl-wrap"><table><thead><tr><th>التاريخ</th><th>المعلمة</th><th>الشعبة</th><th>الطالبات</th><th>التفاصيل</th><th>الدليل</th></tr></thead><tbody>'+list.slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))).map(a=>'<tr><td class="small">'+esc(a.date)+'</td><td>'+esc(a.teacher)+'</td><td>'+esc(a.section)+'</td><td class="small">'+(a.whole?'<span class="pill gold">الشعبة كاملة</span>':esc(a.students.join('، ')))+'</td><td class="small">'+esc(a.detail)+'</td><td>'+(a.evidence&&/^https?:/.test(a.evidence)?'<a href="'+esc(a.evidence)+'" target="_blank" rel="noopener">فتح</a>':'<span class="muted">—</span>')+'</td></tr>').join('')+'</tbody></table></div>')+'</section>':'');
 }
 
@@ -737,7 +737,7 @@ function vData(){
   return crown('كتابٌ مرقوم','البيانات والنماذج','كِتَابٌ مَّرْقُومٌ ۝ يَشْهَدُهُ الْمُقَرَّبُونَ','المطففين: 20–21','تُقرأ الملفات داخل متصفحك فقط، ولا تُرفع إلى أي خادم. وتبقى محفوظة في هذا المتصفح للزيارة التالية؛ لذلك احتفظي بنسخة احتياطية.')+
   '<div class="grid2">'+
   dropBox('roster','1. ملف الطالبات والدرجات','ملف تحليل النتائج المعتمد في المدرسة كما هو (أوراق المقارنة: منتصف الفصل ونهايته لكل مادة)، وتُربط كل مادة بمعلمتها تلقائيًا من توزيع الشعب. ملف الفصل الثاني يُضاف لاحقًا فيُكمل التقريرين الثالث والرابع. ويُقبل أيضًا ملف بسيط: صف لكل طالبة في كل مادة.',S.roster.length+' صف · '+D.targets.length+' حالة مستهدفة · آخر اختبار مُدخل: '+esc(S.settings.tests[L]),'<button class="btn sm" id="tplRoster">تنزيل القالب</button>')+
-  dropBox('actions','2. ردود نموذج «سجّلي إجراءك»','من Forms: الردود ← فتح في Excel ← تنزيل الملف. يُقبل نموذج «سجّلي إجراءك»، ونموذج الحصص الإثرائية الجماعية كما هو، وكشف الحصص الفردية (اسم الطالبة، الشعبة، المادة، المعلمة، التاريخ). ولكل نوع مكانه، فلا يحذف ملفٌ ملفًا آخر. والحصة المكررة (نفس التاريخ والمعلمة والشعبة والمادة والطالبات) تُستبعد تلقائيًا.',S.actions.length+' إجراء مرصود','<span class="small" style="display:flex;gap:12px;flex-wrap:wrap"><label><input type="radio" name="actMode" value="append"'+((S.settings.actMode||'append')==='append'?' checked':'')+'> إضافة إلى السابق (تراكمي)</label><label><input type="radio" name="actMode" value="replace"'+(S.settings.actMode==='replace'?' checked':'')+'> حذف السابق من النوع نفسه وإضافة الجديد</label></span><button class="btn sm" id="wipeActs" style="color:var(--bad)">حذف كل الإجراءات والحصص</button>')+
+  dropBox('actions','2. ردود نموذج «سجّلي إجراءك»','من Forms: الردود ← فتح في Excel ← تنزيل الملف. يُقبل نموذج «سجّلي إجراءك»، ونموذج الحصص الإثرائية الجماعية كما هو، ونموذج «مجتمع الشيماء» للتكريم كما هو، وكشف الحصص الفردية (اسم الطالبة، الشعبة، المادة، المعلمة، التاريخ). ولكل نوع مكانه، فلا يحذف ملفٌ ملفًا آخر. والحصة المكررة (نفس التاريخ والمعلمة والشعبة والمادة والطالبات) تُستبعد تلقائيًا.',S.actions.length+' إجراء مرصود','<span class="small" style="display:flex;gap:12px;flex-wrap:wrap"><label><input type="radio" name="actMode" value="append"'+((S.settings.actMode||'append')==='append'?' checked':'')+'> إضافة إلى السابق (تراكمي)</label><label><input type="radio" name="actMode" value="replace"'+(S.settings.actMode==='replace'?' checked':'')+'> حذف السابق من النوع نفسه وإضافة الجديد</label></span><button class="btn sm" id="wipeActs" style="color:var(--bad)">حذف كل الإجراءات والحصص</button>')+
   dropBox('charter','3. ردود نموذج «ميثاق الشراكة»','ملف ردود الطالبات من Forms.',S.charters.length+' ميثاق','')+
   dropBox('contacts','4. المعلمات وتوزيع الشعب','ملف توزيع معلمات المواد الأساسية (الاسم، الصفة، المادة، الشعب، النصاب، البريد، الهاتف)، أو قالب التواصل البسيط.',(S.staff?S.staff.length+' معلمة مستوردة · ':'')+Object.values(S.contacts||{}).filter(c=>c.phone||c.email).length+' معلمة لديها بيانات تواصل','<button class="btn sm" id="tplContacts">تنزيل القالب</button>')+
   '<section class="panel"><h3>الإعدادات</h3><div class="row" style="gap:16px"><label>حد التدني <input type="number" id="thr" min="40" max="100" value="'+S.settings.threshold+'" style="width:80px"></label><label>القيمة المضافة المستهدفة في كل تقرير <input type="number" id="mstep" min="1" max="10" value="'+(S.settings.minStep||4)+'" style="width:70px"></label><label>نائب المديرة للشؤون الأكاديمية <input type="text" id="vp" value="'+esc(S.settings.vp)+'" style="width:170px"></label></div><div class="row" style="margin-top:16px"><button class="btn sm" id="bkOut">تنزيل نسخة احتياطية</button><label class="btn sm">استعادة نسخة<input type="file" id="bkIn" accept=".json" hidden></label><span class="sp"></span><button class="btn sm" id="toDemo">عرض البيانات التجريبية</button><button class="btn sm" id="wipe" style="color:var(--bad)">مسح كل البيانات</button></div><div id="wipeConfirm" class="hide demo-bar" style="margin-top:12px"><span>سيتم مسح كل بيانات الطالبات والإجراءات من هذا المتصفح.</span><span class="sp"></span><button class="btn sm" id="wipeYes" style="color:var(--bad)">تأكيد المسح</button><button class="btn sm" id="wipeNo">إلغاء</button></div></section>'+
@@ -925,9 +925,34 @@ function importIndivList(rows){
   const mg=mergeActs(out,a=>a.src==='indiv');
   return 'تم استيراد '+mg.added+' جلسة إثرائية فردية تضم '+out.reduce((s,a)=>s+a.students.length,0)+' اسم طالبة'+mg.note+'.';
 }
+function honorNum(v){const t=String(v==null?'':v).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d));const m=/\d+/.exec(t);return m?+m[0]:null}
+function importHonors(rows){
+  const h=rows[0].map(x=>String(x).replace(/ /g,' '));const g=k=>findCol(h,k);
+  const cD=g(['وقت الاكمال','completion time','وقت البدء','start time']),cBy=g(['مسؤوله التكريم','مسووله التكريم']),cRole=g(['المسمي الوظيفي']),cCat=g(['الفئه المكرمه']),cNat=g(['الجنسيه']),cQ=g(['عدد القطريات']),cT=g(['العدد الاجمالي']);
+  const out=[];rows.slice(1).forEach(r=>{const by=String(r[cBy]||'').replace(/ /g,' ').trim();const total=honorNum(r[cT]);if(!by&&total==null)return;
+    const natS=norm(r[cNat]);const tRaw=String(r[cT]||'').trim();const note=tRaw.replace(/^[\d٠-٩\s.]+/,'').trim();
+    out.push({date:String(r[cD]||'').slice(0,10),by,role:String(r[cRole]||'').replace(/ /g,' ').trim(),cat:String(r[cCat]||'').trim()||'غير محددة',natQ:natS.replace(/غير قطريه/g,'').includes('قطريه'),natN:natS.includes('غير قطريه'),q:honorNum(r[cQ]),total,note})});
+  if(!out.length)throw new Error('لم يتم العثور على ردود صالحة في نموذج مجتمع الشيماء.');
+  const hk=x=>[x.date,norm(x.by),norm(x.cat),x.q,x.total].join('|');const replace=(S.settings.actMode||'append')==='replace';
+  const base=replace?[]:(S.honors||[]).slice();const seen=new Set(base.map(hk));let added=0,dup=0;out.forEach(x=>{const k=hk(x);if(seen.has(k)){dup++;return}seen.add(k);base.push(x);added++});S.honors=base;
+  const tot=out.reduce((a,x)=>a+(x.total||0),0);
+  return 'تم استيراد '+added+' سجل تكريم من نموذج «مجتمع الشيماء» (إجمالي المكرمات في الملف: '+tot+')'+(dup?'، واستُبعد '+dup+' مكرر':'')+'.';
+}
+function honorPanel(){const H=S.honors||[];
+  let h='<section class="panel"><h3>مجتمع الشيماء — التكريم والتحفيز</h3><p class="small muted">من ردود نموذج «مجتمع الشيماء» (مسؤولة التكريم، الفئة المكرمة، الجنسية، العدد). يُرفع الملف كما هو من هنا، أو من «البيانات والنماذج» في خانة ردود النماذج. <span data-msg-for="actions"></span></p>'+
+   '<div class="row" style="gap:10px;margin-bottom:10px"><label class="btn sm pri">رفع ملف مجتمع الشيماء<input type="file" data-enr-up="1" accept=".xlsx,.xls,.csv" hidden></label>'+(H.length?'<button class="btn sm" id="wipeHon" style="color:var(--bad)">حذف سجلات التكريم</button>':'')+'</div>';
+  if(!H.length)return h+'<p class="muted">لم يُرفع ملف مجتمع الشيماء بعد.</p></section>';
+  const stu=H.filter(x=>norm(x.cat).includes('طالب'));const T=H.reduce((a,x)=>a+(x.total||0),0),ST=stu.reduce((a,x)=>a+(x.total||0),0),SQ=stu.reduce((a,x)=>a+(x.q||0),0);
+  const byCat={},byBy={};H.forEach(x=>{const c=byCat[x.cat]=byCat[x.cat]||{n:0,t:0,q:0};c.n++;c.t+=x.total||0;c.q+=x.q||0;let nm=(/ و/.test(x.by)?x.by:(officialTeacher(x.by,'','')||x.by));if(!/\s/.test(nm.trim())){const full=H.map(y=>officialTeacher(y.by,'','')||y.by).filter(y=>/\s/.test(y.trim())&&!/ و/.test(y)&&norm(y).split(' ')[0]===norm(nm));if(new Set(full.map(norm)).size===1)nm=full[0]}const k=norm(nm);const b=byBy[k]=byBy[k]||{name:nm,n:0,t:0,cats:new Set()};b.n++;b.t+=x.total||0;b.cats.add(x.cat)});
+  h+='<div class="row" style="gap:10px;margin-bottom:12px;flex-wrap:wrap"><span class="pill gold">إجمالي المكرمات: '+T+'</span><span class="pill">سجلات التكريم: '+H.length+'</span><span class="pill ok">الطالبات المكرمات: '+ST+'</span><span class="pill">منهن قطريات: '+SQ+'</span><span class="pill">غير قطريات: '+Math.max(0,ST-SQ)+'</span></div>';
+  h+='<div class="grid2"><div class="tbl-wrap"><table><thead><tr><th>الفئة المكرمة</th><th>مرات التكريم</th><th>عدد المكرمات</th><th>منهن قطريات</th></tr></thead><tbody>'+Object.entries(byCat).sort((a,b)=>b[1].t-a[1].t).map(([c,o])=>'<tr><td><b>'+esc(c)+'</b></td><td class="num">'+o.n+'</td><td class="num">'+o.t+'</td><td class="num">'+(o.q||'—')+'</td></tr>').join('')+'</tbody></table></div>'+
+   '<div class="tbl-wrap"><table><thead><tr><th>مسؤولة التكريم</th><th>مرات التكريم</th><th>عدد المكرمات</th><th>الفئات</th></tr></thead><tbody>'+Object.values(byBy).sort((a,b)=>b.t-a.t).map(o=>'<tr><td>'+esc(o.name)+'</td><td class="num">'+o.n+'</td><td class="num">'+o.t+'</td><td class="small">'+esc([...o.cats].join('، '))+'</td></tr>').join('')+'</tbody></table></div></div>';
+  h+='<details style="margin-top:10px"><summary class="small" style="cursor:pointer">عرض كل سجلات التكريم ('+H.length+')</summary><div class="tbl-wrap" style="margin-top:8px"><table><thead><tr><th>التاريخ</th><th>مسؤولة التكريم</th><th>المسمى الوظيفي</th><th>الفئة</th><th>الجنسية</th><th>القطريات</th><th>الإجمالي</th><th>ملاحظة</th></tr></thead><tbody>'+
+   H.slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))).map(x=>'<tr><td class="small">'+esc(x.date)+'</td><td>'+esc(x.by)+'</td><td class="small">'+esc(x.role)+'</td><td>'+esc(x.cat)+'</td><td class="small">'+[x.natQ?'قطرية':'',x.natN?'غير قطرية':''].filter(Boolean).join('، ')+'</td><td class="num">'+(x.q==null?'—':x.q)+'</td><td class="num">'+(x.total==null?'—':x.total)+'</td><td class="small">'+esc(x.note)+'</td></tr>').join('')+'</tbody></table></div></details></section>';
+  return h}
 function importActions(rows){
   if(rows.book){const sh=Object.values(rows.book).find(t=>t[0]&&t[0].some(x=>norm(x)==='اسم الطالبه')&&t[0].some(x=>norm(x)==='الشعبه'));if(sh)return importIndivList(sh)}
-  {const h0=rows[0].map(x=>norm(String(x).replace(/ /g,' ')));if(h0.some(x=>x.includes('اسم الطالبه'))&&h0.some(x=>x.includes('الشعبه'))&&!h0.some(x=>x.includes('نوع الاجراء')))return importIndivList(rows);
+  {const h0=rows[0].map(x=>norm(String(x).replace(/ /g,' ')));if(h0.some(x=>x.includes('مسووله التكريم')||x.includes('مسؤوله التكريم')||x.includes('الفئه المكرمه')))return importHonors(rows);if(h0.some(x=>x.includes('اسم الطالبه'))&&h0.some(x=>x.includes('الشعبه'))&&!h0.some(x=>x.includes('نوع الاجراء')))return importIndivList(rows);
    if(h0.some(x=>x.includes('اسم المعلمه'))&&h0.some(x=>x.includes('الشعبه'))&&h0.some(x=>x.includes('المستوي'))&&!h0.some(x=>x.includes('نوع الاجراء')))return importEnrichForm(rows);}
   const h=rows[0].map(String);
   const cDate=findCol(h,['وقت الاكمال','completion','وقت البدء','start time','التاريخ']);
@@ -1015,7 +1040,7 @@ document.addEventListener('click',async e=>{
   if(e.target.closest('#toDemo')){S=makeDemo();refresh();toast('تم تحميل البيانات التجريبية');return}
   if(e.target.closest('#wipe')){$('#wipeConfirm').classList.remove('hide');return}
   if(e.target.closest('#wipeNo')){$('#wipeConfirm').classList.add('hide');return}
-  if(e.target.closest('#wipeYes')){S={settings:Object.assign({},DEFAULT_SETTINGS,{vp:S.settings.vp}),roster:[],actions:[],charters:[],demo:false};refresh();toast('تم مسح البيانات');return}
+  if(e.target.closest('#wipeYes')){S={settings:Object.assign({},DEFAULT_SETTINGS,{vp:S.settings.vp}),roster:[],actions:[],charters:[],honors:[],demo:false};refresh();toast('تم مسح البيانات');return}
 });
 document.addEventListener('input',e=>{
   if(e.target.id==='q'){UI.q=e.target.value;const pos=e.target.selectionStart;render();const q=$('#q');if(q){q.focus();try{q.setSelectionRange(pos,pos)}catch(_){}}}
@@ -1056,6 +1081,7 @@ document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest
 document.addEventListener('change',e=>{if(e.target&&e.target.dataset&&e.target.dataset.enrUp&&e.target.files.length){(async()=>{for(const f of [...e.target.files])await handleFile('actions',f)})();}});
 
 document.addEventListener('change',e=>{if(e.target&&e.target.name==='actMode'){S.settings.actMode=e.target.value;save();toast(e.target.value==='replace'?'سيُحذف السابق من النوع نفسه عند رفع ملف جديد':'سيُضاف الجديد إلى السابق مع استبعاد المكرر')}});
+document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('#wipeHon')){if(confirm('حذف جميع سجلات التكريم المرفوعة من نموذج مجتمع الشيماء؟')){S.honors=[];refresh();toast('تم حذف سجلات التكريم')}}});
 document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('#wipeActs')){if(confirm('حذف جميع الإجراءات والحصص الإثرائية المرفوعة؟ تبقى الدرجات والمواثيق كما هي.')){S.actions=[];refresh();toast('تم حذف الإجراءات والحصص')}}});
 render();
 })();
