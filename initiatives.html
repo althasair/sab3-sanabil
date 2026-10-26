@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>مبادراتي وأنشطتي — سبع سنابل</title>
+<meta name="robots" content="noindex,nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Aref+Ruqaa:wght@400;700&family=Amiri+Quran&family=Tajawal:wght@400;500;700;800&display=swap">
+<style>
+:root{--maroon:#62102A;--maroon-2:#4A0B20;--maroon-soft:rgba(138,21,56,.08);--gold:#B8903A;--gold-2:#E0BE73;--cream:#FFF5D3;--navy:#16233F;--navy-soft:rgba(22,35,63,.07);--bg:#FCFAF6;--paper:#fff;--ink:#2A1820;--muted:#7D6E73;--line:#F0E6D6;--ok:#1F8A5B;--ok-soft:#E3F5EC;--bad:#B4233F;--f-ui:'Tajawal','IBM Plex Sans Arabic',Tahoma,sans-serif;--f-brand:'Aref Ruqaa','Amiri',serif;--r:20px;--shadow:0 12px 32px -22px rgba(88,20,40,.28)}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-ui);font-size:15.5px;line-height:1.75}
+button,input,select,textarea{font:inherit;color:inherit}
+.band{background:linear-gradient(110deg,#6A1230,#520D25 55%,#3A0817);color:#fff}
+.in{max-width:1040px;margin:0 auto;padding-inline:16px}
+.band .in{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-block:14px}
+.brand h1{margin:0;font-family:var(--f-brand);font-size:32px;line-height:1.4;color:var(--gold-2)}
+.brand span{font-size:13.5px;opacity:.9}
+.who{font-size:13.5px;text-align:left}.who b{display:block;color:var(--gold-2);font-size:15px}
+.who button{all:unset;cursor:pointer;border:1px solid rgba(224,190,115,.6);border-radius:10px;padding:2px 10px;margin-top:4px;font-size:12.5px}
+main .in{padding-block:22px 50px;display:flex;flex-direction:column;gap:18px}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:18px 18px;box-shadow:var(--shadow)}
+.card h2{margin:0 0 10px;color:var(--maroon);font-size:19px}
+.verse{font-family:'Amiri Quran','Amiri',serif;color:var(--navy);font-size:20px;text-align:center;margin:0}
+.verse cite{display:block;font-family:var(--f-ui);font-size:12px;color:var(--muted);font-style:normal}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.tile{all:unset;cursor:pointer;background:linear-gradient(160deg,#fff,#FFF9EE);border:1.5px solid rgba(184,144,58,.5);border-radius:var(--r);padding:18px;display:flex;flex-direction:column;gap:6px;box-shadow:var(--shadow)}
+.tile b{font-size:19px;color:var(--maroon)}.tile span{color:var(--muted);font-size:13.5px}.tile .n{align-self:flex-start;background:var(--maroon);color:#fff;border-radius:999px;padding:0 12px;font-weight:800}
+.tile[aria-current]{border-color:var(--maroon);box-shadow:0 0 0 3px var(--maroon-soft)}
+.btn{all:unset;cursor:pointer;background:linear-gradient(180deg,#6E1432,#470A1E);color:#fff;border-radius:12px;padding:8px 18px;font-weight:800;display:inline-block}
+.btn.sec{background:#fff;color:var(--maroon);border:1.5px solid var(--maroon)}.btn.ghost{background:transparent;color:var(--bad);border:1px solid var(--line)}.btn.sm{padding:4px 12px;font-size:13px}
+.form{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+.fld{display:flex;flex-direction:column;gap:4px}.fld.w{grid-column:1/-1}
+.fld label{font-weight:700;font-size:13.5px;color:var(--navy)}
+.fld input,.fld select,.fld textarea{border:1px solid var(--line);border-radius:12px;padding:8px 10px;background:#fff}
+.fld input:focus,.fld select:focus,.fld textarea:focus{outline:2px solid var(--gold-2)}
+.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.sp{flex:1}
+.list{display:flex;flex-direction:column;gap:8px}
+.rec{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);border-radius:14px;padding:10px 12px;background:#fff}
+.rec .dt{min-width:54px;text-align:center;background:var(--cream);border-radius:10px;font-weight:800;color:var(--maroon);padding:2px 6px}
+.rec .tx{flex:1}.rec small{color:var(--muted)}
+.chip{display:inline-block;border-radius:999px;padding:0 10px;font-size:12.5px;background:var(--navy-soft);color:var(--navy)}
+.chip.ok{background:var(--ok-soft);color:var(--ok)}
+.note{background:var(--cream);border:1px solid rgba(184,144,58,.4);border-radius:14px;padding:8px 12px;font-size:13.5px}
+.empty{color:var(--muted);text-align:center;padding:18px}
+table{width:100%;border-collapse:collapse;font-size:13.5px}th,td{border-bottom:1px solid var(--line);padding:7px 6px;text-align:right;vertical-align:top}th{color:var(--navy);background:#FBF6EC}
+.tbl{overflow-x:auto}
+.login{min-height:78vh;display:grid;place-items:center}
+.login .card{width:min(400px,100%);text-align:center}
+.dots{display:flex;gap:10px;justify-content:center;margin:12px 0 14px;direction:ltr}.dots span{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--muted)}.dots span.on{background:var(--maroon);border-color:var(--maroon)}
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:270px;margin:0 auto;direction:ltr}
+.pad button{height:54px;border-radius:14px;border:1px solid var(--line);background:#fff;font-size:21px;color:var(--navy);cursor:pointer}
+.err{color:var(--bad);min-height:24px;margin-top:8px}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:10px 18px;border-radius:12px;z-index:99}
+.toast.bad{background:var(--bad)}
+.busy{position:fixed;inset:0;background:rgba(255,255,255,.5);display:grid;place-items:center;z-index:98}
+.busy i{width:38px;height:38px;border:4px solid var(--gold-2);border-top-color:var(--maroon);border-radius:50%;animation:s 1s linear infinite}@keyframes s{to{transform:rotate(1turn)}}
+a{color:var(--maroon)}
+</style>
+</head>
+<body>
+<header class="band"><div class="in"><div class="brand"><h1>سبع سنابل</h1><span>مبادراتي وأنشطتي · مدرسة الشيماء الثانوية للبنات</span></div><div class="who" id="who"></div></div></header>
+<main><div class="in" id="view"></div></main>
+<script>
+'use strict';
+/* يحفظ في قاعدة بيانات «الميزان» نفسها (خادم Apps Script)، فتظهر المبادرات والأنشطة للنائب الأكاديمي مباشرة */
+const API = 'https://script.google.com/macros/s/AKfycbwrHtnYznB7mfbk3l9nGaTEXbRfxOeZZGCQcr3yMe000mErnEtyx44J8Crx8VAeuYLN/exec';
+const TG = ['طالبات الصف العاشر','طالبات الصف الحادي عشر','طالبات الصف الثاني عشر','جميع الطالبات','طالبات شعبتي','الطالبات الواعدات','الموهوبات والمتفوقات','أولياء الأمور','المعلمات'];
+const IMP = ['تعزيز القيم والسلوك الإيجابي لدى الطالبات','رفع دافعية الطالبات نحو التعلم','تنمية مهارات التواصل والعرض','تعزيز الانتماء والهوية الوطنية','تنمية مهارات التفكير والإبداع','تحسن في التحصيل الدراسي','تعزيز الشراكة مع أولياء الأمور','اكتشاف الموهوبات ورعايتهن','زيادة الوعي بالقضية المطروحة'];
+const PRIO = ['الأولوية 1: رفع مستوى التحصيل الأكاديمي','الأولوية 2: أثر التدريب المهني والتقنيات','الأولوية 3: جودة الحياة المدرسية والانتماء','الأولوية 4: الشراكة مع أولياء الأمور'];
+const SRC = ['نشاط استحدثته مع طالباتي','نشاط قائم في المدرسة شاركتُ فيه'];
+const S = { tok: sessionStorage.getItem('sab3_tok'), user: null, recs: [], acts: [], staff: [], tab: 'home', edit: null, draft: null, f: { kind: '', dept: '' } };
+const $ = (q, e = document) => e.querySelector(q), $$ = (q, e = document) => [...e.querySelectorAll(q)];
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const today = () => new Date(Date.now() - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
+const dm = d => { if (!d) return ''; const [y, m, x] = d.split('-'); return `${+x}/${+m}`; };
+const toast = (t, bad) => { const e = document.createElement('div'); e.className = 'toast' + (bad ? ' bad' : ''); e.textContent = t; document.body.appendChild(e); setTimeout(() => e.remove(), bad ? 4500 : 2600); };
+async function call(action, p = {}) {
+  const b = document.createElement('div'); b.className = 'busy'; b.innerHTML = '<i></i>'; document.body.appendChild(b);
+  try {
+    const r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(Object.assign({ action, token: S.tok, app: 'sanabil' }, p)) });
+    const j = await r.json(); if (!j.ok) { if (/انتهت الجلسة/.test(j.error || '')) { sessionStorage.removeItem('sab3_tok'); setTimeout(() => location.reload(), 1200); } throw new Error(j.error || 'خطأ'); }
+    return j;
+  } catch (e) { toast(e.message === 'Failed to fetch' ? 'تعذّر الاتصال بالخادم. تحققي من الإنترنت.' : e.message, 1); throw e; } finally { b.remove(); }
+}
+const isAdmin = () => S.user && S.user.role === 'admin';
+const mine = k => S.recs.filter(r => r.item === 'TA' && (!k || r.d.kind === k)).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
+/* ---------------- الدخول */
+function login() {
+  $('#who').innerHTML = '';
+  $('#view').innerHTML = `<div class="login"><div class="card"><p class="verse">﴿وَقُلِ اعْمَلُوا فَسَيَرَى اللَّهُ عَمَلَكُمْ﴾<cite>التوبة: 105</cite></p><h2 style="margin-top:12px">مبادراتي وأنشطتي</h2><div>أدخلي رقمك السري</div><div class="dots" id="dots"></div>
+    <div class="pad">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => `<button data-k="${n}">${n}</button>`).join('')}<button data-k="del">مسح</button><button data-k="0">0</button><button data-k="ok">دخول</button></div><div class="err" id="err"></div></div></div>`;
+  let pin = ''; const draw = () => { $('#dots').innerHTML = Array.from({ length: Math.max(4, pin.length) }, (_, i) => `<span class="${i < pin.length ? 'on' : ''}"></span>`).join(''); };
+  const go = async () => { if (pin.length < 4) return; $('#err').textContent = ''; try { const j = await call('login', { pin }); S.tok = j.token; sessionStorage.setItem('sab3_tok', j.token); await boot(); } catch (e) { $('#err').textContent = e.message; pin = ''; draw(); } };
+  $$('.pad button').forEach(b => b.onclick = () => { const k = b.dataset.k; if (k === 'del') pin = pin.slice(0, -1); else if (k === 'ok') return go(); else if (pin.length < 8) pin += k; draw(); });
+  document.onkeydown = e => { if (!$('#dots')) return; if (/^\d$/.test(e.key) && pin.length < 8) { pin += e.key; draw(); } else if (e.key === 'Backspace') { pin = pin.slice(0, -1); draw(); } else if (e.key === 'Enter') go(); };
+  draw();
+}
+async function boot() {
+  const j = await call('boot');
+  if (j.user.role === 'coord') { sessionStorage.removeItem('sab3_tok'); toast('هذه الصفحة للمعلمات', 1); return login(); }
+  Object.assign(S, { user: j.user, recs: (j.records || []).filter(r => r.item === 'TA'), acts: j.acts || [], staff: j.staff || [] });
+  if (isAdmin() && !S.acts.length) { const n = {}; (j.records || []).filter(r => r.item === 'AC').forEach(r => { const x = String(r.d.name || '').replace(/\s*—.*$/, '').trim(); if (x) n[x] = 1; }); S.acts = Object.keys(n).sort(); }
+  document.onkeydown = null; render();
+}
+async function logout() { try { await call('logout'); } catch (e) {} sessionStorage.removeItem('sab3_tok'); location.reload(); }
+
+/* ---------------- الواجهة */
+function render() {
+  $('#who').innerHTML = `<b>${esc(S.user.name)}</b>${isAdmin() ? 'نائب المدير للشؤون الأكاديمية' : 'معلمة ' + esc(S.user.dept.join(' و'))}<br><button id="out">تسجيل الخروج</button>`;
+  $('#out').onclick = logout;
+  return isAdmin() ? adminView() : teacherView();
+}
+function teacherView() {
+  const I = mine('مبادرة'), A = mine('نشاط');
+  const tab = S.tab;
+  let h = `<div class="tiles">
+    <button class="tile" data-t="مبادرة" ${tab === 'مبادرة' ? 'aria-current="page"' : ''}><span class="n">${I.length}</span><b>مبادراتي</b><span>مبادرة من فكرتك تخدم الطالبات أو المدرسة: هدفها، والفئة المستهدفة، والأولوية التي تخدمها.</span></button>
+    <button class="tile" data-t="نشاط" ${tab === 'نشاط' ? 'aria-current="page"' : ''}><span class="n">${A.length}</span><b>أنشطتي</b><span>نشاط استحدثتِه مع طالباتك، أو نشاط قائم في المدرسة شاركتِ فيه.</span></button></div>`;
+  if (tab === 'home') h += `<div class="card"><p class="verse">﴿فَمَن يَعْمَلْ مِثْقَالَ ذَرَّةٍ خَيْرًا يَرَهُ﴾<cite>الزلزلة: 7</cite></p><p style="text-align:center;margin:8px 0 0">سجّلي مبادراتك وأنشطتك أولاً بأول؛ فهي تُحتسب لكِ في تقارير القسم ولوحات التميز.</p></div>`;
+  else h += listView(tab);
+  $('#view').innerHTML = h;
+  $$('[data-t]').forEach(b => b.onclick = () => { S.tab = b.dataset.t; S.edit = null; render(); });
+  if (tab !== 'home') bindList(tab);
+}
+function listView(kind) {
+  const isIni = kind === 'مبادرة'; const L = mine(kind);
+  const rec = S.edit && S.edit !== 'new' ? L.find(r => r.id === S.edit) : null;
+  const d = S.draft || (rec ? Object.assign({}, rec.d) : { kind, date: today(), src: SRC[0], secs: [] });
+  const me = S.staff.find(s => s.name === S.user.name) || {}; const secs = String(me.secs || '').split(/[،,]/).map(x => x.trim()).filter(Boolean);
+  const form = S.edit ? `<div class="card"><h2>${rec ? 'تعديل' : 'تسجيل'} ${isIni ? 'مبادرة' : 'نشاط'}</h2><form class="form" id="f">
+    ${isIni ? '' : `<div class="fld w"><label>نوع النشاط</label><div class="row">${SRC.map(x => `<label><input type="radio" name="src" value="${esc(x)}" ${d.src === x ? 'checked' : ''}> ${esc(x)}</label>`).join('')}</div></div>`}
+    <div class="fld w"><label>${isIni ? 'اسم المبادرة' : 'اسم النشاط'}</label><input data-n="name" list="dlA" required value="${esc(d.name || '')}" placeholder="${!isIni && d.src === SRC[1] ? 'اختاري من أنشطة المدرسة أو اكتبي' : 'اكتبي الاسم'}">${!isIni && d.src === SRC[1] ? `<datalist id="dlA">${S.acts.map(x => `<option value="${esc(x)}">`).join('')}</datalist>` : ''}</div>
+    <div class="fld"><label>التاريخ</label><input type="date" data-n="date" required value="${esc(d.date || today())}"></div>
+    <div class="fld"><label>الفئة المستهدفة</label><input data-n="tg" list="dlT" required value="${esc(d.tg || '')}" placeholder="اختاري أو اكتبي"><datalist id="dlT">${TG.map(x => `<option value="${esc(x)}">`).join('')}</datalist></div>
+    <div class="fld"><label>الأولوية التي تخدمها</label><select data-n="p" required><option value="">اختاري…</option>${PRIO.map(x => `<option ${d.p === x ? 'selected' : ''}>${esc(x)}</option>`).join('')}</select></div>
+    <div class="fld"><label>عدد الطالبات المشاركات</label><input type="number" min="0" data-n="n" value="${esc(d.n || '')}"></div>
+    ${secs.length ? `<div class="fld w"><label>الشعب</label><div class="row">${secs.map(x => `<label><input type="checkbox" data-sec value="${esc(x)}" ${(d.secs || []).includes(x) ? 'checked' : ''}> ${esc(x)}</label>`).join('')}</div></div>` : ''}
+    <div class="fld w"><label>${isIni ? 'فكرة المبادرة وهدفها' : 'وصف مختصر لما نُفّذ'}</label><textarea data-n="desc" rows="2">${esc(d.desc || '')}</textarea></div>
+    <div class="fld w"><label>الأثر على الطالبات</label><input data-n="imp" list="dlI" value="${esc(d.imp || '')}" placeholder="اختاري أو اكتبي"><datalist id="dlI">${IMP.map(x => `<option value="${esc(x)}">`).join('')}</datalist></div>
+    <div class="fld w"><label>رابط الدليل (اختياري — صورة أو ملف في Teams)</label><input data-n="ev" dir="ltr" value="${esc(d.ev || '')}"></div>
+    <div class="row w" style="grid-column:1/-1"><button class="btn" type="submit">حفظ</button><button class="btn sec" type="button" id="cx">إلغاء</button></div></form>
+    <div class="note" style="margin-top:10px">يمكنكِ تعديل ما سجّلتِه في أي وقت، أما الحذف فيتم عن طريق النائب الأكاديمي فقط.</div></div>` : '';
+  S.draft = null; S._d = d;
+  return form + `<div class="card"><div class="row"><h2 style="margin:0">${isIni ? 'مبادراتي المسجلة' : 'أنشطتي المسجلة'} (${L.length})</h2><span class="sp"></span>${S.edit ? '' : `<button class="btn" id="nw">+ تسجيل ${isIni ? 'مبادرة' : 'نشاط'}</button>`}</div>
+    <div class="list" style="margin-top:10px">${L.map(r => `<div class="rec"><div class="dt">${dm(r.date)}</div><div class="tx"><b>${esc(r.d.name)}</b><br><small>${esc(r.d.tg || '')}${r.d.n ? ' · ' + r.d.n + ' طالبة' : ''}${r.d.src && !isIni ? ' · ' + esc(r.d.src) : ''} · ${esc((r.d.p || '').replace(/^الأولوية \d: /, ''))}</small></div><button class="btn sm sec" data-e="${r.id}">تعديل</button></div>`).join('') || '<div class="empty">لم تُسجَّل بعد</div>'}</div></div>`;
+}
+function bindList(kind) {
+  if ($('#nw')) $('#nw').onclick = () => { S.edit = 'new'; render(); };
+  $$('[data-e]').forEach(b => b.onclick = () => { S.edit = b.dataset.e; render(); scrollTo(0, 0); });
+  if (!$('#f')) return; const d = S._d;
+  const read = () => { $$('[data-n]', $('#f')).forEach(i => d[i.dataset.n] = i.type === 'number' ? (i.value === '' ? '' : +i.value) : i.value.trim()); const r = $('input[name="src"]:checked'); if (r) d.src = r.value; d.secs = $$('[data-sec]').filter(c => c.checked).map(c => c.value); };
+  $$('input[name="src"]').forEach(x => x.onchange = () => { read(); S.draft = d; render(); });
+  $('#cx').onclick = () => { S.edit = null; render(); };
+  $('#f').onsubmit = async e => { e.preventDefault(); read(); d.kind = kind; if (kind === 'مبادرة') delete d.src;
+    const rec = S.edit !== 'new' ? S.recs.find(r => r.id === S.edit) : null;
+    const j = await call('save', { rec: { id: rec && rec.id, dept: S.user.dept[0], item: 'TA', date: d.date, sum: kind + ': ' + d.name, d } });
+    const i = S.recs.findIndex(x => x.id === j.record.id); if (i >= 0) S.recs[i] = j.record; else S.recs.push(j.record);
+    S.edit = null; toast('تم الحفظ ✓ جزاكِ الله خيراً على عطائك'); render(); };
+}
+/* ---------------- النائب الأكاديمي: كل المبادرات والأنشطة + الحذف */
+function adminView() {
+  const F = S.f; const L = S.recs.filter(r => (!F.kind || r.d.kind === F.kind) && (!F.dept || r.dept === F.dept)).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  const depts = [...new Set(S.recs.map(r => r.dept))];
+  $('#view').innerHTML = `<div class="card"><div class="row"><h2 style="margin:0">مبادرات المعلمات وأنشطتهن (${L.length})</h2><span class="sp"></span>
+    <select id="fk"><option value="">الكل</option><option ${F.kind === 'مبادرة' ? 'selected' : ''}>مبادرة</option><option ${F.kind === 'نشاط' ? 'selected' : ''}>نشاط</option></select>
+    <select id="fd"><option value="">كل الأقسام</option>${depts.map(x => `<option ${F.dept === x ? 'selected' : ''}>${esc(x)}</option>`).join('')}</select></div>
+    <div class="note" style="margin-top:10px">تظهر هذه التسجيلات أيضاً في منصة الميزان (لوحات التميز، وصفحة «مبادرات المعلمات وأنشطتهن»). الحذف متاح لكِ وحدكِ.</div>
+    <div class="tbl" style="margin-top:10px"><table><tr><th>التاريخ</th><th>المعلمة</th><th>القسم</th><th>النوع</th><th>الاسم</th><th>الفئة</th><th>الأولوية</th><th>العدد</th><th></th></tr>
+    ${L.map(r => `<tr><td>${dm(r.date)}</td><td><b>${esc(r.d.t)}</b></td><td>${esc(r.dept)}</td><td><span class="chip ${r.d.kind === 'مبادرة' ? 'ok' : ''}">${esc(r.d.kind)}</span></td><td>${esc(r.d.name)}${r.d.desc ? `<br><small>${esc(r.d.desc)}</small>` : ''}${r.d.ev ? ` <a href="${esc(r.d.ev)}" target="_blank" rel="noopener">الدليل</a>` : ''}</td><td>${esc(r.d.tg || '')}</td><td>${esc((r.d.p || '').replace(/^الأولوية \d: /, ''))}</td><td>${esc(r.d.n || '')}</td><td><button class="btn sm ghost" data-x="${r.id}">حذف</button></td></tr>`).join('') || '<tr><td colspan="9" class="empty">لا توجد تسجيلات بعد</td></tr>'}</table></div></div>`;
+  $('#fk').onchange = e => { F.kind = e.target.value; render(); }; $('#fd').onchange = e => { F.dept = e.target.value; render(); };
+  $$('[data-x]').forEach(b => b.onclick = async () => { if (!confirm('حذف هذا السجل نهائياً؟')) return; await call('delete', { id: b.dataset.x }); S.recs = S.recs.filter(x => x.id !== b.dataset.x); render(); });
+}
+(async () => { if (S.tok) { try { await boot(); return; } catch (e) { sessionStorage.removeItem('sab3_tok'); } } login(); })();
+</script>
+</body>
+</html>
