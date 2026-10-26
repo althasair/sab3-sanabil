@@ -749,9 +749,20 @@ ${REASONS.map(r=>'    '+r).join('\n')}
 
 مهم: احتفظي بكلمات «المادة» و«أسباب» و«بكلماتك» و«تلتزمين» في نص الأسئلة، فالمنصة تتعرّف على الأعمدة منها.`;
 
+function storePanel(){const U=(S.uploads||[]).slice().reverse();const KN={enroll:'سجل القيد',roster:'الدرجات',actions:'إجراءات رفع التحصيل',honors:'التكريم (مجتمع الشيماء)',contacts:'المعلمات',charter:'ميثاق الشراكة'};
+  const live=id=>S.actions.filter(a=>a.up===id).length+(S.honors||[]).filter(x=>x.up===id).length;const old=S.actions.filter(a=>!a.up).length;
+  return '<section class="panel"><h3>مخزن الملفات المرفوعة<small>'+U.length+' ملف · '+S.actions.length+' إجراء محفوظ</small></h3>'+
+  '<p class="small muted" style="margin:0 0 8px">كل ملف ترفعينه يُسجَّل هنا. المكرر يُستبعد تلقائيًا: الإجراء الذي له نفس التاريخ والمعلمة والشعبة والمادة والطالبات ونوع الإجراء لا يُحسب مرتين، حتى لو رُفع من ملفين مختلفين أو من فترتين متداخلتين.</p>'+
+  '<div class="row" style="gap:8px;margin-bottom:8px"><button class="btn sm" id="dedupeNow">فحص المكرر وحذفه الآن</button>'+(old?'<span class="small muted">'+old+' إجراء رُفع قبل إنشاء المخزن</span>':'')+'</div>'+
+  (U.length?'<div class="tbl-wrap"><table><thead><tr><th>الملف</th><th>الخانة</th><th>تاريخ الرفع</th><th>نتيجة القراءة</th><th class="num">باقٍ منه</th><th></th></tr></thead><tbody>'+U.map(u=>{const n=live(u.id);const del=['actions','honors'].includes(u.kind);return '<tr><td><b>'+esc(u.name)+'</b></td><td class="small">'+(KN[u.kind]||u.kind)+'</td><td class="small">'+esc(new Date(u.at).toLocaleString('ar-QA',{dateStyle:'short',timeStyle:'short'}))+'</td><td class="small muted">'+esc(u.msg||'')+'</td><td class="num">'+(del?n:'—')+'</td><td>'+(del&&n?'<button class="btn sm ghost" data-delup="'+u.id+'">حذف ما أُضيف منه</button>':'<button class="btn sm ghost" data-forgetup="'+u.id+'">إزالة من القائمة</button>')+'</td></tr>'}).join('')+'</tbody></table></div>':'<p class="small muted">لم يُرفع أي ملف بعد إنشاء المخزن.</p>')+'</section>'}
+document.addEventListener('click',e=>{
+  if(e.target.closest('#dedupeNow')){const n=dedupeAll();refresh();toast(n?'تم حذف '+n+' إجراء مكرر':'لا يوجد مكرر');return}
+  const du=e.target.closest('[data-delup]');if(du){const id=du.dataset.delup;const u=(S.uploads||[]).find(x=>x.id===id);if(!confirm('حذف كل ما أُضيف من الملف «'+(u?u.name:'')+'»؟'))return;S.actions=S.actions.filter(a=>a.up!==id);S.honors=(S.honors||[]).filter(x=>x.up!==id);S.uploads=S.uploads.filter(x=>x.id!==id);refresh();toast('تم حذف ما أُضيف من الملف');return}
+  const fu=e.target.closest('[data-forgetup]');if(fu){S.uploads=(S.uploads||[]).filter(x=>x.id!==fu.dataset.forgetup);refresh();return}
+});
 function vData(){
   const L=lastTestIdx(S);
-  return crown('كتابٌ مرقوم','البيانات والنماذج','كِتَابٌ مَّرْقُومٌ ۝ يَشْهَدُهُ الْمُقَرَّبُونَ','المطففين: 20–21','تُقرأ الملفات داخل متصفحك فقط، ولا تُرفع إلى أي خادم. وتبقى محفوظة في هذا المتصفح للزيارة التالية؛ لذلك احتفظي بنسخة احتياطية.')+
+  return crown('كتابٌ مرقوم','البيانات والنماذج','كِتَابٌ مَّرْقُومٌ ۝ يَشْهَدُهُ الْمُقَرَّبُونَ','المطففين: 20–21','تُقرأ الملفات داخل متصفحك فقط، ولا تُرفع إلى أي خادم. وتبقى محفوظة في هذا المتصفح للزيارة التالية؛ لذلك احتفظي بنسخة احتياطية.')+storePanel()+
   '<div class="grid2">'+
   dropBox('enroll','1. تحديث سجل القيد','سجل القيد من النظام كما هو (اسم الطالبة، الرقم الشخصي، الصف والشعبة، الجنسية، المسار). يُحدَّث عند كل تغيير: طالبة جديدة، أو انسحاب، أو نقل شعبة؛ ومنه تُؤخذ قوائم الطالبات والجنسيات.',(S.enroll&&S.enroll.length?S.enroll.length+' طالبة في السجل':'لم يُرفع بعد'),'')+
   dropBox('roster','2. الدرجات','ملف تحليل النتائج المعتمد في المدرسة كما هو (أوراق المقارنة: منتصف الفصل ونهايته لكل مادة)، وتُربط كل مادة بمعلمتها تلقائيًا من توزيع الشعب. ملف الفصل الثاني يُضاف لاحقًا فيُكمل التقريرين الثالث والرابع. ويُقبل أيضًا ملف بسيط: صف لكل طالبة في كل مادة.',S.roster.length+' صف · '+D.targets.length+' حالة مستهدفة · آخر اختبار مُدخل: '+esc(S.settings.tests[L]),'<button class="btn sm" id="tplRoster">تنزيل القالب</button>')+
@@ -821,6 +832,7 @@ document.addEventListener('click',e=>{
   if(e.target.closest('#ad_save')&&UI.add){readAdd();const A=UI.add;const m=$('#ad_msg');
     if(!A.sec||!A.sub){m.textContent='اختاري المادة والشعبة';return}if(!A.whole&&!A.stu.length){m.textContent='اختاري طالبة واحدة على الأقل، أو «الشعبة كاملة»';return}if(!A.date){m.textContent='اختاري التاريخ';return}
     const before=D.targets.filter(t=>t.ears.has(A.type)).length;
+    {const na={date:A.date,teacher:A.tch,section:A.sec,subject:A.sub,students:A.whole?[]:A.stu.slice(),whole:!!A.whole,type:A.type};if(S.actions.some(x=>actKey(x)===actKey(na))){m.textContent='هذا الإجراء مسجّل مسبقًا (نفس المعلمة والتاريخ والطالبات والإجراء)';return}}
     S.actions.push({date:A.date,teacher:A.tch,section:A.sec,subject:A.sub,students:A.whole?[]:A.stu.slice(),whole:!!A.whole,type:A.type,detail:[A.opt,A.note].filter(Boolean).join(' — '),evidence:'',src:'manual'});
     if(S.demo){S.demo=false}
     refresh();const after=D.targets.filter(t=>t.ears.has(A.type)).length;
@@ -961,7 +973,8 @@ function typeOf(v){const n=norm(v);for(const k of MATCH_ORDER){if(KEYS[k-1].kw.s
 function nameMatch(a,b){const A=norm(a).split(' ').filter(Boolean),B=norm(b).split(' ').filter(Boolean);if(!A.length||!B.length)return false;if(A.join(' ')===B.join(' '))return true;if(A[0]!==B[0])return false;if(A.length===1)return false;return A.slice(1).every(w=>B.slice(1).includes(w))}
 const LVL=x=>{const n=norm(x);const o=[];if(n.includes('عاشر'))o.push('10');if(n.includes('حادي'))o.push('11');if(n.includes('ثاني عشر'))o.push('12');return o};
 function officialTeacher(typed,sec,sub){const t=staffFor(sec,sub);if(t)return t.name;const w=norm(typed).split(' ').filter(Boolean);if(!w.length)return '';const st=S.staff||[];const same=st.filter(x=>norm(x.name).split(' ')[0]===w[0]);let c=same.filter(x=>w.slice(1).length&&w.slice(1).every(t=>norm(x.name).split(' ').includes(t)));if(c.length!==1)c=same.filter(x=>subjKeys(x.subject).has(subjKey(sub)));return c.length===1?c[0].name:String(typed||'').trim()}
-function actKey(a){return [a.src||'form',String(a.date||'').slice(0,10),norm(a.teacher),secKey(a.section),norm(a.subject),a.type,a.whole?'*':(a.students||[]).map(norm).sort().join(','),norm(a.detail)].join('|')}
+function actKey(a){return [String(a.date||'').slice(0,10),norm(a.teacher),secKey(a.section),subjKey(a.subject),a.type,a.whole?'*':(a.students||[]).map(x=>norm(x).split(' ').slice(0,2).join(' ')).sort().join(','),(norm(a.detail).match(/الحصه (\S+)/)||[])[1]||''].join('|')}
+function dedupeAll(){const seen=new Set();let n=0;S.actions=S.actions.filter(a=>{const k=actKey(a);if(seen.has(k)){n++;return false}seen.add(k);return true});return n}
 function mergeActs(out,sameKind){const replace=(S.settings.actMode||'append')==='replace';let base=replace?S.actions.filter(a=>!sameKind(a)):S.actions.slice();const removed=S.actions.length-base.length;
   const seen=new Set(base.map(actKey));let added=0,dup=0;out.forEach(a=>{const k=actKey(a);if(seen.has(k)){dup++;return}seen.add(k);base.push(a);added++});S.actions=base;
   return{added,note:(dup?'، واستُبعد '+dup+' مكرر سبق رفعه أو تكرر في الملف':'')+(replace&&removed?'، وحُذف '+removed+' إجراء سابق من النوع نفسه':'')}}
@@ -1021,10 +1034,10 @@ function importUnified(rows,hi){
     out.push({date:d,teacher:officialTeacher(r[cT],sec,sub)||String(r[cT]||'').trim(),section:sec,subject:sub,students:names,whole,type:ty,detail:[cDet>=0?String(r[cDet]||'').trim():'',cNote>=0?String(r[cNote]||'').trim():''].filter(Boolean).join(' — '),evidence:'',src:'excel'})});
   if(!out.length)throw new Error('لم يتم العثور على صفوف صالحة. تأكدي من تعبئة «نوع الإجراء» و«الشعبة» بالصيغة 11-3.');
   if(S.demo){S.actions=[];S.charters=[];S.demo=false}
-  S.actions=S.actions.filter(a=>a.src!=='excel').concat(out);
+  const mg=mergeActs(out,a=>a.src==='excel');
   const D2=derive(S);const miss=new Set();out.forEach(a=>a.students.forEach(n=>{if(!D2.targets.some(t=>secKey(t.row.section)===a.section&&nameMatch(n,t.row.name)))miss.add(n+' ('+a.section+')')}));
   const byT={};out.forEach(a=>byT[a.type]=(byT[a.type]||0)+1);
-  return 'تم استيراد '+out.length+' إجراء من السجل الموحد: '+Object.entries(byT).map(([k,n])=>KEYS[k-1].name+' '+n).join('، ')+'.'+(bad.length?' لم تُقرأ الصفوف: '+bad.slice(0,15).join('، ')+' (نوع الإجراء أو الشعبة غير واضح).':'')+(miss.size?' أسماء لم تطابق طالبة مستهدفة في شعبتها ('+miss.size+'): '+[...miss].slice(0,12).join('، ')+(miss.size>12?'…':'')+'.':'');
+  return 'تم استيراد '+mg.added+' إجراء جديد من السجل الموحد'+mg.note+'. أنواعها في الملف: '+Object.entries(byT).map(([k,n])=>KEYS[k-1].name+' '+n).join('، ')+'.'+(bad.length?' لم تُقرأ الصفوف: '+bad.slice(0,15).join('، ')+' (نوع الإجراء أو الشعبة غير واضح).':'')+(miss.size?' أسماء لم تطابق طالبة مستهدفة في شعبتها ('+miss.size+'): '+[...miss].slice(0,12).join('، ')+(miss.size>12?'…':'')+'.':'');
 }
 
 function importActions(rows){
@@ -1099,8 +1112,12 @@ function importEnroll(rows){
 }
 async function handleFile(kind,file){
   const msg=document.querySelector('[data-msg-for="'+kind+'"]');
+  const bA=new Set(S.actions),bH=new Set(S.honors||[]);const upId='u'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);const prev=(S.uploads||[]).find(u=>u.name===file.name&&u.size===file.size);
   try{if(typeof XLSX==='undefined')throw new Error('تعذّر تحميل قارئ ملفات Excel. أعيدي فتح الصفحة.');const rows=await readSheet(file);if(!rows.length)throw new Error('الملف فارغ.');
-    const m=kind==='enroll'?importEnroll(rows):kind==='roster'?importRoster(rows):kind==='actions'?importActions(rows):kind==='contacts'?importContacts(rows):importCharter(rows);refresh();toast(m);const msg2=document.querySelector('[data-msg-for="'+kind+'"]');if(msg2)msg2.innerHTML='<span class="up">'+esc(m)+'</span>';}
+    const m=kind==='enroll'?importEnroll(rows):kind==='roster'?importRoster(rows):kind==='actions'?importActions(rows):kind==='contacts'?importContacts(rows):importCharter(rows);let nA=0,nH=0;S.actions.forEach(a=>{if(!bA.has(a)){a.up=upId;nA++}});(S.honors||[]).forEach(x=>{if(!bH.has(x)){x.up=upId;nH++}});const dd=dedupeAll();
+    S.uploads=S.uploads||[];S.uploads.push({id:upId,name:file.name,size:file.size,kind:(kind==='actions'&&nH&&!nA)?'honors':kind,at:new Date().toISOString(),msg:m,added:nA-dd+nH});
+    const m2=(prev?'تنبيه: هذا الملف نفسه رُفع سابقًا ('+new Date(prev.at).toLocaleDateString('ar-QA')+')؛ ولم يُضَف منه إلا الجديد. ':'')+m+(dd?' (واستُبعد '+dd+' مكرر إضافي)':'');
+    refresh();toast(m2,6000);const msg2=document.querySelector('[data-msg-for="'+kind+'"]');if(msg2)msg2.innerHTML='<span class="up">'+esc(m2)+'</span>';}
   catch(e){if(msg)msg.innerHTML='<span class="down">'+esc(e.message||'تعذّرت قراءة الملف.')+'</span>'}
 }
 
