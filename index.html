@@ -1411,10 +1411,10 @@ async function onUser(u){
   if(!u){AUTH.role='guest';S=blankState();D=derive(S);UI.tab='home';render();return}
   AUTH.role='loading';render();
   const email=String(u.email||'').toLowerCase();
-  let prof=null;try{const d=await CLOUD.db.collection('users').doc(u.uid).get();prof=d.exists?d.data():null}catch(e){console.warn(e)}
-  if(ADMIN_EMAILS.includes(email)||(prof&&prof.role==='admin')){AUTH.role='admin';AUTH.prof=prof||{role:'admin',name:'آسيا الذبياني'};await adminLoad();return}
-  if(!prof||!prof.role||prof.off){AUTH.role='guest';AUTH.err='هذا الحساب غير مفعّل في المنصة. تواصلي مع النائب الأكاديمي.';S=blankState();D=derive(S);render();return}
-  AUTH.role=prof.role==='coord'?'coord':'teacher';AUTH.prof=prof;await scopedLoad();
+  let cl={};try{cl=(await u.getIdTokenResult()).claims||{}}catch(e){console.warn(e)}
+  if(ADMIN_EMAILS.includes(email)||cl.role==='admin'){AUTH.role='admin';AUTH.prof={role:'admin',name:cl.nm||'آسيا الذبياني'};await adminLoad();return}
+  if(cl.role!=='teacher'&&cl.role!=='coord'){AUTH.role='guest';AUTH.err='هذا الحساب غير مفعّل في المنصة. ادخلي برقمك السري في الميزان.';S=blankState();D=derive(S);render();return}
+  AUTH.role=cl.role;AUTH.prof={role:cl.role,name:cl.nm||'',nk:cl.nk||'',depts:Array.isArray(cl.dept)?cl.dept:[],dept:(cl.dept||[]).join('، ')};await scopedLoad();
 }
 
 /* --- admin: local copy + cloud copy --- */
@@ -1452,8 +1452,6 @@ async function pushAll(){
     w+=setIfChanged('shared','cfg',{settings:st,staff:(S.staff||[]).map(t=>({name:t.name,role:t.role||'',subject:t.subject||'',dept:t.dept||'',sections:t.sections||[]}))});
     // 3) one document per section and subject (teachers read only theirs)
     const docs=sectionDocs();for(const [id,d] of docs)w+=setIfChanged('sec',id,d);
-    // 4) accounts: keep each account's sections in step with the staff list
-    for(const a of (S.accounts||[])){if(!a.uid)continue;w+=setIfChanged('users',a.uid,profOf(a))}
     // 5) public numbers without names, for visitors
     w+=setIfChanged('pub','stats',pubStats());
     await flushPending();
@@ -1462,9 +1460,10 @@ async function pushAll(){
   CLOUD.pushing=false;updCloudChip();
 }
 function sectionDocs(){
-  const m=new Map();const get=(sec,k,label)=>{const id=docKey(sec,k);if(!m.has(id))m.set(id,{sec,k,subject:label||'',roster:[],enroll:[],actions:[]});return m.get(id)};
-  (S.staff||[]).forEach(t=>{const ks=[...subjKeys(t.subject)];if(!ks.length)ks.push(subjKey(t.subject));(t.sections||[]).forEach(sec=>ks.forEach(k=>get(secKey(sec),k,t.subject)))});
-  S.roster.forEach(r=>{const d=get(secKey(r.section),subjKey(r.subject),r.subject);d.roster.push(r)});
+  const m=new Map();const get=(sec,k,label)=>{const id=docKey(sec,k);if(!m.has(id))m.set(id,{sec,k,subject:label||'',who:[],depts:[],roster:[],enroll:[],actions:[]});return m.get(id)};
+  const addW=(d,name,dept)=>{const n=norm(name),dp=norm(dept);if(n&&!d.who.includes(n))d.who.push(n);if(dp&&!d.depts.includes(dp))d.depts.push(dp)};
+  (S.staff||[]).forEach(t=>{const ks=[...subjKeys(t.subject)];if(!ks.length)ks.push(subjKey(t.subject));(t.sections||[]).forEach(sec=>ks.forEach(k=>addW(get(secKey(sec),k,t.subject),t.name,t.dept)))});
+  S.roster.forEach(r=>{const d=get(secKey(r.section),subjKey(r.subject),r.subject);d.roster.push(r);if(r.teacher){const t=(S.staff||[]).find(x=>norm(x.name)===norm(r.teacher));addW(d,r.teacher,t?t.dept:'')}});
   const bySec={};allStudents().forEach(x=>{(bySec[x.section]=bySec[x.section]||[]).push({name:x.name,section:x.section})});
   m.forEach(d=>{d.enroll=bySec[d.sec]||[]});
   const staffSubj=n=>{const t=(S.staff||[]).find(x=>norm(x.name)===norm(n));return t?[...subjKeys(t.subject)]:[]};
@@ -1472,24 +1471,23 @@ function sectionDocs(){
     m.forEach(d=>{if(d.sec===sec&&(!ks.length||ks.includes(d.k)))d.actions.push(a)})});
   return m;
 }
-function profOf(a){let keys=[],dept=a.dept||'';
-  if(a.role==='coord'){(S.staff||[]).filter(t=>t.dept===a.dept).forEach(t=>keys.push(...staffKeys(t)))}
-  else{const t=(S.staff||[]).find(x=>norm(x.name)===norm(a.name));if(t){keys=staffKeys(t);dept=t.dept||dept}}
-  return{role:a.role,name:a.name,dept,keys:a.off?[]:[...new Set(keys)],login:a.login,off:!!a.off}}
 function pubStats(){const T=D.targets;const got=T.reduce((x,t)=>x+t.core,0);return{students:new Set(T.map(t=>norm(t.row.name))).size,cases:T.length,actions:S.actions.length,core:T.length?Math.round(got/(T.length*4)*100):0,teachers:D.teachers.length,done:D.teachers.filter(x=>x.ratio>=1).length,at:new Date().toISOString().slice(0,10)}}
 
 /* --- teachers and coordinators: only their sections --- */
 async function scopedLoad(){
   const P=AUTH.prof;const st=blankState();
   try{const c=await CLOUD.db.collection('shared').doc('cfg').get();if(c.exists){const cd=c.data();st.settings=Object.assign({},DEFAULT_SETTINGS,cd.settings||{});const all=cd.staff||[];
-      st.staff=AUTH.role==='coord'?all.filter(t=>t.dept===P.dept):all.filter(t=>norm(t.name)===norm(P.name))}}catch(e){console.warn(e)}
-  const keys=P.keys||[];const docs=await Promise.all(keys.map(k=>CLOUD.db.collection('sec').doc(k).get().catch(()=>null)));
+      st.staff=AUTH.role==='coord'?all.filter(t=>P.depts.includes(norm(t.dept))):all.filter(t=>norm(t.name)===P.nk)}}catch(e){console.warn(e)}
+  P.keys=[...new Set(st.staff.flatMap(staffKeys))];if(AUTH.role==='teacher'&&st.staff[0])P.name=st.staff[0].name;if(AUTH.role==='coord'&&st.staff[0])P.dept=[...new Set(st.staff.map(t=>t.dept))].join('، ');
+  if(!st.staff.length)AUTH.err=AUTH.role==='coord'?'لم يُعثر على معلمات قسمك في توزيع المعلمات بسبع سنابل. تواصلي مع النائب الأكاديمي.':'لم يُعثر على اسمك في توزيع المعلمات بسبع سنابل. تواصلي مع النائب الأكاديمي.';else AUTH.err='';
+  const keys=P.keys;const docs=await Promise.all(keys.map(k=>CLOUD.db.collection('sec').doc(k).get().catch(()=>null)));
   const enr=new Map();const seen=new Set();
   docs.forEach(d=>{if(!d||!d.exists)return;const x=d.data();(x.roster||[]).forEach(r=>st.roster.push(r));(x.enroll||[]).forEach(e=>enr.set(norm(e.name)+'|'+e.section,e));(x.actions||[]).forEach(a=>{const k=a.eid||JSON.stringify([a.date,a.teacher,a.section,a.subject,a.type,a.students,a.detail]);if(!seen.has(k)){seen.add(k);st.actions.push(a)}})});
   st.enroll=[...enr.values()];
   S=normState(st);S.staffV2=1;const base=S.actions.slice();D=derive(S);UI.tab=tabOK(UI.tab)?UI.tab:'home';render();
-  const q=AUTH.role==='coord'?CLOUD.db.collection('entries').where('dept','==',P.dept||'-'):CLOUD.db.collection('entries').where('uid','==',AUTH.user.uid);
-  CLOUD.unsub=q.onSnapshot(s=>{CLOUD.entries=new Map();s.forEach(d=>CLOUD.entries.set(d.id,d.data()));const ids=new Set(CLOUD.entries.keys());S.actions=base.filter(a=>!a.eid||!ids.has(a.eid));CLOUD.entries.forEach((e,id)=>S.actions.push(entryToAct(id,e)));D=derive(S);render()},e=>{console.warn(e);toast('تعذّر قراءة إجراءاتك من قاعدة البيانات',5000)});
+  const qs=AUTH.role==='coord'?(P.depts.length?P.depts:['-']).map(d=>CLOUD.db.collection('entries').where('dept','==',d)):[CLOUD.db.collection('entries').where('uid','==',AUTH.user.uid)];
+  const parts=qs.map(()=>new Map());const onS=()=>{CLOUD.entries=new Map();parts.forEach(m=>m.forEach((v,k)=>CLOUD.entries.set(k,v)));const ids=new Set(CLOUD.entries.keys());S.actions=base.filter(a=>!a.eid||!ids.has(a.eid));CLOUD.entries.forEach((e,id)=>S.actions.push(entryToAct(id,e)));D=derive(S);render()};
+  const uns=qs.map((q,i)=>q.onSnapshot(s=>{parts[i]=new Map();s.forEach(d=>parts[i].set(d.id,d.data()));onS()},e=>{console.warn(e);toast('تعذّر قراءة الإجراءات من قاعدة البيانات',5000)}));CLOUD.unsub=()=>uns.forEach(f=>f());
 }
 async function cloudAddEntry(A,m){
   const P=AUTH.prof||{};const k=docKey(secKey(A.sec),subjKey(A.sub));
@@ -1498,7 +1496,8 @@ async function cloudAddEntry(A,m){
   if(S.actions.some(x=>actKey(x)===actKey(na))){m.textContent='هذا الإجراء مسجّل مسبقًا (نفس المعلمة والتاريخ والطالبات والإجراء)';return}
   const before=D.targets.filter(t=>t.ears.has(A.type)).length;
   const btn=$('#ad_save');if(btn)btn.disabled=true;m.textContent='جارٍ الحفظ…';
-  try{await CLOUD.db.collection('entries').add(Object.assign(na,{detail:[A.opt,A.note].filter(Boolean).join(' — '),uid:AUTH.user.uid,dept:P.dept||'',key:k,byName:P.name||'',at:new Date().toISOString()}))}
+  const kt=(S.staff||[]).find(t=>staffKeys(t).includes(k));
+  try{await CLOUD.db.collection('entries').add(Object.assign(na,{detail:[A.opt,A.note].filter(Boolean).join(' — '),uid:AUTH.user.uid,dept:norm(kt?kt.dept:''),key:k,byName:P.name||'',at:new Date().toISOString()}))}
   catch(e){console.error(e);if(btn)btn.disabled=false;m.textContent='تعذّر الحفظ: تحققي من الإنترنت ثم أعيدي المحاولة.';return}
   closeModal();setTimeout(()=>{const after=D.targets.filter(t=>t.ears.has(A.type)).length;toast('✓ تم حفظ «'+KEYS[A.type-1].name+'»'+(after>before?' وامتلأت السنبلة لـ '+(after-before)+' حالة':''),4500)},600);
 }
@@ -1509,17 +1508,22 @@ function entriesLog(){const L=S.actions.map((a,i)=>({a,i})).filter(x=>x.a.src===
 document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-delent]');if(!b||!CLOUD.ok)return;if(!confirm('حذف هذا الإجراء؟'))return;CLOUD.db.collection('entries').doc(b.dataset.delent).delete().then(()=>toast('تم حذف الإجراء')).catch(()=>toast('تعذّر الحذف'))});
 
 /* --- login --- */
-function openLogin(msg){modal('<h3>تسجيل الدخول</h3><p class="small muted">'+(msg?esc(msg)+'<br>':'')+'للمعلمات والمنسقات: اسم المستخدم وكلمة المرور من النائب الأكاديمي.</p><div class="addf" style="grid-template-columns:1fr"><label>اسم المستخدم أو البريد<input id="lg_u" dir="ltr" autocomplete="username" style="padding:9px 12px;border:1px solid var(--line);border-radius:12px;font:inherit"></label><label>كلمة المرور<input id="lg_p" type="password" dir="ltr" autocomplete="current-password" style="padding:9px 12px;border:1px solid var(--line);border-radius:12px;font:inherit"></label></div><div id="lg_msg" class="small" style="color:#B23A48;min-height:1.4em"></div><div class="row"><button class="btn pri" id="lg_go">دخول</button><button class="btn sm" id="lg_forgot">نسيت كلمة المرور</button><span class="sp"></span><button class="btn sm" data-close>إلغاء</button></div>');setTimeout(()=>{const u=$('#lg_u');u&&u.focus()},50)}
-function loginErr(e){const c=e&&e.code||'';if(/invalid-credential|wrong-password|user-not-found|invalid-login/.test(c))return 'اسم المستخدم أو كلمة المرور غير صحيحة.';if(/too-many-requests/.test(c))return 'محاولات كثيرة. انتظري قليلًا ثم أعيدي المحاولة.';if(/network/.test(c))return 'لا يوجد اتصال بالإنترنت.';if(/invalid-email/.test(c))return 'اسم المستخدم غير صحيح.';return 'تعذّر الدخول ('+(c||e)+').'}
-document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('#lg_go,#lg_forgot,#authIn,#authOut,[data-locked]');if(!t)return;
-  if(t.id==='authIn'||t.dataset.locked!=null){e.preventDefault();e.stopPropagation();if(AUTH.role==='guest')openLogin(t.dataset.locked?'هذا القسم متاح بعد تسجيل الدخول.':'');else toast('هذا القسم متاح للأدمن فقط');return}
-  if(t.id==='authOut'){if(confirm('تسجيل الخروج؟'))CLOUD.auth.signOut();return}
-  if(t.id==='lg_go'){const u=$('#lg_u').value.trim(),p=$('#lg_p').value,m=$('#lg_msg');if(!u||!p){m.textContent='اكتبي اسم المستخدم وكلمة المرور';return}if(!CLOUD.ok){m.textContent=AUTH.err||'الخدمة غير متاحة';return}m.style.color='';m.textContent='جارٍ الدخول…';t.disabled=true;
-    CLOUD.auth.signInWithEmailAndPassword(emailOf(u),p).then(()=>{closeModal();toast('أهلًا بك')}).catch(er=>{t.disabled=false;m.style.color='#B23A48';m.textContent=loginErr(er)});return}
-  if(t.id==='lg_forgot'){const u=$('#lg_u').value.trim(),m=$('#lg_msg');if(!u||!u.includes('@')){m.textContent='للمعلمات: اطلبي كلمة مرور جديدة من النائب الأكاديمي. للبريد الحقيقي: اكتبيه في الخانة الأولى ثم اضغطي هنا.';return}
+function openLogin(msg,mail){modal('<h3>تسجيل الدخول</h3><p class="small muted">'+(msg?esc(msg)+'<br>':'')+(mail?'الدخول بالبريد وكلمة المرور (حساب النائب الأكاديمي في Firebase).':'ادخلي برقمك السري نفسه في منصة الميزان.')+'</p><div class="addf" style="grid-template-columns:1fr">'+(mail?'<label>البريد الإلكتروني<input id="lg_u" dir="ltr" autocomplete="username" style="padding:9px 12px;border:1px solid var(--line);border-radius:12px;font:inherit"></label><label>كلمة المرور<input id="lg_p" type="password" dir="ltr" autocomplete="current-password" style="padding:9px 12px;border:1px solid var(--line);border-radius:12px;font:inherit"></label>':'<label>الرقم السري<input id="lg_pin" type="password" inputmode="numeric" dir="ltr" autocomplete="current-password" style="padding:11px 12px;border:1px solid var(--line);border-radius:12px;font:inherit;font-size:20px;letter-spacing:4px;text-align:center"></label>')+'</div><div id="lg_msg" class="small" style="color:#B23A48;min-height:1.4em"></div><div class="row"><button class="btn pri" id="lg_go" data-mail="'+(mail?1:'')+'">دخول</button>'+(mail?'<button class="btn sm" id="lg_forgot">نسيت كلمة المرور</button><button class="btn sm" id="lg_pinmode">الدخول بالرقم السري</button>':'<button class="btn sm" id="lg_mail">الدخول بالبريد</button>')+'<span class="sp"></span><button class="btn sm" data-close>إلغاء</button></div>');setTimeout(()=>{const u=$(mail?'#lg_u':'#lg_pin');u&&u.focus()},50)}
+async function mizanLogin(pin){const r=await fetch(MIZAN_API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'fbToken',pin}),redirect:'follow'});const j=await r.json();if(!j.ok)throw {code:'mizan',message:j.error||'تعذّر الدخول'};await CLOUD.auth.signInWithCustomToken(j.fbToken);try{sessionStorage.setItem('mizan_token',j.token||'')}catch(_){}return j}
+function loginErr(e){const c=e&&e.code||'';if(c==='mizan')return e.message;if(/Failed to fetch|NetworkError/.test(e&&e.message||''))return 'تعذّر الاتصال بخادم الميزان. تحققي من الإنترنت.';if(/invalid-credential|wrong-password|user-not-found|invalid-login/.test(c))return 'اسم المستخدم أو كلمة المرور غير صحيحة.';if(/too-many-requests/.test(c))return 'محاولات كثيرة. انتظري قليلًا ثم أعيدي المحاولة.';if(/network/.test(c))return 'لا يوجد اتصال بالإنترنت.';if(/invalid-email/.test(c))return 'اسم المستخدم غير صحيح.';return 'تعذّر الدخول ('+(c||e)+').'}
+document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('#lg_go,#lg_forgot,#lg_mail,#lg_pinmode,#authIn,#authOut,[data-locked]');if(!t)return;
+  if(t.id==='authIn'||t.dataset.locked!=null){e.preventDefault();e.stopPropagation();if(AUTH.role==='guest')openLogin(t.dataset.locked?'هذا القسم متاح بعد تسجيل الدخول.':'');else toast('هذا القسم غير متاح لحسابك');return}
+  if(t.id==='lg_mail'){openLogin('',true);return}
+  if(t.id==='lg_pinmode'){openLogin('');return}
+  if(t.id==='authOut'){if(confirm('تسجيل الخروج؟')){try{sessionStorage.removeItem('mizan_token')}catch(_){}CLOUD.auth.signOut()}return}
+  if(t.id==='lg_go'){const m=$('#lg_msg');if(!CLOUD.ok){m.textContent=AUTH.err||'الخدمة غير متاحة';return}
+    const done=()=>{closeModal();toast('أهلًا بك')},bad=er=>{t.disabled=false;m.style.color='#B23A48';m.textContent=loginErr(er)};
+    if(t.dataset.mail){const u=$('#lg_u').value.trim(),p=$('#lg_p').value;if(!u||!p){m.textContent='اكتبي البريد وكلمة المرور';return}m.style.color='';m.textContent='جارٍ الدخول…';t.disabled=true;CLOUD.auth.signInWithEmailAndPassword(emailOf(u),p).then(done).catch(bad);return}
+    const pin=$('#lg_pin').value.trim();if(!pin){m.textContent='اكتبي رقمك السري';return}m.style.color='';m.textContent='جارٍ التحقق من الرقم السري…';t.disabled=true;mizanLogin(pin).then(done).catch(bad);return}
+  if(t.id==='lg_forgot'){const u=$('#lg_u').value.trim(),m=$('#lg_msg');if(!u||!u.includes('@')){m.textContent='اكتبي بريدك في الخانة الأولى ثم اضغطي هنا.';return}
     CLOUD.auth.sendPasswordResetEmail(u).then(()=>{m.style.color='';m.textContent='تم إرسال رابط تغيير كلمة المرور إلى بريدك.'}).catch(er=>{m.textContent=loginErr(er)});return}
 },true);
-document.addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.target.id==='lg_p'||e.target.id==='lg_u')){const b=$('#lg_go');b&&b.click()}});
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.target.id==='lg_p'||e.target.id==='lg_u'||e.target.id==='lg_pin')){const b=$('#lg_go');b&&b.click()}});
 
 /* --- views and chrome per role --- */
 const _renderNav=renderNav;
@@ -1540,7 +1544,7 @@ const _render=render;
 render=function(){
   if(AUTH.role==='loading'){try{renderNav();renderChrome()}catch(_){}$('#view').innerHTML='<section class="panel" style="text-align:center;padding:50px"><div class="small muted">جارٍ تحميل المنصة…</div></section>';return}
   if(AUTH.role==='guest'){try{renderNav();renderChrome()}catch(_){}$('#view').innerHTML=vGuest();return}
-  if(!tabOK(UI.tab))UI.tab='home';_render()};
+  if(!tabOK(UI.tab))UI.tab='home';_render();if(AUTH.err&&AUTH.role!=='admin'){const v=$('#view');if(v)v.insertAdjacentHTML('afterbegin','<div class="demo-bar"><b>'+esc(AUTH.err)+'</b></div>')}};
 const _manualLog=manualLog;manualLog=function(){return _manualLog()+entriesLog()};
 const _vData=vData;vData=function(){const h=_vData();const i=h.indexOf('</header>');return i<0?accountsPanel()+h:h.slice(0,i+9)+accountsPanel()+h.slice(i+9)};
 function vGuest(){const p=CLOUD.pub;const tile=(c,k,v,s)=>'<div class="tile '+c+'"><span class="k">'+k+'</span><span class="v">'+v+'</span><span class="s">'+s+'</span></div>';
@@ -1551,35 +1555,13 @@ function vGuest(){const p=CLOUD.pub;const tile=(c,k,v,s)=>'<div class="tile '+c+
   '<div class="seven">'+KEYS.map(k=>'<div class="sv"><span class="row" style="gap:6px"><span class="no">السنبلة '+['الأولى','الثانية','الثالثة','الرابعة','الخامسة','السادسة','السابعة'][k.k-1]+'</span><span class="pill '+(CORE.includes(k.k)?'gold':'ok')+'">'+(CORE.includes(k.k)?'أساسية':'إثرائية ⭐')+'</span></span><span class="t">'+k.full+'</span><span class="small muted">'+esc(k.desc)+'</span></div>').join('')+'</div>'+
   '<section class="panel" style="text-align:center"><p class="small muted">بيانات الطالبات ودرجاتهن لا تظهر إلا بعد تسجيل الدخول، وكل معلمة ترى شعبها فقط.</p></section>'}
 
-/* --- admin: teacher and coordinator accounts --- */
-function genPw(){const a=new Uint32Array(1);crypto.getRandomValues(a);return 'snb-'+String(100000+a[0]%900000)}
-function accountsPanel(){if(AUTH.role!=='admin')return '';const A=S.accounts||[];const nT=A.filter(a=>a.role==='teacher'&&!a.off).length,nC=A.filter(a=>a.role==='coord'&&!a.off).length;
-  const staffN=(S.staff||[]).filter(t=>(t.sections||[]).length).length;const depts=[...new Set((S.staff||[]).map(t=>t.dept).filter(Boolean))];
-  return '<section class="panel"><h3>حسابات الدخول<small>'+nT+' معلمة · '+nC+' منسقة · '+(CLOUD.lastPush?'آخر حفظ في قاعدة البيانات '+CLOUD.lastPush.toLocaleTimeString('ar-QA',{hour:'2-digit',minute:'2-digit'}):'')+'</small></h3>'+
-  (S.demo?'<div class="demo-bar"><b>البيانات الحالية تجريبية، فلن تُحفظ في قاعدة البيانات.</b> اضغطي «حذف البيانات التجريبية» ثم ارفعي ملفاتك، فتُحفظ تلقائيًا.</div>':'')+'<p class="small">لكل معلمة حساب يفتح لها شعبها ومادتها فقط، ولكل قسم حساب للمنسقة (تستخدمه معها أخصائية المادة) يفتح بيانات معلمات القسم. حسابك أنتِ يفتح كل شيء، وتستخدمه المستشارة ومديرة المدرسة.</p>'+
-  '<div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn pri sm" id="accMake">إنشاء الحسابات الناقصة ('+Math.max(0,staffN-nT)+' معلمة، '+Math.max(0,depts.length-nC)+' منسقة)</button><button class="btn sm gold" id="accDl"'+(A.length?'':' disabled')+'>تنزيل أسماء المستخدمين وكلمات المرور (Excel)</button><button class="btn sm" id="accPush">حفظ الآن في قاعدة البيانات</button><span class="small muted" id="accMsg">'+esc(CLOUD.accBusy||'')+'</span></div>'+
-  (A.length?'<div class="tbl-wrap" style="margin-top:10px;max-height:340px"><table><thead><tr><th>الاسم</th><th>الصفة</th><th>القسم</th><th>اسم المستخدم</th><th>الشعب</th><th></th></tr></thead><tbody>'+A.map((a,i)=>{const p=profOf(a);return '<tr'+(a.off?' style="opacity:.45"':'')+'><td>'+esc(nm3(a.name))+'</td><td class="small">'+(a.role==='coord'?'منسقة القسم':'معلمة')+'</td><td class="small">'+esc(p.dept)+'</td><td dir="ltr" class="small"><b>'+esc(a.login)+'</b></td><td class="small">'+p.keys.length+'</td><td>'+(a.off?'<span class="small muted">موقوف</span>':'<button class="btn sm" data-accnew="'+i+'">حساب جديد</button>')+'</td></tr>'}).join('')+'</tbody></table></div>':'')+
-  (CLOUD.pushErr?'<p class="small" style="color:#B23A48">تعذّر الحفظ في قاعدة البيانات: '+esc(CLOUD.pushErr)+'</p>':'')+'</section>'}
-async function createAccount(role,name,dept,login){
-  const pw=genPw();let app=null;try{app=firebase.app('creator')}catch(_){app=firebase.initializeApp(FB_CFG,'creator')}
-  const cred=await app.auth().createUserWithEmailAndPassword(emailOf(login),pw);const uid=cred.user.uid;await app.auth().signOut();
-  const acc={uid,role,name,dept,login,pw,made:new Date().toISOString().slice(0,10)};(S.accounts=S.accounts||[]).push(acc);
-  await CLOUD.db.collection('users').doc(uid).set(profOf(acc));CLOUD.hash['users/'+uid]=hashStr(JSON.stringify(profOf(acc)));return acc}
-function nextLogin(prefix){const used=new Set((S.accounts||[]).map(a=>a.login));for(let i=1;i<1000;i++){const l=prefix+String(i).padStart(2,'0');if(!used.has(l))return l}return prefix+Date.now()}
-document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.closest('#accMake,#accDl,#accPush,[data-accnew]');if(!t||AUTH.role!=='admin')return;const msg=$('#accMsg');
-  if(t.id==='accPush'){CLOUD.hash={};await pushAll();toast(CLOUD.pushErr?'تعذّر الحفظ في قاعدة البيانات':'تم الحفظ في قاعدة البيانات');render();return}
-  if(t.id==='accDl'){if(typeof XLSX==='undefined'){toast('تعذّر تحميل قارئ Excel');return}const rows=[['الاسم','الصفة','القسم','اسم المستخدم','كلمة المرور','رابط المنصة']].concat((S.accounts||[]).filter(a=>!a.off).map(a=>{const p=profOf(a);return[a.name,a.role==='coord'?'منسقة القسم':'معلمة',p.dept,a.login,a.pw,location.origin+location.pathname]}));const ws=XLSX.utils.aoa_to_sheet(rows);ws['!cols']=[{wch:30},{wch:12},{wch:20},{wch:14},{wch:14},{wch:40}];ws['!views']=[{RTL:true}];const wb=XLSX.utils.book_new();wb.Workbook={Views:[{RTL:true}]};XLSX.utils.book_append_sheet(wb,ws,'الحسابات');offer('حسابات الدخول - سبع سنابل.xlsx',XLSX.write(wb,{type:'array',bookType:'xlsx'}));return}
-  if(t.dataset.accnew!=null){const a=(S.accounts||[])[+t.dataset.accnew];if(!a||!confirm('إنشاء حساب جديد لـ '+a.name+'؟ سيتوقف حسابها القديم ('+a.login+').'))return;
-    try{a.off=true;await CLOUD.db.collection('users').doc(a.uid).set(Object.assign(profOf(a),{off:true,keys:[]}));const n=await createAccount(a.role,a.name,a.dept,nextLogin(a.role==='coord'?'dept':'t'));save();render();toast('الحساب الجديد: '+n.login+' · كلمة المرور: '+n.pw,9000)}catch(er){console.error(er);toast('تعذّر إنشاء الحساب: '+loginErr(er),6000)}return}
-  if(t.id==='accMake'){t.disabled=true;const have=new Set((S.accounts||[]).filter(a=>!a.off).map(a=>a.role+'|'+norm(a.role==='coord'?a.dept:a.name)));
-    const todo=[];(S.staff||[]).filter(x=>(x.sections||[]).length).forEach(x=>{if(!have.has('teacher|'+norm(x.name)))todo.push(['teacher',x.name,x.dept||''])});
-    [...new Set((S.staff||[]).map(x=>x.dept).filter(Boolean))].forEach(d=>{if(!have.has('coord|'+norm(d))){const h=(S.staff||[]).find(x=>x.dept===d&&norm(x.role).includes('منسق'));todo.push(['coord',h?h.name:'منسقة '+d,d])}});
-    if(!todo.length){toast('كل الحسابات موجودة');t.disabled=false;return}
-    if(!confirm('سيتم إنشاء '+todo.length+' حسابًا. قد يستغرق ذلك دقيقة أو دقيقتين، فلا تغلقي الصفحة.')){t.disabled=false;return}
-    let ok=0,fail=0;for(const [role,name,dept] of todo){CLOUD.accBusy='جارٍ إنشاء '+(ok+fail+1)+' من '+todo.length+'…';{const mm=$('#accMsg');if(mm)mm.textContent=CLOUD.accBusy}try{await createAccount(role,name,dept,nextLogin(role==='coord'?'dept':'t'));ok++}catch(er){console.error(er);fail++;if(er&&/too-many/.test(er.code||'')){toast('توقف الإنشاء مؤقتًا بسبب كثرة الطلبات؛ أعيدي الضغط بعد ساعة',8000);break}}save();await new Promise(r=>setTimeout(r,250))}
-    CLOUD.accBusy='';render();toast('تم إنشاء '+ok+' حسابًا'+(fail?' وتعذّر '+fail:'')+'. نزّلي ملف الحسابات الآن.',7000);return}
-});
-
+/* --- admin: how the others sign in --- */
+function accountsPanel(){if(AUTH.role!=='admin')return '';
+  return '<section class="panel"><h3>الدخول إلى المنصة<small>'+(CLOUD.lastPush?'آخر حفظ في قاعدة البيانات '+CLOUD.lastPush.toLocaleTimeString('ar-QA',{hour:'2-digit',minute:'2-digit'}):'')+'</small></h3>'+
+  (S.demo?'<div class="demo-bar"><b>البيانات الحالية تجريبية، فلن تُحفظ في قاعدة البيانات.</b> اضغطي «حذف البيانات التجريبية» ثم ارفعي ملفاتك، فتُحفظ تلقائيًا.</div>':'')+
+  '<p class="small">تدخل كل معلمة ومنسقة <b>برقمها السري نفسه في الميزان</b>، فلا توجد كلمات مرور جديدة. المعلمة ترى شعبها ومادتها فقط حسب توزيع المعلمات، والمنسقة (ومعها أخصائية المادة) ترى معلمات قسمها، ورقمك أنتِ يفتح كل شيء (وتستخدمه المستشارة ومديرة المدرسة). لتغيير رقم أو إيقافه: من جدول «المستخدمون» في الميزان.</p>'+
+  '<div class="row" style="gap:8px"><button class="btn sm" id="accPush">حفظ الآن في قاعدة البيانات</button>'+(CLOUD.pushErr?'<span class="small" style="color:#B23A48">تعذّر الحفظ: '+esc(CLOUD.pushErr)+'</span>':'')+'</div></section>'}
+document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.closest('#accPush');if(!t||AUTH.role!=='admin')return;CLOUD.hash={};await pushAll();toast(CLOUD.pushErr?'تعذّر الحفظ في قاعدة البيانات':'تم الحفظ في قاعدة البيانات');render()});
 authBoot();
 })();
 </script>
