@@ -324,6 +324,51 @@ pre.spec{white-space:pre-wrap;background:color-mix(in srgb,var(--cream) 35%,var(
 .gfield{display:flex;align-items:flex-end;justify-content:center;gap:6px;min-height:200px}
 .navsep{display:none}
 @media (min-width:1000px){.navsep{display:block}}
+
+/* ---- الجوال ---- */
+@media (max-width:700px){
+  .annc{display:none}
+  .band .in{padding-block:10px;gap:8px}
+  .word blockquote{font-size:15px!important;line-height:1.6;min-height:0}
+  .word-by{font-size:11.5px}
+  .band-stat{gap:6px;flex-wrap:wrap}
+  .band-stat .glass{padding:6px 10px}
+  .band-stat .btn-gold{padding:6px 10px;font-size:12.5px}
+  .top .in{padding-block:8px;gap:8px}
+  .brand{gap:8px}.brand h1{font-size:22px!important}.brand span{font-size:11px!important}.vision{display:none}
+  .bmark img{width:46px!important}.logo{height:42px!important}
+  .navwrap{padding-block:6px}
+  .nav{gap:4px;padding:4px;border-radius:14px}
+  .nav button,.nav a{padding:7px 11px!important;font-size:13px!important;border-radius:10px!important}
+  .nav .ic{width:15px;height:15px}
+  #nav .authbtn,#nav .authchip{order:-1!important}
+  .authbtn{order:-1;margin-inline-start:0;padding:7px 12px;font-size:13px}
+  .authchip{order:-1;flex-direction:row;align-items:center;margin:0;padding:4px 8px;background:linear-gradient(180deg,#6E1432,#470A1E);border-radius:10px;gap:6px}
+  .authchip b{font-size:12.5px}.authchip small,.authchip .cchip{display:none}.authchip .btn{margin:0;padding:3px 8px;font-size:12px}
+  .main{padding-block:14px 30px}
+  .wrap{gap:14px}
+  .hero{padding:20px 16px!important;min-height:0;border-radius:20px}
+  .hero h2{font-size:38px!important}
+  .hero .verse{font-size:17px!important;line-height:1.9}
+  .hero p{font-size:14px}
+  .hero-field,.gfield{display:none}
+  .crown h2{font-size:24px!important}.crown .verse{font-size:16px!important}.crown p{font-size:13.5px}
+  .panel{padding:14px;border-radius:18px}
+  .tiles{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .tile{padding:10px 12px}.tile .v{font-size:24px!important}.tile .k{font-size:12px}
+  .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table{font-size:12px!important}
+  th,td{padding:7px 8px!important;font-size:12px!important;white-space:nowrap}
+  td .btn,th .btn{padding:3px 8px;font-size:11.5px}
+  .word{display:none}
+  .band-stat .glass .l small{display:none}
+  .savechip{font-size:11px;padding:3px 8px}
+  input,select{font-size:14px!important}
+  .main .in{padding-inline:12px}
+  .modal{width:calc(100vw - 24px)!important;max-height:88vh;overflow:auto;padding:16px!important}
+  .seven{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
+  .sv{padding:12px;border-radius:16px}
+}
 </style>
 
 <div class="annc"><div class="in"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1z"/><path d="M15 9a4 4 0 0 1 0 6M18 6a8 8 0 0 1 0 12"/></svg><div class="marq"><span id="marq"></span></div></div></div>
@@ -1422,9 +1467,10 @@ async function adminLoad(){
   {const ls=load();S=(ls&&Array.isArray(ls.roster))?normState(ls):LOCAL_S}let cloudAt=null,cloud=null;
   try{const m=await CLOUD.db.collection('adm').doc('meta').get();
     if(m.exists){const md=m.data();cloudAt=md.savedAt||null;
-      const localAt=S.demo?'':(S.savedAt||'');
-      if(cloudAt&&(!localAt||cloudAt>localAt)){const parts=await Promise.all([...Array(md.n||0).keys()].map(i=>CLOUD.db.collection('adm').doc('s'+i).get()));const txt=parts.map(p=>p.exists?p.data().t:'').join('');cloud=JSON.parse(txt)}}}catch(e){console.error(e);toast('تعذّر قراءة نسخة قاعدة البيانات، وتم فتح نسخة هذا الجهاز',5000)}
-  if(cloud){S=normState(cloud);try{localStorage.setItem(STORE,JSON.stringify(S))}catch(_){}}
+      const localAt=S.demo?'':(S.savedAt||'');let last='';try{last=localStorage.getItem('sab3_last_sync')||''}catch(_){}
+      const localDirty=localAt&&last&&last===cloudAt&&localAt>cloudAt;
+      if(cloudAt&&!localDirty){const parts=await Promise.all([...Array(md.n||0).keys()].map(i=>CLOUD.db.collection('adm').doc('s'+i).get()));const txt=parts.map(p=>p.exists?p.data().t:'').join('');cloud=JSON.parse(txt)}}}catch(e){console.error(e);toast('تعذّر قراءة نسخة قاعدة البيانات، وتم فتح نسخة هذا الجهاز',5000)}
+  if(cloud){try{if(!S.demo&&S.roster&&S.roster.length)localStorage.setItem('sab3_backup_before_cloud',JSON.stringify(S))}catch(_){}S=normState(cloud);try{localStorage.setItem(STORE,JSON.stringify(S));localStorage.setItem('sab3_last_sync',S.savedAt||cloudAt||'')}catch(_){}}
   D=derive(S);render();
   CLOUD.unsub=CLOUD.db.collection('entries').onSnapshot(q=>{CLOUD.entries=new Map();q.forEach(d=>CLOUD.entries.set(d.id,d.data()));mergeEntries();D=derive(S);render();schedulePush()},e=>console.warn(e));
   if(!cloud)schedulePush(500);
@@ -1446,7 +1492,7 @@ async function pushAll(){
     const full=Object.assign({},S,{actions:S.actions.filter(a=>!a.eid)});
     const txt=JSON.stringify(full);const CH=300000;const n=Math.max(1,Math.ceil(txt.length/CH));
     for(let i=0;i<n;i++)w+=setIfChanged('adm','s'+i,{t:txt.slice(i*CH,(i+1)*CH)});
-    w+=setIfChanged('adm','meta',{n,savedAt:S.savedAt||new Date().toISOString(),size:txt.length});
+    const sAt=S.savedAt||new Date().toISOString();w+=setIfChanged('adm','meta',{n,savedAt:sAt,size:txt.length});
     // 2) shared settings and staff list (any signed-in account)
     const st=Object.assign({},S.settings);delete st.sig;
     w+=setIfChanged('shared','cfg',{settings:st,staff:(S.staff||[]).map(t=>({name:t.name,role:t.role||'',subject:t.subject||'',dept:t.dept||'',sections:t.sections||[]}))});
@@ -1454,7 +1500,7 @@ async function pushAll(){
     const docs=sectionDocs();for(const [id,d] of docs)w+=setIfChanged('sec',id,d);
     // 5) public numbers without names, for visitors
     w+=setIfChanged('pub','stats',pubStats());
-    await flushPending();
+    await flushPending();try{localStorage.setItem('sab3_last_sync',sAt)}catch(_){}
     CLOUD.lastPush=new Date();
   }catch(e){console.error(e);PENDING=[];CLOUD.pushErr=String(e&&e.message||e)}
   CLOUD.pushing=false;updCloudChip();
