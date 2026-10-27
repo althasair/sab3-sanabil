@@ -1018,12 +1018,15 @@ async function offer(filename,data){const d=await dlP;if(!d){plainDownload(filen
 function readSheet(file){return new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>{try{const wb=XLSX.read(new Uint8Array(fr.result),{type:'array',cellDates:true});const book={};wb.SheetNames.forEach(n=>{const ws=wb.Sheets[n];let R=0,C=0,any=false;for(const k in ws){if(k[0]==='!')continue;const a=XLSX.utils.decode_cell(k);any=true;if(a.r>R)R=a.r;if(a.c>C)C=a.c}if(any)ws['!ref']=XLSX.utils.encode_range({s:{r:0,c:0},e:{r:R,c:C}});book[n]=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:false,dateNF:'yyyy-mm-dd'})});const first=book[wb.SheetNames[0]];first.book=book;res(first)}catch(e){rej(e)}};fr.onerror=rej;fr.readAsArrayBuffer(file)})}
 const splitList=v=>String(v||'').split(/[;؛\n]+/).map(s=>s.trim()).filter(Boolean);
 function findCol(h,inc,exc){return h.findIndex(x=>has(x,inc)&&!(exc&&has(x,exc)))}
-function isResultsBook(book){return !!book&&Object.values(book).some(sh=>sh.slice(0,6).some(r=>r.filter(x=>/منتصف|نهاي/.test(String(x))).length>=4))}
+function resHdr(rows){const top=rows.slice(0,8);let i=top.findIndex(r=>r.filter(x=>/منتصف|نهاي/.test(String(x))).length>=4);if(i>=0)return i;
+  /* كشف درجات الشعبة: الفترة مكتوبة فوق الجدول، ورأس الأعمدة «التقييم الرئيسي» */
+  i=top.findIndex(r=>r.filter(x=>String(x).trim()==='التقييم الرئيسي').length>=3);if(i>=0&&/منتصف|نهاي/.test(norm(top.slice(0,i).map(r=>r.join(' ')).join(' '))))return i;return -1}
+function isResultsBook(book){return !!book&&Object.values(book).some(sh=>resHdr(sh)>=0)}
 function subjDK(x){return norm(x).replace(/ـ/g,'').replace(/^ال/,'').replace(/\s+/g,'')}
 function importResults(book){
   const SKIP=new Set(['pe','art']);const byK=new Map();const barred=new Map();let semSeen=new Set(),tracks={};
   Object.entries(book).forEach(([sn,rows])=>{
-    const hi=rows.slice(0,8).findIndex(r=>r.filter(x=>/منتصف|نهاي/.test(String(x))).length>=4);if(hi<0)return;
+    const hi=resHdr(rows);if(hi<0)return;
     const H=rows[hi].map(x=>String(x||'').trim()),U=(rows[hi+1]||[]).map(x=>String(x||'').trim());
     const MAIN=H.includes('التقييم الرئيسي'),perTxt=norm(rows.slice(0,hi).map(r=>r.join(' ')).join(' '));
     const lab=i=>norm((H[i]||'')+' '+(U[i]||'')).replace(/ـ/g,'');
@@ -1049,10 +1052,10 @@ function importResults(book){
   const firstSem=semSeen.has(0)||semSeen.has(1);
   let added=out.length,merged=0;
   if(!firstSem&&S.roster.length&&!S.demo){const m=new Map(S.roster.map(r=>[norm(r.name)+'|'+secKey(r.section)+'|'+subjDK(r.subject),r]));added=0;out.forEach(o=>{const r=m.get(norm(o.name)+'|'+o.section+'|'+subjDK(o.subject));if(r){[2,3].forEach(i=>{if(o.scores[i]!=null){r.scores[i]=o.scores[i];r.raw=r.raw||[null,null,null,null];r.den=r.den||[null,null,null,null];r.raw[i]=o.raw[i];r.den[i]=o.den[i]}});merged++}else{S.roster.push(o);added++}})}
-  else{if(S.demo){S.actions=[];S.charters=[];S.roster=out}else{const lv=new Set(out.map(o=>String(o.section).split('-')[0]));S.roster=S.roster.filter(r=>!lv.has(String(secKey(r.section)).split('-')[0])).concat(out)}}
+  else{if(S.demo){S.actions=[];S.charters=[];S.roster=out}else{/* تُستبدل فقط المواد الموجودة درجاتها في الملف لكل مستوى، وتبقى المواد غير المرصودة كما هي حتى تُرفع لاحقاً */const lsk=new Set(out.map(o=>String(o.section).split('-')[0]+'|'+subjDK(o.subject)));S.roster=S.roster.filter(r=>!lsk.has(String(secKey(r.section)).split('-')[0]+'|'+subjDK(r.subject))).concat(out)}}
   S.demo=false;S.settings.tests=['منتصف الفصل الأول','نهاية الفصل الأول','منتصف الفصل الثاني','نهاية الفصل الثاني'];
   const stuSet=new Set(out.map(o=>norm(o.name)+'|'+o.section)),stu=stuSet.size,noT=out.filter(o=>!o.teacher).length;const bAll=[...barred.entries()].filter(([k])=>!stuSet.has(k)).map(x=>x[1]);S.barred=[...barred.values()];
-  return 'تم استيراد نتائج '+stu+' طالبة ('+out.length+' درجة مادة)'+(merged?'، وتحديث '+merged+' صف بدرجات الفصل الثاني':'')+'، منها '+derive(S).targets.length+' حالة مستهدفة.'+(noT?' تعذّر ربط '+noT+' صف بمعلمة (شعبة أو مادة غير موجودة في توزيع المعلمات).':'')+(bAll.length?' لم تُحتسب '+bAll.length+' طالبة لأنها «محرومة» في جميع المواد: '+bAll.join('، ')+'.':'');
+  return 'تم استيراد نتائج '+stu+' طالبة ('+out.length+' درجة مادة)'+(merged?'، وتحديث '+merged+' صف بدرجات الفصل الثاني':'')+'، منها '+derive(S).targets.length+' حالة مستهدفة.'+(noT?' تعذّر ربط '+noT+' صف بمعلمة (شعبة أو مادة غير موجودة في توزيع المعلمات).':'')+(bAll.length?(bAll.length===1?' لم تُحتسب طالبة واحدة لأنها «محرومة»':bAll.length===2?' لم تُحتسب طالبتان لأنهما «محرومتان»':' لم تُحتسب '+bAll.length+(bAll.length<=10?' طالبات لأنهن «محرومات»':' طالبة لأنهن «محرومات»'))+' في جميع المواد: '+bAll.join('، ')+'.':'');
 }
 function importRoster(rows){
   if(isResultsBook(rows.book))return importResults(rows.book);
