@@ -1702,9 +1702,9 @@ function behTemplate(){const g=behGroups().find(x=>x.id===BEH.sel);if(!g)return;
   const rows=[['م','اسم الطالبة'].concat(F.map(f=>f[0]))].concat(st.map((n,i)=>[i+1,n]));const ws=XLSX.utils.aoa_to_sheet(rows);ws['!cols']=[{wch:5},{wch:36}].concat(F.map(()=>({wch:16})));
   const wb=XLSX.utils.book_new();wb.Workbook={Views:[{RTL:true}]};XLSX.utils.book_append_sheet(wb,ws,'الدرجات');XLSX.writeFile(wb,'درجات '+g.subj+' '+g.sec+'.xlsx')}
 async function behImport(file){const g=behGroups().find(x=>x.id===BEH.sel);if(!g)return;const F=behFields(g.subj,g.sec);const st=behStudents(g.sec);
-  try{const buf=await file.arrayBuffer();const wb=XLSX.read(new Uint8Array(buf),{type:'array'});let done=0,cols=new Set(),bad=0,miss=[];
+  try{const buf=await file.arrayBuffer();const wb=XLSX.read(new Uint8Array(buf),{type:'array'});let done=0,cols=new Set(),bad=0,miss=[],skipped=0;
     wb.SheetNames.forEach(sn=>{const rows=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:'',raw:true});
-      const hi=rows.findIndex(r=>r.some(c=>/اسم|الطالبه|الطالبة/.test(norm(c))));if(hi<0)return;const H=rows[hi].map(c=>String(c));
+      const hi=rows.findIndex(r=>r.some(c=>/اسم|الطالبه|الطالبة/.test(norm(c))));if(hi<0)return;{const top=rows.slice(0,hi).flat().map(c=>String(c)).join(' ');const m=/(1[0-2])\s*[-–\/]\s*(\d+)/.exec(top)||/(1[0-2])\s*[-–\/]\s*(\d+)/.exec(sn);if(m&&m[1]+'-'+m[2]!==g.sec){skipped++;return}}const H=rows[hi].map(c=>String(c));
       const nc=H.findIndex(c=>/اسم|الطالبه|الطالبة/.test(norm(c)));const map=H.map((h,j)=>j===nc?null:behMapHead(h,F));if(!map.some(Boolean))return;
       rows.slice(hi+1).forEach(r=>{const nm=String(r[nc]||'').trim();if(!nm)return;const who=behMatch(nm,st);if(!who){if(miss.length<8)miss.push(nm);return}let any=false;
         map.forEach((fld,j)=>{if(!fld)return;const raw=r[j];if(raw===''||raw==null)return;const fd=F.find(f=>f[0]===fld);if(fd[1]==='sel'){const k=norm(String(raw)).replace(/[ًٌٍ]/g,'');const o=fd[2].find(v=>norm(v).replace(/[ًٌٍ]/g,'')===k);if(!o){bad++;return}behSet(g,who,fld,o);cols.add(fld);any=true;return}const x=parseFloat(String(raw).replace(',','.').replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)));const mx=(F.find(f=>f[0]===fld)||[])[2];
