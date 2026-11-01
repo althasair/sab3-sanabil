@@ -1122,7 +1122,7 @@ async function offer(filename,data){const d=await dlP;if(!d){plainDownload(filen
 
 
 /* ---------- أسماء الطالبات إلى منصة الميزان (الشعبة والاسم فقط — لتختار المعلمة طالباتها عند التواصل مع أولياء الأمور) ---------- */
-const MIZAN_API='https://script.google.com/macros/s/AKfycbwrHtnYznB7mfbk3l9nGaTEXbRfxOeZZGCQcr3yMe000mErnEtyx44J8Crx8VAeuYLN/exec';
+const MIZAN_API='https://script.google.com/macros/s/AKfycbwS8mm6uiL8u1uHeH78D1fLa8BQfWGQ4WidKo9vvubDwoQ0HcLKb6VPTg2r3tERHCpv/exec';
 async function syncMizan(){
   const L=allStudents().map(x=>({s:secKey(x.section),n:String(x.name||'').replace(/\s+/g,' ').trim()})).filter(x=>x.n&&/^1[0-2]-\d+$/.test(x.s));
   if(!L.length){toast('لا توجد أسماء طالبات: ارفعي سجل القيد أو ملف الدرجات أولاً');return}
