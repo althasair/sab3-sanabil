@@ -1585,7 +1585,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.target.id==='lg_p
 const _renderNav=renderNav;
 renderNav=function(){_renderNav();const nav=$('#nav');if(!nav)return;
   nav.querySelectorAll('[data-tab]').forEach(b=>{if(!tabOK(b.dataset.tab)){b.setAttribute('data-locked','1');b.classList.add('locked');b.insertAdjacentHTML('beforeend','<svg class="lk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>');b.removeAttribute('aria-current')}});
-  if(AUTH.role!=='admin')nav.querySelectorAll('a[href="analysis.html"]'+(AUTH.role==='coord'?'':',a[href="report.html"]')).forEach(a=>{a.removeAttribute('href');a.setAttribute('data-locked','1');a.classList.add('locked');a.style.opacity='.45'});
+  if(AUTH.role!=='admin')nav.querySelectorAll('a[href="analysis.html"],a[href="report.html"]').forEach(a=>{a.removeAttribute('href');a.setAttribute('data-locked','1');a.classList.add('locked');a.style.opacity='.45'});
   nav.insertAdjacentHTML('beforeend',authChip())};
 function authChip(){if(AUTH.role==='loading')return '<span class="authchip">…</span>';
   if(AUTH.role==='guest')return '<button type="button" class="authbtn" id="authIn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>تسجيل الدخول</button>';
