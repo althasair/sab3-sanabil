@@ -1694,23 +1694,23 @@ function behMapHead(h,F){const n=norm(h).replace(/[()]/g,' ');const ex=F.find(f=
   const one=/(^|\s)(1|١|الاول|اول)(\s|$)/.test(n),two=/(^|\s)(2|٢|الثاني|ثاني)(\s|$)/.test(n);const pick=k=>(F.find(f=>f[0].startsWith(k))||[])[0];
   if(/تقييم|اختبار قصير|تقويم/.test(n)){if(two)return pick('التقييم الثاني');if(one)return pick('التقييم الأول')}
   if(/واجب/.test(n)){const el=/الكترون|إلكترون|منصه|منصة/.test(n);const k=(el?'واجب إلكتروني ':'واجب ورقي ')+(two?'2':'1');if(one||two)return pick(k)}
-  if(/مشارك/.test(n))return pick('المشاركة');return null}
+  if(/مشارك/.test(n))return pick('المشاركة');if(/احضار|إحضار/.test(n))return pick('إحضار');if(/سلوك الطالب/.test(n))return pick('سلوك الطالبة');if(/الزي/.test(n))return pick('الالتزام بالزي');if(/التفاعل/.test(n))return pick('التفاعل');if(/القاعه|القاعة/.test(n))return pick('السلوك في القاعة');if(/المستوي|المستوى/.test(n))return pick('المستوى الأكاديمي');return null}
 function behMatch(name,list){const k=norm(name);if(!k)return null;let m=list.find(n=>norm(n)===k);if(m)return m;const w=k.split(' ');
   if(w.length>=2){m=list.filter(n=>{const x=norm(n).split(' ');return x[0]===w[0]&&x[1]===w[1]&&(w.length<3||x[x.length-1]===w[w.length-1])});if(m.length===1)return m[0]}
   m=list.filter(n=>norm(n).startsWith(k)||k.startsWith(norm(n)));return m.length===1?m[0]:null}
 function behTemplate(){const g=behGroups().find(x=>x.id===BEH.sel);if(!g)return;const F=behFields(g.subj,g.sec).filter(f=>f[1]==='num');const st=behStudents(g.sec);
   const rows=[['م','اسم الطالبة'].concat(F.map(f=>f[0]))].concat(st.map((n,i)=>[i+1,n]));const ws=XLSX.utils.aoa_to_sheet(rows);ws['!cols']=[{wch:5},{wch:36}].concat(F.map(()=>({wch:16})));
   const wb=XLSX.utils.book_new();wb.Workbook={Views:[{RTL:true}]};XLSX.utils.book_append_sheet(wb,ws,'الدرجات');XLSX.writeFile(wb,'درجات '+g.subj+' '+g.sec+'.xlsx')}
-async function behImport(file){const g=behGroups().find(x=>x.id===BEH.sel);if(!g)return;const F=behFields(g.subj,g.sec).filter(f=>f[1]==='num');const st=behStudents(g.sec);
+async function behImport(file){const g=behGroups().find(x=>x.id===BEH.sel);if(!g)return;const F=behFields(g.subj,g.sec);const st=behStudents(g.sec);
   try{const buf=await file.arrayBuffer();const wb=XLSX.read(new Uint8Array(buf),{type:'array'});let done=0,cols=new Set(),bad=0,miss=[];
     wb.SheetNames.forEach(sn=>{const rows=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:'',raw:true});
       const hi=rows.findIndex(r=>r.some(c=>/اسم|الطالبه|الطالبة/.test(norm(c))));if(hi<0)return;const H=rows[hi].map(c=>String(c));
       const nc=H.findIndex(c=>/اسم|الطالبه|الطالبة/.test(norm(c)));const map=H.map((h,j)=>j===nc?null:behMapHead(h,F));if(!map.some(Boolean))return;
       rows.slice(hi+1).forEach(r=>{const nm=String(r[nc]||'').trim();if(!nm)return;const who=behMatch(nm,st);if(!who){if(miss.length<8)miss.push(nm);return}let any=false;
-        map.forEach((fld,j)=>{if(!fld)return;const raw=r[j];if(raw===''||raw==null)return;const x=parseFloat(String(raw).replace(',','.').replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)));const mx=(F.find(f=>f[0]===fld)||[])[2];
+        map.forEach((fld,j)=>{if(!fld)return;const raw=r[j];if(raw===''||raw==null)return;const fd=F.find(f=>f[0]===fld);if(fd[1]==='sel'){const k=norm(String(raw)).replace(/[ًٌٍ]/g,'');const o=fd[2].find(v=>norm(v).replace(/[ًٌٍ]/g,'')===k);if(!o){bad++;return}behSet(g,who,fld,o);cols.add(fld);any=true;return}const x=parseFloat(String(raw).replace(',','.').replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)));const mx=(F.find(f=>f[0]===fld)||[])[2];
           if(isNaN(x)||x<0||x>mx){bad++;return}const el={dataset:{bi:String(st.indexOf(who)),bh:fld},type:'number',max:mx,value:String(x)};behSet(g,who,fld,x);cols.add(fld);any=true});if(any)done++})});
     BEH.dirty[g.id]=1;render();
-    toast(done?'تمت تعبئة '+done+' طالبة في '+cols.size+' عمود'+(bad?'، وتُركت '+bad+' درجة خارج الحد':'')+(miss.length?'، ولم تُطابق: '+miss.join('، '):'')+'. راجعي ثم اضغطي «حفظ الرصد».':'لم أجد في الملف عمودًا لأسماء الطالبات وأعمدة درجات معروفة. نزّلي «ملف الشعبة» واستخدميه.',9000)}
+    toast(done?'تمت تعبئة '+done+' طالبة في '+cols.size+' عمود'+(bad?'، وتُركت '+bad+' قيمة غير صحيحة':'')+(miss.length?'، ولم تُطابق: '+miss.join('، '):'')+'. راجعي ثم اضغطي «حفظ الرصد».':'لم أجد في الملف عمودًا لأسماء الطالبات وأعمدة درجات معروفة. نزّلي «ملف الشعبة» واستخدميه.',9000)}
   catch(e){console.error(e);toast('تعذّر قراءة الملف')}}
 function behSet(g,n,hd,val){const d=BEH.docs[g.id]||(BEH.docs[g.id]={uid:AUTH.user.uid,teacher:g.teacher,sec:g.sec,subj:g.subj,dept:g.dept,stu:[]});let s=d.stu.find(x=>norm(x.n)===norm(n));if(!s){s={n,v:{}};d.stu.push(s)}s.v[hd]=val}
 document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('#behTpl'))behTemplate()});
