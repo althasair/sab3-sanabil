@@ -89,7 +89,7 @@ const mine = k => S.recs.filter(r => r.item === 'TA' && (!k || r.d.kind === k)).
 /* ---------------- الدخول */
 function login() {
   $('#who').innerHTML = '';
-  $('#view').innerHTML = `<div class="login"><div class="card"><p class="verse">﴿وَقُلِ اعْمَلُوا فَسَيَرَى اللَّهُ عَمَلَكُمْ﴾<cite>التوبة: 105</cite></p><h2 style="margin-top:12px">مبادرات المعلمات وأنشطتهن</h2><div>أدخلي رقمك السري (للمعلمات والإدارة)</div><div class="dots" id="dots"></div>
+  $('#view').innerHTML = `<div class="login"><div class="card"><p class="verse">﴿وَقُلِ اعْمَلُوا فَسَيَرَى اللَّهُ عَمَلَكُمْ﴾<cite>التوبة: 105</cite></p><h2 style="margin-top:12px">مبادرات المعلمات وأنشطتهن</h2><div>أدخلي رقمك السري (للمعلمات والإدارة)<br><small style="color:#888">المعلمات 4 أرقام · الإدارة 6 أرقام</small></div><div class="dots" id="dots"></div>
     <div class="pad">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => `<button data-k="${n}">${n}</button>`).join('')}<button data-k="del">مسح</button><button data-k="0">0</button><button data-k="ok">دخول</button></div><div class="err" id="err"></div></div></div>`;
   let pin = ''; const draw = () => { $('#dots').innerHTML = Array.from({ length: Math.max(4, pin.length) }, (_, i) => `<span class="${i < pin.length ? 'on' : ''}"></span>`).join(''); };
   const go = async () => { if (pin.length < 4) return; $('#err').textContent = ''; try { const j = await call('login', { pin }); S.tok = j.token; try { sessionStorage.setItem('sab3_tok', j.token); localStorage.setItem('sab3_tok', j.token); } catch (e) {} await boot(); } catch (e) { $('#err').textContent = e.message; pin = ''; draw(); } };
