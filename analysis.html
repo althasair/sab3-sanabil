@@ -100,7 +100,7 @@ button{cursor:pointer}
 :root[data-theme="dark"] .logo-c{display:none}:root[data-theme="dark"] .logo-l{display:block}
 /* nav */
 .navwrap{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);padding-block:12px;border-bottom:1px solid var(--line)}
-.nav{display:flex;gap:6px;overflow-x:auto;border:1.5px solid color-mix(in srgb,var(--gold) 60%,transparent);border-radius:20px;padding:6px;background:var(--paper);scrollbar-width:none}
+.nav{display:flex;flex-wrap:wrap;gap:6px;overflow:visible;border:1.5px solid color-mix(in srgb,var(--gold) 60%,transparent);border-radius:20px;padding:6px;background:var(--paper);scrollbar-width:none}
 .nav::-webkit-scrollbar{display:none}
 .nav button{all:unset;cursor:pointer;display:flex;align-items:center;gap:8px;padding:9px 18px;border-radius:14px;color:var(--maroon);font-weight:800;font-size:15px;white-space:nowrap;flex:none}
 .nav button:hover{background:var(--maroon-soft)}
@@ -350,7 +350,7 @@ pre.spec{white-space:pre-wrap;background:color-mix(in srgb,var(--cream) 35%,var(
 .medal.r1 .rk{background:linear-gradient(135deg,#B8903A,#E0BE73)}.medal.r2 .rk{background:#8E9AAF}.medal.r3 .rk{background:#A9744F}
 .medal .n{font-weight:800;font-size:14px}.medal .m{font-size:12px;color:var(--muted)}
 .medal .p{margin-inline-start:auto;font-weight:900;color:var(--tiff-d);font-size:18px}
-.backlink{all:unset;cursor:pointer;display:flex;white-space:nowrap;flex:none;align-items:center;gap:8px;padding:9px 16px;border-radius:14px;color:var(--gold);font-weight:800;font-size:14px;border:1px solid var(--gold-soft);margin-inline-start:auto}
+.backlink{all:unset;cursor:pointer;display:flex;white-space:nowrap;flex:none;align-items:center;gap:8px;padding:9px 16px;border-radius:14px;color:var(--gold);font-weight:800;font-size:14px;border:1px solid var(--gold-soft);margin-inline-start:auto}.homebtn{margin-inline-start:0!important;margin-inline-end:6px!important;background:var(--maroon)!important;color:#fff!important;border-color:var(--maroon)!important}
 .prog{height:8px;border-radius:99px;background:var(--line);overflow:hidden}.prog i{display:block;height:100%;background:var(--tiff)}
 @media (max-width:1100px){.an-layout{grid-template-columns:minmax(0,1fr)}.side{position:static}.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.drops{grid-template-columns:minmax(0,1fr)}}
 @media print{.annc,.navwrap,.side,.foot,.noprint,.toolbar .btn{display:none!important}.an-layout{grid-template-columns:1fr}.box,.kpi{box-shadow:none;break-inside:avoid}.tw{overflow:visible;border:0}.gt th{position:static}.gt td.nm{position:static}body{background:#fff}}
@@ -737,9 +737,9 @@ function sidebar(){const lv=[...new Set(M.stu.map(x=>x.l))].sort();const secs=Ob
   '<label>الفئة (حسب النسبة العامة)</label><select data-f="cat">'+opt('','جميع الفئات',UI.cat)+CATS.map(c=>opt(c.k,c.t,UI.cat)).join('')+'</select>'+
   '<button class="btn reset" data-reset="1">إلغاء التصفية</button>'+(M.stu.length&&!Object.keys(S.reg).length?'<p class="hint">ارفعي سجل القيد لتظهر الجنسيات.</p>':'')+'</aside>'}
 function render(){try{
-  if(CLD.wait){$('#nav').innerHTML='<a class="backlink" href="./">العودة إلى سبع سنابل ←</a>';$('#view').innerHTML='<div class="box"><div class="empty">'+(CLD.msg||'جارٍ تحميل النتائج…')+'</div></div>';return}
+  if(CLD.wait){$('#nav').innerHTML='<a class="backlink homebtn" href="./">الصفحة الرئيسية</a>';$('#view').innerHTML='<div class="box"><div class="empty">'+(CLD.msg||'جارٍ تحميل النتائج…')+'</div></div>';return}
   if(!tabOKA(UI.tab))UI.tab=CLD.role==='teacher'?'class':'overview';
-  $('#nav').innerHTML=TABS.filter(([id])=>tabOKA(id)).map(([id,l])=>'<button type="button" data-tab="'+id+'"'+(UI.tab===id?' aria-current="page"':'')+'>'+l+'</button>').join('')+'<a class="backlink" href="./">العودة إلى سبع سنابل ←</a>';
+  $('#nav').innerHTML='<a class="backlink homebtn" href="./"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg>الصفحة الرئيسية</a>'+TABS.filter(([id])=>tabOKA(id)).map(([id,l])=>'<button type="button" data-tab="'+id+'"'+(UI.tab===id?' aria-current="page"':'')+'>'+l+'</button>').join('');
   const v={overview:vOverview,class:vClass,sections:vSections,subjects:vSubjects,teachers:vTeachers,last:vLast,top:()=>unlocked()?vTop():lockView(),cats:vCats,value:vValue,reading:vReading,data:vData,treading:()=>vTRead(),creading:()=>vCRead()}[UI.tab]||vOverview;
   $('#view').innerHTML=UI.tab==='data'?'<div class="content">'+v()+'</div>':'<div class="an-layout">'+sidebar()+'<div class="content">'+v()+'</div></div>';
   const n=M.stu.length;$('#marq').textContent='تحليل النتائج · '+(n?n+' طالبة في '+PERIODS[UI.per]+' · '+Object.keys(M.secs).length+' شعبة · المقارنة بالعام الماضي · الأوائل وفئات الدعم':'ارفعي كشف الدرجات من صفحة البيانات')+' · «وَقُل رَّبِّ زِدْنِي عِلْمًا»';
