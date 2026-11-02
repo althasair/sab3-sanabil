@@ -353,6 +353,9 @@ pre.spec{white-space:pre-wrap;background:color-mix(in srgb,var(--cream) 35%,var(
 .medal .n{font-weight:800;font-size:14px}.medal .m{font-size:12px;color:var(--muted)}
 .medal .p{margin-inline-start:auto;font-weight:900;color:var(--tiff-d);font-size:18px}
 .backlink{all:unset;cursor:pointer;display:flex;white-space:nowrap;flex:none;align-items:center;gap:8px;padding:9px 16px;border-radius:14px;color:var(--gold);font-weight:800;font-size:14px;border:1px solid var(--gold-soft);margin-inline-start:auto}.homebtn{margin-inline-start:0!important;margin-inline-end:6px!important;background:var(--maroon)!important;color:#fff!important;border-color:var(--maroon)!important}
+.secstrip{position:sticky;top:64px;z-index:12;display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;background:color-mix(in srgb,var(--paper) 94%,transparent);backdrop-filter:blur(6px);border:1px solid var(--line);border-radius:16px;padding:8px 12px;box-shadow:var(--shadow)}
+.secstrip .sg{display:flex;flex-wrap:wrap;gap:5px;align-items:center}.secstrip .sgl{font-size:12px;font-weight:800;color:var(--muted);margin-inline-end:2px}.secstrip .chip{padding:3px 11px;font-size:12.5px}.secstrip .lvchip{padding:5px 18px;font-size:14px}
+.sk8{grid-template-columns:repeat(4,minmax(0,1fr))}.kpi.sk{padding:10px 14px}.kpi.sk .v{font-size:26px}
 .prog{height:8px;border-radius:99px;background:var(--line);overflow:hidden}.prog i{display:block;height:100%;background:var(--tiff)}
 @media (max-width:1100px){.an-layout{grid-template-columns:minmax(0,1fr)}.side{position:static}.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.drops{grid-template-columns:minmax(0,1fr)}}
 @media print{.annc,.navwrap,.side,.foot,.noprint,.toolbar .btn{display:none!important}.an-layout{grid-template-columns:1fr}.box,.kpi{box-shadow:none;break-inside:avoid}.tw{overflow:visible;border:0}.gt th{position:static}.gt td.nm{position:static}body{background:#fff}}
@@ -431,7 +434,7 @@ let S=blank();
 try{const x=JSON.parse(localStorage.getItem(KEY)||'null');if(x&&typeof x==='object')S=Object.assign(blank(),x)}catch(e){}
 function save(){if(typeof CLD!=='undefined'&&CLD.ro)return;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){toast('تعذّر الحفظ في المتصفح')}if(typeof anaPushSoon==='function')anaPushSoon()}
 function sanStaff(){try{const x=JSON.parse(localStorage.getItem(SAN)||'null');if(x&&Array.isArray(x.staff)&&x.staff.length&&x.staff.some(t=>t.sections&&t.sections.length))return x.staff}catch(e){}return null}
-const UI={tab:'overview',per:null,lvl:'',sec:'',sub:'',nat:'',cat:'',sort:'tot'};
+const UI={tab:'overview',per:null,lvl:'',sec:'',sub:'',nat:'',cat:'',pf:'',sort:'tot'};
 
 /* ---------- import ---------- */
 function fixRef(ws){let R=0,C=0,any=false;for(const k in ws){if(k[0]==='!')continue;const a=XLSX.utils.decode_cell(k);any=true;if(a.r>R)R=a.r;if(a.c>C)C=a.c}if(any)ws['!ref']=XLSX.utils.encode_range({s:{r:0,c:0},e:{r:R,c:C}})}
@@ -546,7 +549,7 @@ const legendCats='<div class="legend2">'+CATS.map(c=>'<span><i style="background
 const legendYears='<div class="legend2"><span><i style="background:#0ABAB5"></i>2026–2027</span><span><i style="background:#1F3A5F"></i>2025–2026</span></div>';
 
 /* ---------- views ---------- */
-function scopeTitle(){return[UI.lvl?'المستوى '+({10:'العاشر',11:'الحادي عشر',12:'الثاني عشر'}[UI.lvl]):'جميع المستويات',UI.sec&&('الشعبة '+UI.sec),UI.sub,UI.nat==='q'?'القطريات':UI.nat==='n'?'غير القطريات':'',UI.cat&&CATS.find(c=>c.k===UI.cat).t].filter(Boolean).join(' · ')}
+function scopeTitle(){return[UI.lvl?'المستوى '+({10:'العاشر',11:'الحادي عشر',12:'الثاني عشر'}[UI.lvl]):'جميع المستويات',UI.sec&&('الشعبة \u2066'+UI.sec+'\u2069'),UI.sub,UI.nat==='q'?'القطريات':UI.nat==='n'?'غير القطريات':'',UI.cat&&CATS.find(c=>c.k===UI.cat).t].filter(Boolean).join(' · ')}
 function head(t,sub){return'<header class="crown"><span class="eyebrow">'+esc(PERIODS[UI.per])+' · 2026–2027</span><h2>'+t+'</h2>'+(sub?'<p>'+sub+'</p>':'')+'</header>'}
 function noData(){return'<div class="box"><div class="empty">لم تُرفع درجات بعد.<br>ابدئي من صفحة «البيانات» برفع كشف الدرجات وسجل القيد.</div><button class="btn" data-tab="data" style="align-self:center">الانتقال إلى البيانات</button></div>'}
 function delta(a,b){if(a==null||b==null)return'';const d=a-b;return'<span class="d '+(d>0.05?'up':d<-0.05?'dn':'eq')+'">'+(d>0.05?'▲ ':d<-0.05?'▼ ':'')+fmt(Math.abs(d))+' عن العام الماضي</span>'}
@@ -572,13 +575,30 @@ function statusBox(){const secs=Object.keys(M.secs).filter(s=>!UI.lvl||lvlOf(s)=
     return'<tr><td>'+s+'</td><td>'+o.n+'</td><td>'+(o.complete?'<span class="pill ok">مكتمل</span>':'<span class="pill warn">غير مكتمل</span>')+'</td><td style="white-space:normal;text-align:right">'+(miss.length?miss.map(([k,v])=>esc(k)+(v==='none'?' (لم يُرصد)':' ('+o.subs[k]+' من '+o.n+')')).join('، '):'—')+'</td></tr>'}).join('');
   return'<div class="box"><h3>اكتمال الرصد</h3><p class="sub">الأوائل والترتيب يُستخرجان فقط للشعب المكتملة.</p><div class="tw"><table class="gt"><thead><tr><th>الشعبة</th><th>الطالبات</th><th>الحالة</th><th>مواد لم يكتمل رصدها</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>'}
 function cellH(v){if(typeof v==='number'){const c=catOf(v);return'<td class="'+c.k+'">'+fmt(v)+'</td>'}return'<td class="cna">'+(v?esc(v):'—')+'</td>'}
+function secStrip(){const secs=Object.keys(M.secs).sort(secSort);const lv=[...new Set(secs.map(lvlOf))];
+  return'<div class="secstrip noprint">'+lv.map(l=>'<div class="sg"><span class="sgl">'+({10:'العاشر',11:'الحادي عشر',12:'الثاني عشر'}[l]||l)+'</span>'+secs.filter(x=>lvlOf(x)===l).map(x=>'<button class="chip" data-sec="'+x+'" aria-pressed="'+(UI.sec===x)+'"><bdi dir="ltr">'+x+'</bdi></button>').join('')+'</div>').join('')+'</div>'}
 function vClass(){if(!M.stu.length)return noData();
-  if(!UI.sec)return head('الشعبة','اختاري الشعبة من لوحة التحكم الجانبية لتظهر درجات طالباتها.')+'<div class="box"><div class="chips">'+Object.keys(M.secs).filter(s=>!UI.lvl||lvlOf(s)===UI.lvl).sort(secSort).map(s=>'<button class="chip" data-sec="'+s+'">'+s+'</button>').join('')+'</div></div>';
+  if(!UI.sec)return head('الشعبة','اختاري الشعبة لتظهر مؤشراتها ودرجات طالباتها.')+secStrip();
   const L=filtered({noSub:true});const subs=subjectsIn(M.stu.filter(x=>x.s===UI.sec));const o=M.secs[UI.sec];
   const ranked=M.stu.filter(x=>x.s===UI.sec&&x.avg!=null&&!x.barred).sort((a,b)=>b.avg-a.avg);const rank=new Map(ranked.map((x,i)=>[x.pid,i+1]));
-  const list=L.slice().sort((a,b)=>UI.sort==='name'?a.n.localeCompare(b.n,'ar'):(b.avg||0)-(a.avg||0));
-  let h=head('الشعبة '+UI.sec,esc(scopeTitle()));
-  h+='<div class="box"><div class="toolbar"><div class="chips">'+CATS.map(c=>'<button class="chip" data-cat="'+c.k+'" aria-pressed="'+(UI.cat===c.k)+'">'+c.t+'</button>').join('')+'<button class="chip" data-cat="" aria-pressed="'+(!UI.cat)+'">الكل</button></div>'+
+  const gv=x=>UI.sub?x.g[UI.sub]:x.avg;
+  const list=L.filter(x=>!UI.pf||(typeof gv(x)==='number'&&(UI.pf==='p'?gv(x)>=50:gv(x)<50))).sort((a,b)=>UI.sort==='name'?a.n.localeCompare(b.n,'ar'):(b.avg||0)-(a.avg||0));
+  let h=head('الشعبة <bdi dir="ltr">'+UI.sec+'</bdi>',esc(scopeTitle()));
+  h+=secStrip();
+  const base=M.stu.filter(x=>x.s===UI.sec&&(!UI.nat||(UI.nat==='q'?isQ(x.nat):!isQ(x.nat)))).map(gv).filter(v=>typeof v==='number');
+  const N=base.length,cnt=f=>base.filter(f).length,pc=n=>N?'<bdi dir="ltr">'+fmt(n/N*100)+'%</bdi>':'—';
+  const T=(l,n,cls,note)=>'<div class="kpi sk"><span class="l">'+l+'</span><span class="v"'+(cls?' style="color:'+cls+'"':'')+'>'+n+'</span><span class="d eq">'+note+'</span></div>';
+  const nP=cnt(v=>v>=50),nF=N-nP,n90=cnt(v=>v>=90),n70=cnt(v=>v>=70),nU70=N-n70,nW=cnt(v=>v>=50&&v<70);
+  h+='<div class="box"><h3>مؤشرات الشعبة <bdi dir="ltr">'+UI.sec+'</bdi>'+(UI.sub?'<small>'+esc(UI.sub)+'</small>':'<small>حسب النسبة العامة</small>')+'</h3><div class="kpis sk8">'+
+     T('نسبة التحصيل',fmt(N?mean(base):null)+'%','var(--tiff-d)','عدد الطالبات '+N)+
+     T('الناجحات',nP,'var(--c90)','نسبة النجاح '+pc(nP))+
+     T('الراسبات',nF,'var(--bad)','نسبة الرسوب '+pc(nF))+
+     T('90 فأعلى',n90,'var(--c90)',pc(n90)+' من الطالبات')+
+     T('70 فأعلى',n70,'var(--c80)',pc(n70)+' من الطالبات')+
+     T('دون 70',nU70,'var(--c60)',pc(nU70)+' من الطالبات')+
+     T('الواعدات (50 – 69)',nW,'#C9761F',pc(nW)+' من الطالبات')+
+     T('دعم مكثف (دون 50)',nF,'var(--c50)',pc(nF)+' من الطالبات')+'</div></div>';
+  h+='<div class="box"><h3>فئات الطالبات</h3><div class="toolbar"><div class="chips">'+CATS.map(c=>'<button class="chip" data-cat="'+c.k+'" aria-pressed="'+(UI.cat===c.k)+'">'+c.t+'</button>').join('')+'<button class="chip" data-pf="p" aria-pressed="'+(UI.pf==='p')+'">الناجحات</button><button class="chip" data-pf="f" aria-pressed="'+(UI.pf==='f')+'">الراسبات</button><button class="chip" data-cat="" aria-pressed="'+(!UI.cat&&!UI.pf)+'">الكل</button></div>'+
      '<div class="chips"><button class="btn" data-sort="'+(UI.sort==='name'?'tot':'name')+'">'+(UI.sort==='name'?'ترتيب حسب النسبة':'ترتيب أبجدي')+'</button><button class="btn" data-export="class">تصدير Excel</button><button class="btn" onclick="window.print()">طباعة</button></div></div>'+legendCats+
      '<div class="tw"><table class="gt"><thead><tr><th>م</th><th>اسم الطالبة</th><th>الجنسية</th>'+subs.map(s=>'<th class="rot">'+esc(s)+'<br><small style="font-weight:400;opacity:.8">'+esc(teacherOf(UI.sec,s).split(' ').slice(0,2).join(' '))+'</small></th>').join('')+'<th>النسبة</th><th>الترتيب</th></tr></thead><tbody>'+
      list.map((x,i)=>'<tr><td>'+(i+1)+'</td><td class="nm">'+esc(x.n)+'</td><td>'+esc(x.nat)+'</td>'+subs.map(s=>cellH(x.g[s])).join('')+(x.avg!=null?'<td class="tot '+catOf(x.avg).k+'">'+fmt(x.avg)+'</td>':'<td>—</td>')+'<td>'+(rank.get(x.pid)?rank.get(x.pid):'<span class="cna">'+(x.barred?'محرومة':'—')+'</span>')+'</td></tr>').join('')+
@@ -590,7 +610,9 @@ function vSections(){if(!M.stu.length)return noData();
   const lvl=UI.lvl||(UI.sec?lvlOf(UI.sec):'')||[...new Set(M.stu.map(x=>x.l))].sort()[0];
   const secs=Object.keys(M.secs).filter(s=>lvlOf(s)===lvl).sort(secSort);const P=M.stu.filter(x=>x.l===lvl&&(!UI.nat||(UI.nat==='q'?isQ(x.nat):!isQ(x.nat))));
   const subs=UI.sub?[UI.sub]:subjectsIn(P);
-  let h=head('مقارنة الشعب — المستوى '+lvl,'كل خلية متوسط نسبة الشعبة في المادة، ولونها حسب الفئة.'+(UI.nat?' ('+(UI.nat==='q'?'القطريات':'غير القطريات')+')':''));
+  const LVS=[...new Set(Object.keys(M.secs).map(lvlOf))].sort();
+  let h=head('مقارنة الشعب — المستوى '+({10:'العاشر',11:'الحادي عشر',12:'الثاني عشر'}[lvl]||lvl),'كل خلية متوسط نسبة الشعبة في المادة، ولونها حسب الفئة.'+(UI.nat?' ('+(UI.nat==='q'?'القطريات':'غير القطريات')+')':''));
+  h+='<div class="secstrip noprint"><div class="sg"><span class="sgl">المستوى</span>'+LVS.map(l=>'<button class="chip lvchip" data-lvl="'+l+'" aria-pressed="'+(l===lvl)+'">'+({10:'العاشر',11:'الحادي عشر',12:'الثاني عشر'}[l]||l)+'</button>').join('')+'</div></div>';
   h+='<div class="box"><div class="toolbar"><h3>خريطة الشعب والمواد</h3><button class="btn" onclick="window.print()">طباعة</button></div>'+legendCats+'<div class="tw"><table class="gt"><thead><tr><th>المادة</th>'+secs.map(s=>'<th>'+s+'</th>').join('')+'<th>المستوى</th><th>الفارق</th></tr></thead><tbody>'+
     subs.map(s=>{const vs=secs.map(sec=>{const st=statOf(vals(P.filter(x=>x.s===sec),s));return st?st.m:null});const ok=vs.filter(v=>v!=null);const lv=statOf(vals(P,s));
       return'<tr><td class="nm">'+esc(s)+'</td>'+vs.map(v=>v==null?'<td class="cna">—</td>':cellH(v)).join('')+'<td class="tot">'+fmt(lv&&lv.m)+'</td><td>'+(ok.length>1?fmt(Math.max(...ok)-Math.min(...ok)):'—')+'</td></tr>'}).join('')+
@@ -763,7 +785,7 @@ function render(){try{
 function toast(m){const t=document.createElement('div');t.className='toast';t.textContent=m;$('#toastRoot').appendChild(t);setTimeout(()=>t.remove(),4200)}
 function download(name,blob){const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000)}
 function exportX(kind){const wb=XLSX.utils.book_new();let rows=[],name='';
-  if(kind==='class'){const subs=subjectsIn(M.stu.filter(x=>x.s===UI.sec));rows=filtered({noSub:true}).sort((a,b)=>(b.avg||0)-(a.avg||0)).map(x=>Object.assign({'الرقم الشخصي':x.pid,'الاسم':x.n,'الجنسية':x.nat},Object.fromEntries(subs.map(s=>[s,x.g[s]!=null?x.g[s]:''])),{'النسبة':x.avg!=null?r1(x.avg):''}));name='الشعبة '+UI.sec}
+  if(kind==='class'){const subs=subjectsIn(M.stu.filter(x=>x.s===UI.sec));rows=filtered({noSub:true}).filter(x=>{const v=UI.sub?x.g[UI.sub]:x.avg;return !UI.pf||(typeof v==='number'&&(UI.pf==='p'?v>=50:v<50))}).sort((a,b)=>(b.avg||0)-(a.avg||0)).map(x=>Object.assign({'الرقم الشخصي':x.pid,'الاسم':x.n,'الجنسية':x.nat},Object.fromEntries(subs.map(s=>[s,x.g[s]!=null?x.g[s]:''])),{'النسبة':x.avg!=null?r1(x.avg):''}));name='الشعبة '+UI.sec}
   if(kind==='subjects'){const L=filtered({noSub:true});rows=subjectsIn(L).map(s=>{const st=statOf(vals(L,s));return Object.assign({'المادة':s,'الطالبات':st.n,'نسبة التحصيل':r1(st.m),'نسبة النجاح':r1(st.pass)},Object.fromEntries(CATS.map((c,i)=>[c.t,st.c[i]])))});name='مقارنة المواد'}
   if(kind==='teachers'){Object.entries(M.T).forEach(([k,ns])=>{const[sec,sub]=k.split('|');if(UI.lvl&&lvlOf(sec)!==UI.lvl)return;const st=statOf(vals(M.stu.filter(x=>x.s===sec),sub));if(st)ns.forEach(n=>rows.push({'المعلمة':n,'المادة':sub,'الشعبة':sec,'الطالبات':st.n,'نسبة التحصيل':r1(st.m),'90 فأعلى':st.c[0],'دون 70':st.c[3]+st.c[4]}))});name='المعلمات'}
   if(kind==='top'){filtered({noCat:true}).filter(x=>x.avg!=null&&!x.barred).sort((a,b)=>secSort(a.s,b.s)||b.avg-a.avg).forEach(x=>rows.push({'الشعبة':x.s,'الاسم':x.n,'الجنسية':x.nat,'النسبة':r1(x.avg)}));name='الترتيب'}
@@ -773,13 +795,15 @@ function exportX(kind){const wb=XLSX.utils.book_new();let rows=[],name='';
   if(kind==='goals'){(window.__goals||[]).forEach(r=>rows.push({'الاسم':r.x.n,'الرقم الشخصي':r.x.pid,'الشعبة':r.x.s,'الجنسية':r.x.nat,'المادة':r.s,'المعلمة':teacherOf(r.x.s,r.s),'الدرجة الحالية':r.v,'الهدف':r.g.t,'نوع الهدف':r.g.d}));name='أهداف التقرير القادم'}
   const ws=XLSX.utils.json_to_sheet(rows);ws['!views']=[{RTL:true}];wb.Workbook={Views:[{RTL:true}]};XLSX.utils.book_append_sheet(wb,ws,'البيانات');
   const out=XLSX.write(wb,{bookType:'xlsx',type:'array'});download(name+' - '+PERIODS[UI.per]+'.xlsx',new Blob([out],{type:'application/octet-stream'}))}
-document.addEventListener('click',e=>{const pb=e.target.closest('[data-pin],[data-ck]');if(pb){pinClick(pb);return}const b=e.target.closest('[data-tab],[data-sec],[data-cat],[data-sort],[data-export],[data-reset],[data-regen],[data-copy],[data-backup],[data-wipe]');if(!b)return;
+document.addEventListener('click',e=>{const pb=e.target.closest('[data-pin],[data-ck]');if(pb){pinClick(pb);return}const b=e.target.closest('[data-tab],[data-sec],[data-cat],[data-pf],[data-lvl],[data-sort],[data-export],[data-reset],[data-regen],[data-copy],[data-backup],[data-wipe]');if(!b)return;
   if(b.dataset.tab){UI.tab=b.dataset.tab;render();window.scrollTo({top:0})}
   else if(b.dataset.sec!=null){UI.sec=b.dataset.sec;UI.lvl=lvlOf(UI.sec);render()}
-  else if(b.dataset.cat!=null){UI.cat=UI.cat===b.dataset.cat?'':b.dataset.cat;render()}
+  else if(b.dataset.cat!=null){UI.cat=UI.cat===b.dataset.cat?'':b.dataset.cat;UI.pf='';render()}
+  else if(b.dataset.lvl!=null){UI.lvl=b.dataset.lvl;UI.sec='';render()}
+  else if(b.dataset.pf!=null){UI.pf=UI.pf===b.dataset.pf?'':b.dataset.pf;UI.cat='';render()}
   else if(b.dataset.sort){UI.sort=b.dataset.sort;render()}
   else if(b.dataset.export){exportX(b.dataset.export)}
-  else if(b.dataset.reset){Object.assign(UI,{lvl:'',sec:'',sub:'',nat:'',cat:''});render()}
+  else if(b.dataset.reset){Object.assign(UI,{lvl:'',sec:'',sub:'',nat:'',cat:'',pf:''});render()}
   else if(b.dataset.regen){delete S.readings[String(UI.per)];save();render()}
   else if(b.dataset.copy){const t=$('#rd');t.select();try{navigator.clipboard.writeText(t.value);toast('تم النسخ')}catch(_){document.execCommand('copy');toast('تم النسخ')}}
   else if(b.dataset.backup){download('نسخة احتياطية - تحليل النتائج.json',new Blob([JSON.stringify(S)],{type:'application/json'}))}
