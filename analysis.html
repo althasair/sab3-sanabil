@@ -362,6 +362,9 @@ pre.spec{white-space:pre-wrap;background:color-mix(in srgb,var(--cream) 35%,var(
 <main class="main"><div class="in"><div class="wrap" id="view"></div></div></main>
 <footer class="foot"><div class="in"><span><b>سبع سنابل</b> · تحليل النتائج · مدرسة الشيماء الثانوية للبنات · العام الأكاديمي 2026–2027</span><span>تبقى بيانات الطالبات داخل هذا المتصفح فقط، ولا تُرفع إلى أي خادم.</span></div></footer>
 <div id="toastRoot"></div>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 'use strict';
@@ -410,7 +413,7 @@ function periodOf(txt){const n=norm(txt);return (/الفصل (الدراسي )?�
 function blank(){return{reg:{},cur:{},last:{},staff:null,coord:{},readings:{},files:{}}}
 let S=blank();
 try{const x=JSON.parse(localStorage.getItem(KEY)||'null');if(x&&typeof x==='object')S=Object.assign(blank(),x)}catch(e){}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){toast('تعذّر الحفظ في المتصفح')}}
+function save(){if(typeof CLD!=='undefined'&&CLD.ro)return;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){toast('تعذّر الحفظ في المتصفح')}if(typeof anaPushSoon==='function')anaPushSoon()}
 function sanStaff(){try{const x=JSON.parse(localStorage.getItem(SAN)||'null');if(x&&Array.isArray(x.staff)&&x.staff.length&&x.staff.some(t=>t.sections&&t.sections.length))return x.staff}catch(e){}return null}
 const UI={tab:'overview',per:null,lvl:'',sec:'',sub:'',nat:'',cat:'',sort:'tot'};
 
@@ -672,7 +675,7 @@ function vData(){const sf=sanStaff();
 const PINK='sab3_pin_h';
 function phash(p){let h=2166136261;for(const c of 'shaimaa:'+p){h^=c.charCodeAt(0);h=Math.imul(h,16777619)>>>0}let g=5381;for(const c of p+':sanabel'){g=((g<<5)+g+c.charCodeAt(0))>>>0}return h.toString(16)+g.toString(16)}
 function pinSet(){try{return localStorage.getItem(PINK)}catch(e){return null}}
-function unlocked(){try{return sessionStorage.getItem('sab3_pin_ok')===pinSet()&&!!pinSet()}catch(e){return false}}
+function unlocked(){if(typeof CLD!=='undefined'&&CLD.ro)return true;try{return sessionStorage.getItem('sab3_pin_ok')===pinSet()&&!!pinSet()}catch(e){return false}}
 function lockView(){const has=!!pinSet();return head('محتوى محمي برقم سري','هذه الصفحة فيها أسماء الطالبات ونسبهن، ولا تُفتح إلا بالرقم السري.')+
   '<div class="box" style="max-width:420px"><h3>'+(has?'أدخلي الرقم السري':'إنشاء رقم سري')+'</h3>'+(has?'':'<p class="stl">أول مرة فقط: اختاري رقماً سرياً من 4 أرقام فأكثر. يُطلب بعد ذلك عند كل فتح للمتصفح.</p>')+
   '<input id="pin1" type="password" inputmode="numeric" autocomplete="off" placeholder="الرقم السري" style="border:1px solid var(--line);border-radius:12px;padding:10px;font-size:18px;text-align:center;letter-spacing:6px">'+(has?'':'<input id="pin2" type="password" inputmode="numeric" autocomplete="off" placeholder="تأكيد الرقم السري" style="border:1px solid var(--line);border-radius:12px;padding:10px;font-size:18px;text-align:center;letter-spacing:6px">')+
@@ -734,7 +737,9 @@ function sidebar(){const lv=[...new Set(M.stu.map(x=>x.l))].sort();const secs=Ob
   '<label>الفئة (حسب النسبة العامة)</label><select data-f="cat">'+opt('','جميع الفئات',UI.cat)+CATS.map(c=>opt(c.k,c.t,UI.cat)).join('')+'</select>'+
   '<button class="btn reset" data-reset="1">إلغاء التصفية</button>'+(M.stu.length&&!Object.keys(S.reg).length?'<p class="hint">ارفعي سجل القيد لتظهر الجنسيات.</p>':'')+'</aside>'}
 function render(){try{
-  $('#nav').innerHTML=TABS.map(([id,l])=>'<button type="button" data-tab="'+id+'"'+(UI.tab===id?' aria-current="page"':'')+'>'+l+'</button>').join('')+'<a class="backlink" href="./">العودة إلى سبع سنابل ←</a>';
+  if(CLD.wait){$('#nav').innerHTML='<a class="backlink" href="./">العودة إلى سبع سنابل ←</a>';$('#view').innerHTML='<div class="box"><div class="empty">'+(CLD.msg||'جارٍ تحميل النتائج…')+'</div></div>';return}
+  if(!tabOKA(UI.tab))UI.tab=CLD.role==='teacher'?'class':'overview';
+  $('#nav').innerHTML=TABS.filter(([id])=>tabOKA(id)).map(([id,l])=>'<button type="button" data-tab="'+id+'"'+(UI.tab===id?' aria-current="page"':'')+'>'+l+'</button>').join('')+'<a class="backlink" href="./">العودة إلى سبع سنابل ←</a>';
   const v={overview:vOverview,class:vClass,sections:vSections,subjects:vSubjects,teachers:vTeachers,last:vLast,top:()=>unlocked()?vTop():lockView(),cats:vCats,value:vValue,reading:vReading,data:vData}[UI.tab]||vOverview;
   $('#view').innerHTML=UI.tab==='data'?'<div class="content">'+v()+'</div>':'<div class="an-layout">'+sidebar()+'<div class="content">'+v()+'</div></div>';
   const n=M.stu.length;$('#marq').textContent='تحليل النتائج · '+(n?n+' طالبة في '+PERIODS[UI.per]+' · '+Object.keys(M.secs).length+' شعبة · المقارنة بالعام الماضي · الأوائل وفئات الدعم':'ارفعي كشف الدرجات من صفحة البيانات')+' · «وَقُل رَّبِّ زِدْنِي عِلْمًا»';
@@ -777,6 +782,46 @@ function pinClick(b){if(b.dataset.ck){UI.ck=b.dataset.ck;render();return}const a
   else if(a==='lock'){try{sessionStorage.removeItem('sab3_pin_ok')}catch(_){}render()}
   else if(a==='forgot'){if(confirm('لإعادة تعيين الرقم السري تُمسح بيانات التحليل من هذا المتصفح، ثم ترفعين الملفات من جديد. متابعة؟')){try{localStorage.removeItem(PINK);sessionStorage.removeItem('sab3_pin_ok')}catch(_){}S=blank();save();build();render()}}}
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.target.id==='pin1'||e.target.id==='pin2')){const b=document.querySelector('[data-pin="open"],[data-pin="set"]');if(b)pinClick(b)}});
+
+/* ---------- قاعدة البيانات: المنسقات والتوجيه يرون التحليل كاملًا، والمعلمة شعبها بجميع المواد ---------- */
+const CLD={wait:typeof firebase!=='undefined'&&!!firebase.initializeApp,ro:false,role:'',msg:'',db:null,admin:false,timer:null};
+function tabOKA(id){if(!CLD.ro)return true;if(id==='data')return false;if(CLD.role==='teacher')return ['class','subjects','cats','last','value','overview'].includes(id);return true}
+const nkA=s=>String(s==null?'':s).replace(/[ً-ٰٟـ]/g,'').replace(/[أإآ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي').replace(/\s+/g,' ').trim().toLowerCase();
+function hstr(t){let h=5381;for(let i=0;i<t.length;i++)h=(h*33)^t.charCodeAt(i);return (h>>>0).toString(36)+'.'+t.length}
+function anaPushSoon(){if(!CLD.admin||!CLD.db)return;clearTimeout(CLD.timer);CLD.timer=setTimeout(anaPush,2500)}
+async function anaPush(){try{
+  const H=(()=>{try{return JSON.parse(localStorage.getItem('sab3_ana_hash')||'{}')}catch(_){return {}}})();const W=[];
+  const put=(c,id,d)=>{const k=c+'/'+id,h=hstr(JSON.stringify(d));if(H[k]===h)return;W.push(CLD.db.collection(c).doc(id).set(d).then(()=>{H[k]=h}))};
+  const full=JSON.stringify({reg:S.reg,cur:S.cur,last:S.last,staff:S.staff,coord:S.coord,readings:S.readings});const CH=300000,n=Math.max(1,Math.ceil(full.length/CH));
+  for(let i=0;i<n;i++)put('ana','s'+i,{t:full.slice(i*CH,(i+1)*CH)});put('ana','meta',{n,at:new Date().toISOString(),size:full.length});
+  const staff=sanStaff()||S.staff||[];const secs=new Set();Object.values(S.reg).forEach(r=>r.s&&secs.add(r.s));Object.values(S.cur).forEach(b=>Object.values(b).forEach(o=>o.s&&secs.add(o.s)));
+  secs.forEach(sec=>{const reg={},cur={},last={};Object.entries(S.reg).forEach(([k,r])=>{if(r.s===sec)reg[k]=r});
+    Object.entries(S.cur).forEach(([p,b])=>{const x={};Object.entries(b).forEach(([k,o])=>{if(o.s===sec)x[k]=o});if(Object.keys(x).length)cur[p]=x});
+    Object.entries(S.last||{}).forEach(([p,lv])=>Object.entries(lv||{}).forEach(([L,arr])=>{const x=(arr||[]).filter(o=>o.s===sec);if(x.length){last[p]=last[p]||{};last[p][L]=x}}));
+    const who=[...new Set(staff.filter(t=>(t.sections||[]).some(x=>secKey(x)===sec)).map(t=>nkA(t.name)))];
+    put('anasec',sec.replace(/[\/.#$\[\]]/g,'_'),{sec,who,reg,cur,last})});
+  for(let i=0;i<W.length;i+=15)await Promise.all(W.slice(i,i+15));try{localStorage.setItem('sab3_ana_hash',JSON.stringify(H))}catch(_){}
+  if(W.length)toast('تم حفظ التحليل في قاعدة البيانات للمنسقات والمعلمات')}catch(e){console.warn(e);toast('تعذّر حفظ التحليل في قاعدة البيانات: '+(e&&e.message||e))}}
+async function anaBoot(u){
+  if(!u){CLD.wait=false;if(!Object.keys(S.cur).length){CLD.wait=true;CLD.msg='ادخلي أولًا من منصة سبع سنابل برقمكِ السري، ثم افتحي «تحليل النتائج».'}build();render();return}
+  let cl={};try{cl=(await u.getIdTokenResult()).claims||{}}catch(_){}
+  const role=String(u.email||'').toLowerCase()==='althasair@gmail.com'?'admin':(cl.role||'');CLD.role=role;
+  if(role==='admin'){CLD.admin=true;CLD.wait=false;build();render();anaPushSoon();return}
+  CLD.ro=true;S=blank();
+  try{if(role==='coord'||role==='viewer'){const m=await CLD.db.collection('ana').doc('meta').get();
+      if(m.exists){const md=m.data();const parts=await Promise.all([...Array(md.n||0).keys()].map(i=>CLD.db.collection('ana').doc('s'+i).get()));Object.assign(S,JSON.parse(parts.map(x=>x.exists?x.data().t:'').join('')))}
+      else CLD.msg='لم تُنشر نتائج التحليل بعد.'}
+    else if(role==='teacher'){const c=await CLD.db.collection('shared').doc('cfg').get();const all=c.exists?(c.data().staff||[]):[];
+      const me=all.filter(t=>nkA(t.name)===cl.nk);const secs=[...new Set(me.flatMap(t=>(t.sections||[]).map(secKey)))];
+      if(!secs.length)CLD.msg='لم يُعثر على شعبكِ في توزيع المعلمات. تواصلي مع النائب الأكاديمي.';
+      S.staff=all;const docs=await Promise.all(secs.map(x=>CLD.db.collection('anasec').doc(x.replace(/[\/.#$\[\]]/g,'_')).get().catch(()=>null)));
+      docs.forEach(d=>{if(!d||!d.exists)return;const x=d.data();Object.assign(S.reg,x.reg||{});Object.entries(x.cur||{}).forEach(([p,b])=>{S.cur[p]=Object.assign(S.cur[p]||{},b)});
+        Object.entries(x.last||{}).forEach(([p,lv])=>Object.entries(lv).forEach(([L,arr])=>{S.last[p]=S.last[p]||{};S.last[p][L]=(S.last[p][L]||[]).concat(arr)}))});
+      if(secs.length&&!Object.keys(S.cur).length)CLD.msg='لم تُنشر نتائج شعبكِ بعد.'}
+    else CLD.msg='هذا الحساب لا يملك صلاحية على تحليل النتائج.'}
+  catch(e){console.warn(e);CLD.msg='تعذّر تحميل النتائج من قاعدة البيانات.'}
+  CLD.wait=!!CLD.msg&&!Object.keys(S.cur).length;UI.per=null;build();render()}
+if(CLD.wait){try{firebase.initializeApp({apiKey:"AIzaSyBUA_OYl9NCZsiR92Uvez1545xV-KHId20",authDomain:"sab3-sanabil.firebaseapp.com",projectId:"sab3-sanabil",storageBucket:"sab3-sanabil.firebasestorage.app",messagingSenderId:"336261274314",appId:"1:336261274314:web:7d23de783b3178d3453233"});CLD.db=firebase.firestore();firebase.auth().onAuthStateChanged(u=>anaBoot(u).catch(e=>{console.error(e);CLD.wait=false;build();render()}))}catch(e){console.warn(e);CLD.wait=false}}
 build();render();
 
 </script>
