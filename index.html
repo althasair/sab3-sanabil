@@ -1317,7 +1317,7 @@ function typeOf(v){const n=norm(v);for(const k of MATCH_ORDER){if(KEYS[k-1].kw.s
 function nameMatch(a,b){const A=norm(a).split(' ').filter(Boolean),B=norm(b).split(' ').filter(Boolean);if(!A.length||!B.length)return false;if(A.join(' ')===B.join(' '))return true;if(A[0]!==B[0])return false;if(A.length===1)return false;return A.slice(1).every(w=>B.slice(1).includes(w))}
 const LVL=x=>{const n=norm(x);const o=[];if(n.includes('عاشر'))o.push('10');if(n.includes('حادي'))o.push('11');if(n.includes('ثاني عشر'))o.push('12');return o};
 function officialTeacher(typed,sec,sub){const t=staffFor(sec,sub);if(t)return t.name;const w=norm(typed).split(' ').filter(Boolean);if(!w.length)return '';const st=S.staff||[];const same=st.filter(x=>norm(x.name).split(' ')[0]===w[0]);let c=same.filter(x=>w.slice(1).length&&w.slice(1).every(t=>norm(x.name).split(' ').includes(t)));if(c.length!==1)c=same.filter(x=>subjKeys(x.subject).has(subjKey(sub)));return c.length===1?c[0].name:String(typed||'').trim()}
-function actKey(a){return [String(a.date||'').slice(0,10),norm(a.teacher),secKey(a.section),subjKey(a.subject),a.type,a.whole?'*':(a.students||[]).map(x=>norm(x).split(' ').slice(0,2).join(' ')).sort().join(','),(norm(a.detail).match(/الحصه (\S+)/)||[])[1]||''].join('|')}
+function actKey(a){return [String(a.date||'').slice(0,10),norm(a.teacher),secKey(a.section),subjKey(a.subject),a.type,a.whole?'*':(a.students||[]).map(x=>norm(x).split(' ').slice(0,2).join(' ')).sort().join(','),(norm(a.detail).match(/الحصه (\S+)/)||[])[1]||'',a.src==='indivf'?norm(a.detail)+'#'+String(a.evidence||'').slice(-60):''].join('|')}
 function dedupeAll(){const seen=new Set();let n=0;S.actions=S.actions.filter(a=>{const k=actKey(a);if(seen.has(k)){n++;return false}seen.add(k);return true});return n}
 function mergeActs(out,sameKind){const replace=(S.settings.actMode||'append')==='replace';let base=replace?S.actions.filter(a=>!sameKind(a)):S.actions.slice();const removed=S.actions.length-base.length;
   const seen=new Set(base.map(actKey));let added=0,dup=0;out.forEach(a=>{const k=actKey(a);if(seen.has(k)){dup++;return}seen.add(k);base.push(a);added++});S.actions=base;
@@ -1333,6 +1333,21 @@ function importEnrichForm(rows){
   if(S.demo){S.actions=[];S.charters=[];S.demo=false}
   const mg=mergeActs(out,a=>a.src==='group');
   return 'تم استيراد '+mg.added+' حصة إثرائية جماعية من '+(rows.length-1)+' ردًا'+mg.note+(multi?' (منها '+multi+' رد اختارت فيه المعلمة أكثر من مستوى، فاحتُسب لكل مستوى)':'')+'.';
+}
+/* نموذج Forms للحصة الإثرائية الفردية: المعلمة والمادة والمستوى وعدد الطالبات، والأسماء في كشف التوقيع المرفوع */
+function importIndivForm(rows){
+  const h=rows[0].map(x=>String(x).replace(/\u00a0/g,' '));const cDate=findCol(h,['وقت الاكمال','completion time','وقت البدء','start time']);
+  const cT=findCol(h,['اسم المعلمه']),cSub=findCol(h,['الماده']),cL=findCol(h,['المستوي']),cN=findCol(h,['عدد الطالبات']),cHow=findCol(h,['من خلال']),cWhen=findCol(h,['خلال'],['من خلال']),cEv=findCol(h,['رفع','توقيع']);
+  const out=[];
+  rows.slice(1).forEach(r=>{const subs=String(r[cSub]||'').split(/[;؛]/).map(x=>x.replace(/\u00a0/g,' ').trim()).filter(Boolean);const lv=LVL(r[cL]);if(!lv.length||!subs.length)return;const n=parseInt(String(r[cN]||'').replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)))||0;
+    lv.forEach(g=>subs.forEach(su=>{const nm=officialTeacher(r[cT],'',su);const t=(S.staff||[]).find(x=>norm(x.name)===norm(nm));const secs=t?(t.sections||[]).map(secKey).filter(x=>x&&x.split('-')[0]===String(g)):[];const sec=secs[0]||(g+'-?');
+      const how=String(r[cHow]||'').split(/[;؛]/).map(x=>x.trim()).filter(Boolean).join('، ');
+      const det=['حصة إثرائية فردية',how,cWhen>=0&&r[cWhen]?'خلال '+String(r[cWhen]).trim():'',n?'عدد الطالبات '+n:'',secs.length>1?'المستوى '+g:''].filter(Boolean).join(' — ');
+      out.push({date:String(r[cDate]||'').slice(0,10),teacher:nm,section:sec,subject:su,students:[],whole:false,cnt:n,type:3,detail:det,evidence:cEv>=0?String(r[cEv]||''):'',src:'indivf'})}))});
+  if(!out.length)throw new Error('لم يتم العثور على ردود صالحة في نموذج الحصص الفردية.');
+  if(S.demo){S.actions=[];S.charters=[];S.demo=false}
+  const mg=mergeActs(out,a=>a.src==='indivf');
+  return 'تم استيراد '+mg.added+' حصة إثرائية فردية من '+(rows.length-1)+' ردًا، تضم '+out.reduce((a,x)=>a+(x.cnt||0),0)+' طالبة'+mg.note+'. أسماء الطالبات في كشوف التوقيع المرفوعة، ولتُحسب السنبلة لكل طالبة باسمها استخدمي «السجل الموحد» أو إضافة الإجراء من المنصة.';
 }
 function importIndivList(rows){
   const h=rows[0].map(String);const g=k=>findCol(h,k);const cD=g(['التاريخ']),cT=g(['المعلمه']),cSec=g(['الشعبه']),cSub=g(['الماده']),cN=g(['اسم الطالبه']),cDet=g(['التفاصيل','من خلال']),cEv=g(['الدليل','الملف']);
@@ -1388,7 +1403,8 @@ function importActions(rows){
   {const book=rows.book||{_:rows};for(const sh of Object.values(book)){const hi=sh.slice(0,6).findIndex(r=>r.some(x=>norm(x).includes('نوع الاجراء'))&&r.some(x=>norm(x).includes('اسماء الطالبات')));if(hi>=0)return importUnified(sh,hi)}}
   if(rows.book){const sh=Object.values(rows.book).find(t=>t[0]&&t[0].some(x=>norm(x)==='اسم الطالبه')&&t[0].some(x=>norm(x)==='الشعبه'));if(sh)return importIndivList(sh)}
   {const h0=rows[0].map(x=>norm(String(x).replace(/ /g,' ')));if(h0.some(x=>x.includes('مسووله التكريم')||x.includes('مسؤوله التكريم')||x.includes('الفئه المكرمه')))return importHonors(rows);if(h0.some(x=>x.includes('اسم الطالبه'))&&h0.some(x=>x.includes('الشعبه'))&&!h0.some(x=>x.includes('نوع الاجراء')))return importIndivList(rows);
-   if(h0.some(x=>x.includes('اسم المعلمه'))&&h0.some(x=>x.includes('الشعبه'))&&h0.some(x=>x.includes('المستوي'))&&!h0.some(x=>x.includes('نوع الاجراء')))return importEnrichForm(rows);}
+   if(h0.some(x=>x.includes('اسم المعلمه'))&&h0.some(x=>x.includes('الشعبه'))&&h0.some(x=>x.includes('المستوي'))&&!h0.some(x=>x.includes('نوع الاجراء')))return importEnrichForm(rows);
+   if(h0.some(x=>x.includes('اسم المعلمه'))&&h0.some(x=>x.includes('عدد الطالبات'))&&h0.some(x=>x.includes('المستوي'))&&!h0.some(x=>x.includes('الشعبه'))&&!h0.some(x=>x.includes('نوع الاجراء')))return importIndivForm(rows);}
   const h=rows[0].map(String);
   const cDate=findCol(h,['وقت الاكمال','completion','وقت البدء','start time','التاريخ']);
   const cT=findCol(h,['الاسم','name'],['طالب','ماده','نشاط','درس','ملف','last modified']);
