@@ -1583,7 +1583,7 @@ function achStrip(name){const B=boardGet();if(!B)return '';const r=B.rows.find(x
 /* --- إدارة الأنشطة والمبادرات (النائب الأكاديمي) --- */
 function tactsPanel(){if(AUTH.role!=='admin')return '';const L=(S.tacts||[]).slice().reverse();const KN={a:'نشاط',i:'مبادرة',v:'حصة تبادلية',h:'إنجاز / مشاركة'};const mz=S.mz;
   return '<section class="panel"><h3>الأنشطة والمبادرات والإنجازات<small>تُحتسب للمعلمة في لوحة الصدارة ونجومها</small></h3>'+
-    '<div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn sm pri" id="taAdd">+ إضافة نشاط أو مبادرة</button><button class="btn sm" id="mzPull">مزامنة مع الميزان</button><span class="small muted">'+(mz&&mz.at?'آخر مزامنة: '+esc(new Date(mz.at).toLocaleString('ar-QA',{dateStyle:'short',timeStyle:'short'}))+' · '+mz.list.length+' سجل (أنشطة، مبادرات، زيارات تبادلية، إنجازات)':'لم تتم المزامنة بعد')+'</span></div>'+
+    '<div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn sm pri" id="taAdd">+ إضافة نشاط أو مبادرة</button><button class="btn sm" id="mzPull">تحديث من الميزان الآن</button><span class="small muted">'+(mz&&mz.at?'آخر مزامنة: '+esc(new Date(mz.at).toLocaleString('ar-QA',{dateStyle:'short',timeStyle:'short'}))+' · '+mz.list.length+' سجل (أنشطة، مبادرات، زيارات تبادلية، إنجازات)':'لم تصل بيانات الميزان بعد')+'</span></div>'+
     (L.length?'<div class="tbl-wrap" style="margin-top:10px"><table><thead><tr><th>التاريخ</th><th>المنفذة</th><th>النوع</th><th>العنوان</th><th>ملف</th><th></th></tr></thead><tbody>'+L.slice(0,40).map(x=>'<tr><td class="small">'+esc(x.d||'')+'</td><td>'+esc(shortName(x.n))+'</td><td class="small">'+(KN[x.k]||'')+'</td><td class="small">'+esc(x.t||'')+'</td><td>'+(x.f?'<button class="btn sm ghost" data-tafile="'+x.id+'">استعراض</button>':'')+'</td><td><button class="btn sm ghost" data-tadel="'+x.id+'" style="color:var(--bad)">حذف</button></td></tr>').join('')+'</tbody></table></div>':'')+'</section>'}
 function taModal(){const names=[...new Set((S.staff||[]).map(t=>t.name))].sort((a,b)=>a.localeCompare(b,'ar'));
   modal('<h3>إضافة نشاط أو مبادرة أو إنجاز</h3><div class="form"><label>المنفذة (يمكن اختيار أكثر من معلمة بالضغط مع Ctrl)<select id="ta_n" multiple size="7">'+names.map(n=>'<option>'+esc(n)+'</option>').join('')+'</select></label>'+
@@ -1887,8 +1887,10 @@ async function adminLoad(){
   D=derive(S);render();
   CLOUD.unsub=CLOUD.db.collection('entries').onSnapshot(q=>{CLOUD.entries=new Map();q.forEach(d=>CLOUD.entries.set(d.id,d.data()));mergeEntries();D=derive(S);render();schedulePush()},e=>console.warn(e));
   if(!cloud)schedulePush(500);
-  loadReads();
+  loadReads();loadMizan();
 }
+/* إحصاءات الميزان (أنشطة، مبادرات، زيارات تبادلية، إنجازات) تصل تلقائيًا في shared/mizan */
+async function loadMizan(){try{const d=await CLOUD.db.collection('shared').doc('mizan').get();if(!d.exists)return;const x=d.data();if(S.mz&&S.mz.at===x.at)return;S.mz={at:x.at,list:JSON.parse(x.t||'[]'),auto:1};refresh();schedulePush()}catch(e){console.warn(e)}}
 /* قراءات المعلمات في «تحليل النتائج» ← سنبلة القراءة */
 async function loadReads(){try{const q=await CLOUD.db.collection('reads').get();const rd={};q.forEach(d=>{const x=d.data();if(x.role!=='teacher'&&x.role!=='coord')return;const f=fuzzyStaff(x.name);if(f)rd[norm(f.name)]=Math.max(rd[norm(f.name)]||0,(+x.per||0)+1)});
   if(JSON.stringify(rd)!==JSON.stringify(S.rd||{})){S.rd=rd;refresh();schedulePush()}}catch(e){console.warn(e)}}
