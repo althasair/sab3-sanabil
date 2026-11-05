@@ -1609,11 +1609,24 @@ async function taSave(){const sel=[...$('#ta_n').selectedOptions].map(o=>o.value
 async function mzPull(){const pin=prompt('اكتبي رقمكِ السري في الميزان لجلب الأنشطة والمبادرات والزيارات التبادلية والإنجازات:');if(!pin)return;
   const post=async o=>{const r=await fetch(MIZAN_API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(o),redirect:'follow'});const j=await r.json();if(!j.ok)throw new Error(j.error||'خطأ');return j};
   try{toast('جارٍ الجلب من الميزان…');const a=await post({action:'login',pin,app:'mizan'});if(a.user.role!=='admin')throw new Error('هذا الإجراء للنائب الأكاديمي فقط');
-    const j=await post({action:'records',token:a.token});const recs=j.records||[];const list=[];
+    const j=await post({action:'records',token:a.token});const recs=j.records||[];const list=[],abs=[];
     const deptAll=dp=>(S.staff||[]).filter(t=>norm(t.dept).includes(norm(dp))||norm(dp).includes(norm(t.dept))).map(t=>t.name);
-    const ex=(x,names,k,ti)=>{[...new Set(names.filter(Boolean).flatMap(n=>/جميع/.test(n)?deptAll(x.dept):[n]))].forEach(n=>list.push({n,k,t:ti,d:x.date||'',src:'mz'}))};
-    recs.forEach(x=>{const d=x.d||{};if(x.item==='AC')ex(x,[d.e1,d.e2,d.e3],/مبادر/.test(d.ty||'')?'i':'a',(d.name||d.ty||''));else if(x.item==='PV')ex(x,[d.v],'v','زيارة تبادلية'+(d.t?' لـ'+d.t:''));else if(x.item==='ACH')ex(x,[d.sup],'h',d.name||d.c||'')});
-    S.mz={at:new Date().toISOString(),list};refresh();toast('تم جلب '+list.length+' سجل من الميزان ✓',5000)}catch(e){toast('تعذّرت المزامنة: '+e.message,6000)}}
+    const ex=(x,names,k,ti,strict)=>{[...new Set(names.filter(Boolean).flatMap(n=>/جميع/.test(n)?deptAll(x.dept):(!strict||fuzzyStaff(n)?[n]:[])))].forEach(n=>list.push({n,k,t:String(ti||''),d:x.date||''}))};
+    recs.forEach(x=>{const d=x.d||{};switch(x.item){
+      case 'AC':ex(x,[d.e1,d.e2,d.e3],/مبادر/.test(d.ty||'')?'i':'a',d.name||d.ty);break;
+      case 'TA':ex(x,[d.t],d.kind==='مبادرة'?'i':'a',d.name);break;
+      case 'PV':ex(x,[d.v],'v','زيارة تبادلية');ex(x,[d.t],'w','استضافة زيارة تبادلية');break;
+      case 'TPV':ex(x,[d.t],'v','زيارة تبادلية');ex(x,[d.v],'w','استضافة زيارة تبادلية');break;
+      case 'TWS':ex(x,[d.t],d.role==='قدّمتُ لتطوير الزملاء'?'w':'p',d.title);break;
+      case 'WS':if(!d.g||/^تمت/.test(d.g))ex(x,[d.pres],'w',d.c||d.b,true);break;
+      case 'EX':ex(x,[d.t],'p',d.name);break;
+      case 'ACH':ex(x,[d.sup],'h',d.name||d.c);break;
+      case 'TACH':ex(x,[d.t],'h',d.name);break;
+      case 'PA':ex(x,[d.by],'o',d.c||d.why,true);break;
+      case 'TPA':ex(x,[d.t],'o',d.topic||'تواصل مع ولي أمر');break;
+      case 'LR':ex(x,[d.t],'r',d.e||d.k);break;
+      case 'TDS':(d.abs||[]).forEach(y=>abs.push({n:d.t,d:y.date,ty:'غياب'}));(d.perm||[]).forEach(y=>abs.push({n:d.t,d:y.date,ty:'استئذان'}));break}});
+    S.mz={at:new Date().toISOString(),list,abs};refresh();schedulePush();toast('تم جلب '+list.length+' سجل من الميزان ✓',5000)}catch(e){toast('تعذّرت المزامنة: '+e.message,6000)}}
 /* سجل الحصص: جدول بكل البيانات لكل معلمة، ثم الكشوف المعبأة */
 function sessLog(kind,tName,withSheets){const src=kind==='g'?'group':'indivf';const A=S.actions.filter(a=>a.src===src&&(!tName||norm(a.teacher)===norm(tName))).sort((x,y)=>norm(x.teacher).localeCompare(norm(y.teacher),'ar')||String(x.date).localeCompare(String(y.date)));
   if(!A.length)return null;const L=orderedStaff();const metaOf=a=>{const m=L.find(x=>norm(x.t.name)===norm(a.teacher));return m||{}};const by={};A.forEach(a=>(by[a.teacher]=by[a.teacher]||[]).push(a));
