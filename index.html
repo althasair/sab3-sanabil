@@ -398,7 +398,7 @@ pre.spec{white-space:pre-wrap;background:color-mix(in srgb,var(--cream) 35%,var(
 .lbd{background:linear-gradient(135deg,#4A0B20,#6E1432 60%,#3A0A1A);border-radius:22px;padding:18px 18px 20px;margin:0 0 18px;color:#FBF7EF;box-shadow:0 12px 30px rgba(74,11,32,.25)}.lbtop{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:12px}.lbtop .kicker{color:#E7C77F;font-size:12px;letter-spacing:.5px}.lbtop h3{margin:2px 0 0;font-size:22px;color:#F3DDA0}.lbtop .small{color:#E9D9DE!important}
 .lbg{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}.lbc{background:rgba(255,255,255,.96);color:#2B0C17;border-radius:16px;padding:12px 12px 10px;display:flex;flex-direction:column;gap:6px;transition:transform .2s,box-shadow .2s}.lbc:hover{transform:translateY(-3px);box-shadow:0 10px 22px rgba(0,0,0,.18)}
 .lbh{display:flex;justify-content:space-between;align-items:center}.lbcat{font-weight:700;color:#62102A;font-size:14px}.lbl{background:#FBF5E8;border-radius:10px;padding:6px 8px}.lbn{font-weight:800;font-size:15px;color:#2B0C17}.lbv{font-size:12px;color:#8A6A2E}
-.lbr{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:3px;counter-reset:r}.lbr li{display:grid;grid-template-columns:18px minmax(0,1fr) auto 26px;gap:6px;align-items:center;font-size:12.5px;counter-increment:r}.lbr li::before{content:counter(r);color:#B8903A;font-weight:700}.lbr li b{text-align:left;color:#62102A}.lbr li span:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.lbr li.me{background:#FFF4D6;border-radius:6px}.lbwait{opacity:.85}
+.lbr{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:3px;counter-reset:r}.lbr li{display:grid;grid-template-columns:18px minmax(0,1fr) auto 26px;gap:6px;align-items:center;font-size:12.5px;counter-increment:r}.lbr li::before{content:counter(r);color:#B8903A;font-weight:700}.lbr li b{text-align:left;color:#62102A}.lbr li span:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.lbr li.me{background:#FFF4D6;border-radius:6px}.lbwait{opacity:.95}.absl{display:flex;flex-wrap:wrap;gap:4px;max-height:150px;overflow:auto}.absl span{background:#EEF7F0;border-radius:999px;padding:1px 8px;font-size:11.5px}.absl span.me{background:#FFF4D6;font-weight:700}
 .srow{display:inline-flex;gap:1px;vertical-align:middle}.myach .rdst{display:flex;gap:8px;margin-bottom:10px}.achg{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}.ach{background:#FBF5E8;border:1px solid #EADBB8;border-radius:14px;padding:10px 12px;margin-bottom:8px}.achh{display:flex;justify-content:space-between;align-items:center;color:#62102A}.ach p{margin:6px 0 4px;line-height:1.8;font-size:14px}.ach .sig{text-align:left;font-family:"Aref Ruqaa","Marhey",serif;color:#8A6A2E;font-size:15px}
 .astrip{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0}.ast{display:inline-flex;align-items:center;gap:4px;background:#FBF5E8;border:1px solid #EADBB8;border-radius:999px;padding:2px 8px;font-size:11.5px}.e1s{display:flex;gap:3px;justify-content:center;margin-top:2px}.e1s i{font-style:normal;font-size:10px;padding:0 5px;border-radius:6px}.e1s i.g{background:#E3F3E8;color:#1F7A44}.e1s i.r{background:#FBE3E6;color:#B23A48}
 </style>
@@ -551,7 +551,7 @@ function derive(st){
   Object.values(teachers).forEach(T=>{const n=T.targets.length;T.tot=n*4;T.got=T.targets.reduce((s,t)=>s+t.core,0);T.enTot=n*3;T.enGot=T.targets.reduce((s,t)=>s+t.enr,0);T.ratio=T.tot?T.got/T.tot:0;T.enRatio=T.enTot?T.enGot/T.enTot:0;const miss=ks=>KEYS.filter(k=>ks.includes(k.k)).map(k=>Object.assign({},k,{n:T.targets.filter(t=>!t.ears.has(k.k)).length})).filter(k=>k.n).sort((a,b)=>b.n-a.n);T.missing=miss(CORE);T.enMissing=miss(ENR);T.empty=T.targets.filter(t=>t.ears.size===0)});
   /* سنبلة «تحليل النتائج» = الرصد (نصف) + قراءة المعلمة للنتائج (نصف)؛ وسنبلة «الحصص الإثرائية» نسبةً إلى أعلى معلمة تنفيذًا */
   {let B=null;try{B=boardGet()}catch(_){}Object.values(teachers).forEach(T=>{const r=B&&B.rows.find(x=>norm(x.n)===norm(T.name));const p=k=>T.targets.length?T.targets.filter(t=>t.ears.has(k)).length/T.targets.length:0;
-    T.rasd=r?r.r:true;T.read=r?r.q:false;T.e1=(T.rasd?.5:0)+(T.read?.5:0);T.e3=r&&B.max.s?r.s/B.max.s:p(3);T.sessN=r?r.s:0;T.ratio=(T.e1+p(2)+T.e3+p(5))/4;T.missing=T.missing.filter(m=>m.k!==1&&m.k!==3);if(!T.read)T.missing.unshift({name:'قراءة النتائج',n:1})})}
+    T.rasd=r?r.rs:true;T.read=r?r.q:false;T.e1=(T.rasd?.5:0)+(T.read?.5:0);T.e3=r&&B.max.s?r.s/B.max.s:p(3);T.sessN=r?r.s:0;T.ratio=(T.e1+p(2)+T.e3+p(5))/4;T.missing=T.missing.filter(m=>m.k!==1&&m.k!==3);if(!T.read)T.missing.unshift({name:'قراءة النتائج',n:1})})}
   return{targets,byRow,teachers:Object.values(teachers).sort((a,b)=>b.ratio-a.ratio)};
 }
 function lastTestIdx(st){let m=0;st.roster.forEach(r=>r.scores.forEach((v,i)=>{if(v!=null&&!isNaN(v)&&i>m)m=i}));return m}
@@ -1534,20 +1534,22 @@ function sessAnalysis(tName){
   return css+p1+p2+p3+p4+p5}
 /* ================= لوحة الإنجاز والصدارة ================= */
 /* ملاحظة: derive يعمل عند الإقلاع قبل هذا الجزء، لذا لا ثوابت عامة هنا (دوال فقط) */
-function bCats(){return [['s','الحصص الإثرائية',['حصة','حصتان','حصص']],['a','الأنشطة',['نشاط','نشاطان','أنشطة']],['i','المبادرات',['مبادرة','مبادرتان','مبادرات']],['v','الحصة التبادلية',['زيارة تبادلية','زيارتان تبادليتان','زيارات تبادلية']],['h','الإنجازات والمشاركات',['إنجاز','إنجازان','إنجازات']]]}
+function bCats(){return [['s','الحصص الإثرائية',['حصة','حصتان','حصص']],['a','الأنشطة',['نشاط','نشاطان','أنشطة']],['i','المبادرات',['مبادرة','مبادرتان','مبادرات']],['v','الحصة التبادلية',['زيارة تبادلية','زيارتان تبادليتان','زيارات تبادلية']],['h','الإنجازات والمشاركات',['إنجاز','إنجازان','إنجازات']],['w','توظيف جوانب التميز',['مساهمة','مساهمتان','مساهمات']],['p','التطوير المهني',['برنامج','برنامجان','برامج']],['o','التواصل مع أولياء الأمور',['تواصل','تواصلان','تواصلات']],['r','مصادر التعلم والتقنية',['توظيف','توظيفان','توظيفات']]]}
 function cntTxt(n,w){return n===1?w[0]+(w[0].includes(' ')?'':' واحد'+(/ة$/.test(w[0])?'ة':'')):n===2?w[1]:n<=10?n+' '+w[2]:n+' '+w[0]}
 function isAdm(){try{return AUTH.role==='admin'||AUTH.role==='loading'||!AUTH.user}catch(_){return true}}
 function boardCompute(){
   const st=S.staff||[];const rows=new Map();const L=lastTestIdx(S);
-  const row=(name,t)=>{const k=norm(name);if(!rows.has(k))rows.set(k,{n:t?t.name:String(name).trim(),d:t?(t.dept||t.subject||''):'',c:!!t&&!/فنون|بدني|اعمال|مهارات/.test(norm((t.subject||'')+' '+(t.dept||''))),co:!!t&&/منسق/.test(t.role||''),s:0,a:0,i:0,v:0,h:0,r:false,q:false});return rows.get(k)};
+  const row=(name,t)=>{const k=norm(name);if(!rows.has(k))rows.set(k,{n:t?t.name:String(name).trim(),d:t?(t.dept||t.subject||''):'',c:!!t&&!/فنون|بدني|اعمال|مهارات/.test(norm((t.subject||'')+' '+(t.dept||''))),co:!!t&&/منسق/.test(t.role||''),s:0,a:0,i:0,v:0,h:0,w:0,p:0,o:0,r:0,rs:false,q:false});return rows.get(k)};
   st.forEach(t=>{if((t.sections||[]).length||/منسق/.test(t.role||''))row(t.name,t)});
   const who=n=>{const f=fuzzyStaff(n);return f?row(f.name,f):(String(n||'').trim()?row(n,null):null)};
-  S.actions.forEach(a=>{if(a.type===3){const r=who(a.teacher);if(r)r.s++}});
-  (S.tacts||[]).concat((S.mz&&S.mz.list)||[]).forEach(x=>{const r=who(x.n);if(r&&'aivh'.includes(x.k))r[x.k]++});
+  S.actions.forEach(a=>{if(a.type===3||a.type===5){const r=who(a.teacher);if(r)r[a.type===3?'s':'o']++}});
+  (S.tacts||[]).concat((S.mz&&S.mz.list)||[]).forEach(x=>{if(!x.k||!'aivhwpor'.includes(x.k))return;const r=who(x.n);if(r)r[x.k]++});
   const rd=S.rd||{};
-  rows.forEach(r=>{r.r=S.roster.some(x=>norm(x.teacher)===norm(r.n)&&x.scores[L]!=null);r.q=!!rd[norm(r.n)]});
-  const R=[...rows.values()].filter(r=>r.c||r.s||r.a||r.i||r.v||r.h);const max={};bCats().forEach(([k])=>max[k]=Math.max(0,...R.map(r=>r[k])));
-  return{at:new Date().toISOString(),max,rows:R}}
+  rows.forEach(r=>{r.rs=S.roster.some(x=>norm(x.teacher)===norm(r.n)&&x.scores[L]!=null);r.q=!!rd[norm(r.n)]});
+  const R=[...rows.values()].filter(r=>r.c||bCats().some(([k])=>r[k]));const max={};bCats().forEach(([k])=>max[k]=Math.max(0,...R.map(r=>r[k])));
+  /* الانضباط: من بداية الشهر حتى اليوم، بحسب ما سُجّل في الميزان (يُعبّأ من يوم 15) */
+  const now=new Date(),mon=now.toISOString().slice(0,7);let abs=null;if(now.getDate()>=15&&S.mz&&Array.isArray(S.mz.abs)){const bad=new Set(S.mz.abs.filter(x=>String(x.d||'').slice(0,7)===mon).map(x=>{const f=fuzzyStaff(x.n);return norm(f?f.name:x.n)}));abs={mon,ok:R.filter(r=>r.c&&!bad.has(norm(r.n))).map(r=>r.n)}}
+  return{at:new Date().toISOString(),max,rows:R,abs}}
 function boardGet(){if(isAdm())return boardCompute();try{return window.__BOARD||null}catch(_){return null}}
 function bStars(r,k,max){const n=r[k];if(!n)return 0;return k==='s'?Math.max(1,Math.round(7*n/(max.s||n))):Math.min(7,n)}
 function thanksFor(r,k,max){const c=bCats().find(x=>x[0]===k);const n=r[k];if(!n)return '';const s=bStars(r,k,max);const cnt=cntTxt(n,c[2]);const cat=c[1];
@@ -1558,7 +1560,7 @@ function thanksFor(r,k,max){const c=bCats().find(x=>x[0]===k);const n=r[k];if(!n
     'تميّز يستحق الإشادة؛ '+cnt+' في '+cat+' تؤكد أنكِ قدوة لزميلاتكِ. جزاكِ الله خيرًا.',
     'عطاء استثنائي؛ '+cnt+' في '+cat+' تضعكِ في مقدمة المتميزات. فخورة بكِ وبأثركِ.',
     'أنتِ متميزة جدًا في '+cat+'؛ بلغتِ بـ'+cnt+' أعلى درجات العطاء. شكرًا من القلب، وجزاكِ الله خير الجزاء.'][s]}
-function readThanks(r){return r.r&&r.q?'شكرًا لإتمامكِ رصد النتائج وقراءتها؛ فالقراءة الواعية للنتائج أول طريق الدعم الصحيح لطالباتكِ.':r.r?'تم رصد نتائجكِ ✓، وتبقى قراءتها في صفحة «تحليل النتائج» لتكتمل السنبلة.':''}
+function readThanks(r){return r.rs&&r.q?'شكرًا لإتمامكِ رصد النتائج وقراءتها؛ فالقراءة الواعية للنتائج أول طريق الدعم الصحيح لطالباتكِ.':r.rs?'تم رصد نتائجكِ ✓، وتبقى قراءتها في صفحة «تحليل النتائج» لتكتمل السنبلة.':''}
 function starRow(n,sz){let h='';for(let i=0;i<7;i++)h+='<svg viewBox="0 0 24 24" width="'+(sz||14)+'" height="'+(sz||14)+'"><path d="M12 2.6l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.4l-5.9 3.3 1.3-6.6-4.9-4.6 6.6-.8z" fill="'+(i<n?'#E0B341':'none')+'" stroke="'+(i<n?'#B8903A':'#D9C9A0')+'" stroke-width="1.4" stroke-linejoin="round"/></svg>';return '<span class="srow" title="'+n+' من 7">'+h+'</span>'}
 function cupSVG(sz){return '<svg viewBox="0 0 64 64" width="'+(sz||34)+'" height="'+(sz||34)+'" aria-hidden="true"><defs><linearGradient id="gCup" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F7DC8A"/><stop offset=".55" stop-color="#D9A93A"/><stop offset="1" stop-color="#A77A1E"/></linearGradient></defs><path d="M18 8h28v10c0 9-6 16-14 16s-14-7-14-16z" fill="url(#gCup)" stroke="#8E6716" stroke-width="1.5"/><path d="M18 12H9c0 8 4 13 10 14M46 12h9c0 8-4 13-10 14" fill="none" stroke="#B8903A" stroke-width="3" stroke-linecap="round"/><rect x="29" y="34" width="6" height="10" fill="#C99A2E"/><path d="M20 54h24l-3-10H23z" fill="url(#gCup)" stroke="#8E6716" stroke-width="1.5"/><path d="M32 13l2.2 4.5 5 .7-3.6 3.4.9 4.9-4.5-2.4-4.5 2.4.9-4.9-3.6-3.4 5-.7z" fill="#FFF6D8"/></svg>'}
 function myBoardRow(B){if(!B)return null;let me='';try{me=AUTH.role==='teacher'?norm(AUTH.prof&&AUTH.prof.name||''):''}catch(_){}return me?B.rows.find(r=>norm(r.n)===me)||null:null}
@@ -1569,12 +1571,12 @@ function boardPanel(){const B=boardGet();if(!B)return '<section class="lbd"><p c
     return '<article class="lbc"><div class="lbh"><span class="lbcat">'+cat+'</span>'+(L.length?cupSVG(30):'')+'</div>'+
       (L.length?'<div class="lbl"><div class="lbn">'+L.slice(0,3).map(r=>esc(shortName(r.n))).join('، ')+(L.length>3?' و'+(L.length-3)+' أخريات':'')+'</div><div class="lbv">'+cntTxt(B.max[k],w)+'</div></div>':'<div class="lbl"><div class="small muted">لم يُسجَّل بعد</div></div>')+
       (rk.length?'<ol class="lbr">'+rk.map(r=>'<li'+(mine&&r===mine?' class="me"':'')+'><span>'+esc(shortName(r.n))+'</span>'+starRow(bStars(r,k,B.max),11)+'<b>'+r[k]+'</b></li>').join('')+'</ol>':'')+'</article>'};
-  const abs='<article class="lbc lbwait"><div class="lbh"><span class="lbcat">الانضباط (بلا غياب ولا استئذان)</span><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#B8903A" stroke-width="1.6"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/></svg></div><div class="lbl"><div class="small muted">'+(day<15?'يتم تعبئة هذا البند في 15 من الشهر':'يُعبّأ من سجل الانضباط عند ربطه')+'</div></div></article>';
+  const abs='<article class="lbc lbwait"><div class="lbh"><span class="lbcat">الانضباط (بلا غياب ولا استئذان)</span><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#B8903A" stroke-width="1.6"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/></svg></div>'+(B.abs&&day>=15?'<div class="lbl">'+cupSVG(22)+'<div class="lbv">'+B.abs.ok.length+' معلمة بلا غياب ولا استئذان منذ بداية الشهر</div></div><div class="absl">'+B.abs.ok.map(n=>'<span'+(mine&&norm(mine.n)===norm(n)?' class="me"':'')+'>'+esc(shortName(n))+'</span>').join('')+'</div>':'<div class="lbl"><div class="small muted">'+(day<15?'يتم تعبئة هذا البند في 15 من الشهر':'يُعبّأ بعد وصول بيانات الانضباط من الميزان')+'</div></div>')+'</article>';
   return '<section class="lbd"><div class="lbtop"><div><div class="kicker">لوحة الصدارة</div><h3>المتميزات في العطاء</h3></div><span class="small muted">تُحدَّث تلقائيًا مع كل إنجاز</span></div><div class="lbg">'+bCats().map(card).join('')+abs+'</div></section>'}
 function myAchPanel(){const B=boardGet();const r=myBoardRow(B);if(!r)return '';
   const items=bCats().filter(([k])=>r[k]).map(([k,cat])=>{const s=bStars(r,k,B.max);const lead=B.max[k]&&r[k]===B.max[k];return '<div class="ach"><div class="achh"><b>'+cat+'</b>'+(lead?cupSVG(24):'')+'</div>'+starRow(s,16)+'<p>'+esc(thanksFor(r,k,B.max))+'</p><div class="sig">آسيا الذبياني</div></div>'});
   const rt=readThanks(r);
-  return '<section class="panel myach"><h3>إنجازاتي<small>كل ما تقدّمينه نراه ونقدّره</small></h3><div class="rdst"><span class="pill '+(r.r?'ok':'bad')+'">رصد النتائج '+(r.r?'✓':'—')+'</span><span class="pill '+(r.q?'ok':'bad')+'">قراءة النتائج '+(r.q?'✓':'لم تكتمل')+'</span></div>'+
+  return '<section class="panel myach"><h3>إنجازاتي<small>كل ما تقدّمينه نراه ونقدّره</small></h3><div class="rdst"><span class="pill '+(r.rs?'ok':'bad')+'">رصد النتائج '+(r.rs?'✓':'—')+'</span><span class="pill '+(r.q?'ok':'bad')+'">قراءة النتائج '+(r.q?'✓':'لم تكتمل')+'</span></div>'+
     (rt?'<div class="ach"><p>'+esc(rt)+'</p><div class="sig">آسيا الذبياني</div></div>':'')+(items.length?'<div class="achg">'+items.join('')+'</div>':'<p class="small muted">ستظهر هنا نجومكِ وكلمات الشكر مع أول إنجاز يُسجَّل لكِ.</p>')+'</section>'}
 /* شريط إنجازات المعلمة داخل بطاقتها */
 function achStrip(name){const B=boardGet();if(!B)return '';const r=B.rows.find(x=>norm(x.n)===norm(name));if(!r)return '';
@@ -1890,7 +1892,7 @@ async function adminLoad(){
   loadReads();loadMizan();
 }
 /* إحصاءات الميزان (أنشطة، مبادرات، زيارات تبادلية، إنجازات) تصل تلقائيًا في shared/mizan */
-async function loadMizan(){try{const d=await CLOUD.db.collection('shared').doc('mizan').get();if(!d.exists)return;const x=d.data();if(S.mz&&S.mz.at===x.at)return;S.mz={at:x.at,list:JSON.parse(x.t||'[]'),auto:1};refresh();schedulePush()}catch(e){console.warn(e)}}
+async function loadMizan(){try{const d=await CLOUD.db.collection('shared').doc('mizan').get();if(!d.exists)return;const x=d.data();if(S.mz&&S.mz.at===x.at)return;S.mz={at:x.at,list:JSON.parse(x.t||'[]'),abs:JSON.parse(x.abs||'[]'),auto:1};refresh();schedulePush()}catch(e){console.warn(e)}}
 /* قراءات المعلمات في «تحليل النتائج» ← سنبلة القراءة */
 async function loadReads(){try{const q=await CLOUD.db.collection('reads').get();const rd={};q.forEach(d=>{const x=d.data();if(x.role!=='teacher'&&x.role!=='coord')return;const f=fuzzyStaff(x.name);if(f)rd[norm(f.name)]=Math.max(rd[norm(f.name)]||0,(+x.per||0)+1)});
   if(JSON.stringify(rd)!==JSON.stringify(S.rd||{})){S.rd=rd;refresh();schedulePush()}}catch(e){console.warn(e)}}
