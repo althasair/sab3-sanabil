@@ -582,7 +582,9 @@ function statusBox(){const secs=Object.keys(M.secs).filter(s=>!UI.lvl||lvlOf(s)=
   const rows=secs.map(s=>{const o=M.secs[s];const miss=Object.entries(o.status).filter(([k,v])=>v!=='ok'&&!ELECT.has(k)&&k!=='المهارات الحياتية والمهنية');
     return'<tr><td>'+s+'</td><td>'+o.n+'</td><td>'+(o.complete?'<span class="pill ok">مكتمل</span>':'<span class="pill warn">غير مكتمل</span>')+'</td><td style="white-space:normal;text-align:right">'+(miss.length?miss.map(([k,v])=>esc(k)+(v==='none'?' (لم يُرصد)':' ('+o.subs[k]+' من '+o.n+')')).join('، '):'—')+'</td></tr>'}).join('');
   return'<div class="box"><h3>اكتمال الرصد</h3><p class="sub">الأوائل والترتيب يُستخرجان فقط للشعب المكتملة.</p><div class="tw"><table class="gt"><thead><tr><th>الشعبة</th><th>الطالبات</th><th>الحالة</th><th>مواد لم يكتمل رصدها</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>'}
-function cellH(v){if(typeof v==='number'){const c=catOf(v);return'<td class="'+c.k+'">'+fmt(v)+'</td>'}return'<td class="cna">'+(v?esc(v):'—')+'</td>'}
+function perDen(){let d=0;Object.entries(S.files||{}).forEach(([k,f])=>{if(k.indexOf('cur'+UI.per+'_')===0&&f&&f.den>d)d=f.den});return d||DEN[UI.per]||30}
+function rawOf(v){const r=Math.round(v*perDen()/100*2)/2;return String(r)}
+function cellH(v){if(typeof v==='number'){const c=catOf(v);return'<td class="'+c.k+'"'+(UI.raw?' title="'+fmt(v)+'%"':'')+'>'+(UI.raw?rawOf(v):fmt(v))+'</td>'}return'<td class="cna">'+(v?esc(v):'—')+'</td>'}
 function secStrip(){const secs=Object.keys(M.secs).sort(secSort);const lv=[...new Set(secs.map(lvlOf))];
   return'<div class="secstrip noprint">'+lv.map(l=>'<div class="sg"><span class="sgl">'+({10:'العاشر',11:'الحادي عشر',12:'الثاني عشر'}[l]||l)+'</span>'+secs.filter(x=>lvlOf(x)===l).map(x=>'<button class="chip" data-sec="'+x+'" aria-pressed="'+(UI.sec===x)+'"><bdi dir="ltr">'+x+'</bdi></button>').join('')+'</div>').join('')+'</div>'}
 function vClass(){if(!M.stu.length)return noData();
@@ -784,6 +786,7 @@ function sidebar(){const lv=[...new Set(M.stu.map(x=>x.l))].sort();const secs=Ob
   const opt=(v,t,cur)=>'<option value="'+esc(v)+'"'+(v===cur?' selected':'')+'>'+esc(t)+'</option>';
   const wide=window.innerWidth>1100,op=wide||UI.sideOpen;const sumT=[PERIODS[UI.per],UI.lvl?({10:'العاشر',11:'الحادي عشر',12:'الثاني عشر'}[UI.lvl]):'',UI.sec,UI.sub].filter(Boolean).join(' · ');
   return'<aside class="side noprint"><details class="sdt"'+(op?' open':'')+'><summary><h3><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg>لوحة التحكم'+(wide?'':'<small class="sdsum">'+esc(sumT)+' — اضغطي للتصفية</small>')+'</h3></summary><div class="sdb">'+
+  '<label>عرض درجات الطالبات</label><select data-f="raw"><option value=""'+(UI.raw?'':' selected')+'>النسبة المئوية %</option><option value="1"'+(UI.raw?' selected':'')+'>درجة الورقة (من '+perDen()+')</option></select>'+
   '<label>الفترة</label><select data-f="per">'+PERIODS.map((p,i)=>'<option value="'+i+'"'+(i===UI.per?' selected':'')+(S.cur[i]?'':' disabled')+'>'+p+(S.cur[i]?'':' (لم تُرفع)')+'</option>').join('')+'</select>'+
   '<label>المستوى</label><select data-f="lvl">'+opt('','جميع المستويات',UI.lvl)+lv.map(l=>opt(l,{10:'العاشر',11:'الحادي عشر',12:'الثاني عشر'}[l],UI.lvl)).join('')+'</select>'+
   '<label>الشعبة</label><select data-f="sec">'+opt('','جميع الشعب',UI.sec)+secs.map(s=>opt(s,s,UI.sec)).join('')+'</select>'+
