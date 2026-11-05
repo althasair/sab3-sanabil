@@ -393,6 +393,8 @@ pre.spec{white-space:pre-wrap;background:color-mix(in srgb,var(--cream) 35%,var(
 .sfit{display:flex;gap:10px;align-items:flex-start}.sfic{width:34px;height:34px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex:none;margin-right:-21px;border:2px solid var(--paper)}
 .sfb{flex:1;min-width:0;border:1px solid var(--line);border-radius:12px;padding:7px 12px;background:var(--paper);display:flex;flex-direction:column;gap:2px}.sfd{float:left;font-size:11.5px;color:var(--muted);direction:ltr}
 @media (max-width:760px){.sfkpis{grid-template-columns:repeat(2,minmax(0,1fr))}.sfrow{grid-template-columns:1fr;gap:4px}.sfe{justify-content:flex-start}}
+.stg{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px;padding:8px;border:1px dashed var(--line);border-radius:10px;background:rgba(255,255,255,.6)}.stgf{display:inline-flex;align-items:center;gap:5px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:12.5px}.stgf .x{border:0;background:none;color:var(--bad);font-size:16px;cursor:pointer;padding:0 2px;line-height:1}
+.upl{margin-top:8px}.upl summary{cursor:pointer;font-size:13px;color:#62102A;font-weight:600}.upt{width:100%;border-collapse:collapse;margin-top:6px}.upt td{border-top:1px solid var(--line);padding:5px 4px;font-size:12.5px;vertical-align:middle}.upt .ua{white-space:nowrap;text-align:left}.upt .btn{margin-inline-start:4px}
 </style>
 <style>.navwrap .nav,.navwrap .nav button,.navwrap .nav a,.navwrap .nav::before{font-family:"Marhey","Tajawal",sans-serif!important;font-weight:400!important}</style>
 
@@ -1046,6 +1048,11 @@ document.addEventListener('click',e=>{
    if(e.target.closest('#wipeRoster')){if(!confirm('حذف كل الدرجات المرفوعة؟ (لا تُحذف الإجراءات ولا سجل القيد ولا المعلمات)'))return;S.roster=[];S.demo=false;S.settings.tests=DEFAULT_SETTINGS.tests.slice();(S.uploads||[]).forEach(u=>{if(u.kind==='roster')u.msg='(حُذفت درجاته) '+(u.msg||'')});refresh();toast('تم حذف الدرجات');return}
   if(e.target.closest('#dedupeNow')){const n=dedupeAll();refresh();toast(n?'تم حذف '+n+' إجراء مكرر':'لا يوجد مكرر');return}
   const du=e.target.closest('[data-delup]');if(du){const id=du.dataset.delup;const u=(S.uploads||[]).find(x=>x.id===id);if(!confirm('حذف كل ما أُضيف من الملف «'+(u?u.name:'')+'»؟'))return;S.actions=S.actions.filter(a=>a.up!==id);S.honors=(S.honors||[]).filter(x=>x.up!==id);S.uploads=S.uploads.filter(x=>x.id!==id);refresh();toast('تم حذف ما أُضيف من الملف');return}
+  const sv=e.target.closest('[data-savestage]');if(sv){sv.disabled=true;sv.textContent='جارٍ الحفظ…';saveStage(sv.dataset.savestage);return}
+  const us=e.target.closest('[data-unstage]');if(us){const[k,i]=us.dataset.unstage.split('|');UI.stage[k].splice(+i,1);render();return}
+  const fo=e.target.closest('details[data-fopen]>summary');if(fo){const k=fo.parentNode.dataset.fopen;UI.fopen=UI.fopen||{};UI.fopen[k]=!fo.parentNode.open;return}
+  const vu=e.target.closest('[data-viewup]');if(vu){const u=(S.uploads||[]).find(x=>x.id===vu.dataset.viewup);IDB.get(vu.dataset.viewup).then(b=>{if(b){offer(u.name,new Blob([b],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}))}else{alert('«'+(u?u.name:'')+'»\n\nنتيجة القراءة: '+((u&&u.msg)||'—')+'\n\nالملف الأصلي غير محفوظ على هذا الجهاز (رُفع قبل إضافة المخزن أو من جهاز آخر).')}});return}
+  const rm=e.target.closest('[data-rmup]');if(rm){const u=(S.uploads||[]).find(x=>x.id===rm.dataset.rmup);if(!u||!confirm('حذف الملف «'+u.name+'» وكل ما أُضيف منه إلى المنصة؟'))return;dropUpload(u.id);refresh();toast('تم حذف الملف وما أُضيف منه');return}
   const fu=e.target.closest('[data-forgetup]');if(fu){S.uploads=(S.uploads||[]).filter(x=>x.id!==fu.dataset.forgetup);refresh();return}
 });
 function vData(){
@@ -1061,7 +1068,24 @@ function vData(){
   '<section class="panel"><h3>الإعدادات</h3><div class="row" style="gap:16px"><label>حد التدني <input type="number" id="thr" min="40" max="100" value="'+S.settings.threshold+'" style="width:80px"></label><label>القيمة المضافة المستهدفة في كل تقرير <input type="number" id="mstep" min="1" max="10" value="'+(S.settings.minStep||4)+'" style="width:70px"></label><label>نائب المديرة للشؤون الأكاديمية <input type="text" id="vp" value="'+esc(S.settings.vp)+'" style="width:170px"></label><label>مديرة المدرسة <input type="text" id="principal" value="'+esc(S.settings.principal||'شيخة الرميحي')+'" style="width:150px"></label><label class="btn sm">'+(S.settings.sig?'تغيير صورة التوقيع':'رفع صورة توقيع النائب الأكاديمي')+'<input type="file" id="sigIn" accept="image/*" hidden></label>'+(S.settings.sig?'<img src="'+S.settings.sig+'" alt="التوقيع" style="height:34px;vertical-align:middle;background:#fff;border:1px solid var(--line);border-radius:6px">':'')+'</div><div class="row" style="margin-top:16px"><button class="btn sm" id="bkOut">تنزيل نسخة احتياطية</button><label class="btn sm">استعادة نسخة<input type="file" id="bkIn" accept=".json" hidden></label><span class="sp"></span><button class="btn sm" id="toDemo">عرض البيانات التجريبية</button><button class="btn sm" id="wipe" style="color:var(--bad)">مسح كل البيانات</button></div><div id="wipeConfirm" class="hide demo-bar" style="margin-top:12px"><span>سيتم مسح كل بيانات الطالبات والإجراءات من هذا المتصفح.</span><span class="sp"></span><button class="btn sm" id="wipeYes" style="color:var(--bad)">تأكيد المسح</button><button class="btn sm" id="wipeNo">إلغاء</button></div></section>'+
   '</div><div class="grid2"><section class="panel"><h3>تصميم نموذج «سجّلي إجراءك»<small>نموذج واحد لكل المواد</small></h3><pre class="spec" id="specA">'+esc(SPEC_ACT)+'</pre><div class="row" style="margin-top:10px"><button class="btn sm" data-copy="specA">نسخ</button><button class="btn sm gold" id="dlLists">قوائم المستهدفات لكل شعبة</button></div></section><section class="panel"><h3>نموذج «ميثاق الشراكة» الإلكتروني<small>اختياري — الأساس هو الميثاق الورقي</small></h3><pre class="spec" id="specC">'+esc(SPEC_CH)+'</pre><div class="row" style="margin-top:10px"><button class="btn sm" data-copy="specC">نسخ</button></div></section></div>';
 }
-function dropBox(id,title,desc,status,extra){return '<section class="drop" data-drop="'+id+'"><h4>'+title+'</h4><div class="small muted">'+desc+'</div><div class="st"><b>الحالي:</b> '+status+'</div><div class="row"><label class="btn sm pri">اختيار ملف Excel<input type="file" data-file="'+id+'" accept=".xlsx,.xls,.csv" hidden></label>'+extra+'<span class="small muted">أو اسحبي الملف إلى هنا</span></div><div class="small" data-msg-for="'+id+'"></div></section>'}
+function dropBox(id,title,desc,status,extra){const stg=(UI.stage&&UI.stage[id])||[];const ups=(S.uploads||[]).filter(u=>u.kind===id||(id==='actions'&&u.kind==='honors')).slice().reverse();
+  const pick='<label class="btn sm '+(stg.length?'':'pri')+'" title="اختيار ملف">'+(stg.length?'+ ملف آخر':ups.length?'+ إضافة ملف':'اختيار ملف Excel')+'<input type="file" data-file="'+id+'" accept=".xlsx,.xls,.csv" multiple hidden></label>';
+  const stage=stg.length?'<div class="stg">'+stg.map((f,i)=>'<span class="stgf"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5"/></svg>'+esc(f.name)+'<button class="x" data-unstage="'+id+'|'+i+'" title="إزالة">×</button></span>').join('')+'<button class="btn sm pri" data-savestage="'+id+'"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-3px"><path d="M5 3h11l3 3v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1z"/><path d="M8 3v5h7V3M8 21v-7h8v7"/></svg> حفظ'+(stg.length>1?' ('+stg.length+')':'')+'</button></div>':'';
+  const list=ups.length?'<details class="upl" data-fopen="'+id+'"'+((UI.fopen||{})[id]?' open':'')+'><summary>الملفات المرفوعة ('+ups.length+')</summary><table class="upt"><tbody>'+ups.map(u=>'<tr><td><b>'+esc(u.name)+'</b><div class="small muted">'+esc(new Date(u.at).toLocaleString('ar-QA',{dateStyle:'short',timeStyle:'short'}))+(u.kind==='honors'?' · التكريم':'')+'</div></td><td class="ua"><button class="btn sm ghost" data-viewup="'+u.id+'" title="استعراض الملف">استعراض</button><label class="btn sm ghost" title="رفع ملف بدلًا منه">استبدال<input type="file" data-replup="'+u.id+'" accept=".xlsx,.xls,.csv" hidden></label><button class="btn sm ghost" data-rmup="'+u.id+'" style="color:var(--bad)">حذف</button></td></tr>').join('')+'</tbody></table></details>':'';
+  return '<section class="drop" data-drop="'+id+'"><h4>'+title+'</h4><div class="small muted">'+desc+'</div><div class="st"><b>الحالي:</b> '+status+'</div><div class="row">'+pick+extra+(stg.length?'':'<span class="small muted">أو اسحبي الملف إلى هنا</span>')+'</div>'+stage+'<div class="small" data-msg-for="'+id+'"></div>'+list+'</section>'}
+/* حفظ الملف الأصلي على هذا الجهاز (IndexedDB) ليُستعرض لاحقًا */
+const IDB={p:null,db(){if(!this.p)this.p=new Promise((res,rej)=>{try{const r=indexedDB.open('sab3_files',1);r.onupgradeneeded=()=>r.result.createObjectStore('f');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}catch(e){rej(e)}});return this.p},
+  async put(k,v){try{const d=await this.db();await new Promise((res,rej)=>{const t=d.transaction('f','readwrite');t.objectStore('f').put(v,k);t.oncomplete=res;t.onerror=()=>rej(t.error)})}catch(e){}},
+  async get(k){try{const d=await this.db();return await new Promise(res=>{const q=d.transaction('f').objectStore('f').get(k);q.onsuccess=()=>res(q.result||null);q.onerror=()=>res(null)})}catch(e){return null}},
+  async del(k){try{const d=await this.db();d.transaction('f','readwrite').objectStore('f').delete(k)}catch(e){}}};
+/* حذف كل ما أُضيف من ملف مرفوع */
+function dropUpload(id){const u=(S.uploads||[]).find(x=>x.id===id);if(!u)return;
+  S.actions=S.actions.filter(a=>a.up!==id);S.honors=(S.honors||[]).filter(x=>x.up!==id);S.roster=S.roster.filter(r=>r.up!==id);S.charters=S.charters.filter(c=>c.up!==id);
+  Object.keys(S.hist||{}).forEach(y=>{S.hist[y]=S.hist[y].filter(r=>r.up!==id);if(!S.hist[y].length)delete S.hist[y]});
+  if(u.kind==='enroll'&&S.enrollUp===id){S.enroll=[];S.enrollUp=''}
+  if(u.kind==='contacts'&&S.staffUp===id){S.staff=DEFAULT_STAFF.map(t=>Object.assign({email:'',phone:''},t));S.staffUp=''}
+  S.uploads=S.uploads.filter(x=>x.id!==id);IDB.del(id)}
+async function saveStage(kind){const L=((UI.stage||{})[kind]||[]).slice();if(!L.length)return;UI.stage[kind]=[];let ok=0;for(const f of L){if(await handleFile(kind,f))ok++}if(ok&&L.length>1)toast('تم حفظ '+ok+' من '+L.length+' ملفات',5000);render()}
 
 /* ---------- render ---------- */
 function renderChrome(){
@@ -1641,13 +1665,13 @@ function importEnroll(rows){
 }
 async function handleFile(kind,file){
   const msg=document.querySelector('[data-msg-for="'+kind+'"]');
-  const bA=new Set(S.actions),bH=new Set(S.honors||[]);const upId='u'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);const prev=(S.uploads||[]).find(u=>u.name===file.name&&u.size===file.size);
+  const bA=new Set(S.actions),bH=new Set(S.honors||[]),bR=new Set(S.roster),bC=new Set(S.charters),bHi=new Set(Object.values(S.hist||{}).flat()),bE=S.enroll,bS=S.staff;const upId='u'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);const prev=(S.uploads||[]).find(u=>u.name===file.name&&u.size===file.size);
   try{if(typeof XLSX==='undefined')throw new Error('تعذّر تحميل قارئ ملفات Excel. أعيدي فتح الصفحة.');const rows=await readSheet(file);if(!rows.length)throw new Error('الملف فارغ.');
-    const m=kind==='enroll'?importEnroll(rows):kind==='roster'?importRoster(rows):kind==='actions'?importActions(rows):kind==='contacts'?importContacts(rows):importCharter(rows);let nA=0,nH=0;S.actions.forEach(a=>{if(!bA.has(a)){a.up=upId;nA++}});(S.honors||[]).forEach(x=>{if(!bH.has(x)){x.up=upId;nH++}});const dd=dedupeAll();
+    const m=kind==='enroll'?importEnroll(rows):kind==='roster'?importRoster(rows):kind==='actions'?importActions(rows):kind==='contacts'?importContacts(rows):importCharter(rows);let nA=0,nH=0;S.actions.forEach(a=>{if(!bA.has(a)){a.up=upId;nA++}});(S.honors||[]).forEach(x=>{if(!bH.has(x)){x.up=upId;nH++}});S.roster.forEach(r=>{if(!bR.has(r))r.up=upId});S.charters.forEach(c=>{if(!bC.has(c))c.up=upId});Object.values(S.hist||{}).flat().forEach(r=>{if(!bHi.has(r))r.up=upId});if(S.enroll!==bE)S.enrollUp=upId;if(S.staff!==bS)S.staffUp=upId;const dd=dedupeAll();IDB.put(upId,file);
     S.uploads=S.uploads||[];S.uploads.push({id:upId,name:file.name,size:file.size,kind:(kind==='actions'&&nH&&!nA)?'honors':kind,at:new Date().toISOString(),msg:m,added:nA-dd+nH});
     const m2=(prev?'تنبيه: هذا الملف نفسه رُفع سابقًا ('+new Date(prev.at).toLocaleDateString('ar-QA')+')؛ ولم يُضَف منه إلا الجديد. ':'')+m+(dd?' (واستُبعد '+dd+' مكرر إضافي)':'');
-    refresh();toast(m2,6000);const msg2=document.querySelector('[data-msg-for="'+kind+'"]');if(msg2)msg2.innerHTML='<span class="up">'+esc(m2)+'</span>';}
-  catch(e){if(msg)msg.innerHTML='<span class="down">'+esc(e.message||'تعذّرت قراءة الملف.')+'</span>'}
+    refresh();toast(m2,6000);const msg2=document.querySelector('[data-msg-for="'+kind+'"]');if(msg2)msg2.innerHTML='<span class="up">'+esc(m2)+'</span>';return true}
+  catch(e){const mm=document.querySelector('[data-msg-for="'+kind+'"]');if(mm)mm.innerHTML='<span class="down">'+esc((file&&file.name?'«'+file.name+'»: ':'')+(e.message||'تعذّرت قراءة الملف.'))+'</span>';else toast(e.message||'تعذّرت قراءة الملف.',6000);return false}
 }
 
 /* ---------- events ---------- */
@@ -1701,12 +1725,14 @@ document.addEventListener('change',e=>{
   else if(id==='vp'){S.settings.vp=e.target.value.trim()||DEFAULT_SETTINGS.vp;save()}
   else if(id==='principal'){S.settings.principal=e.target.value.trim()||'شيخة الرميحي';save()}
   else if(id==='sigIn'&&e.target.files[0]){const fr=new FileReader();fr.onload=()=>{const im=new Image();im.onload=()=>{const c=document.createElement('canvas');const sc=Math.min(1,400/im.width);c.width=im.width*sc;c.height=im.height*sc;c.getContext('2d').drawImage(im,0,0,c.width,c.height);S.settings.sig=c.toDataURL('image/png');refresh();toast('تم حفظ التوقيع')};im.src=fr.result};fr.readAsDataURL(e.target.files[0])}
-  else if(e.target.dataset.file&&e.target.files[0]){handleFile(e.target.dataset.file,e.target.files[0]);e.target.value=''}
+  else if(e.target.dataset.file&&e.target.files[0]){const k=e.target.dataset.file;UI.stage=UI.stage||{};UI.stage[k]=(UI.stage[k]||[]).concat([...e.target.files]);e.target.value='';render()}
+  else if(e.target.dataset.replup&&e.target.files[0]){const id=e.target.dataset.replup,f=e.target.files[0];e.target.value='';const u=(S.uploads||[]).find(x=>x.id===id);if(!u)return;if(!confirm('استبدال «'+u.name+'» بالملف «'+f.name+'»؟\nيُحذف ما أُضيف من الملف القديم، ثم يُقرأ الملف الجديد.'))return;
+    (async()=>{const snap=JSON.stringify(S);dropUpload(id);const ok=await handleFile(u.kind==='honors'?'actions':u.kind,f);if(!ok){const o=JSON.parse(snap);Object.keys(S).forEach(k=>delete S[k]);Object.assign(S,o);refresh();toast('تعذّرت قراءة الملف الجديد، فبقي الملف القديم كما هو',6000)}else toast('تم استبدال الملف',4000)})()}
   else if(id==='bkIn'&&e.target.files[0]){const fr=new FileReader();fr.onload=()=>{try{const o=JSON.parse(fr.result);if(!o.roster)throw 0;S=o;S.settings=Object.assign({},DEFAULT_SETTINGS,S.settings||{});refresh();toast('تمت استعادة النسخة')}catch(_){toast('الملف ليس نسخة احتياطية صالحة')}};fr.readAsText(e.target.files[0])}
 });
 document.addEventListener('dragover',e=>{const d=e.target.closest('[data-drop]');if(d){e.preventDefault();d.classList.add('over')}});
 document.addEventListener('dragleave',e=>{const d=e.target.closest('[data-drop]');if(d)d.classList.remove('over')});
-document.addEventListener('drop',e=>{const d=e.target.closest('[data-drop]');if(!d)return;e.preventDefault();d.classList.remove('over');const f=e.dataTransfer.files[0];if(f)handleFile(d.dataset.drop,f)});
+document.addEventListener('drop',e=>{const d=e.target.closest('[data-drop]');if(!d)return;e.preventDefault();d.classList.remove('over');const fs=[...e.dataTransfer.files];if(fs.length){const k=d.dataset.drop;UI.stage=UI.stage||{};UI.stage[k]=(UI.stage[k]||[]).concat(fs);render()}});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
 
 /* ---------- boot ---------- */
