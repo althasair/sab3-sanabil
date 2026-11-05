@@ -1024,7 +1024,7 @@ function indivPanel(){const st=(S.staff||[]).slice().sort((a,b)=>a.name.localeCo
   '<section class="panel"><h3>سجل الحصص المنفذة من بيانات النموذج<small>كل بيانات Forms: التاريخ، الحصة، بدلًا عن، النوع، الوقت، عدد الطالبات</small></h3><div class="row" style="gap:10px;align-items:flex-end;flex-wrap:wrap"><label class="small">النوع <select id="lgKind"><option value="g">الحصص الجماعية</option><option value="i">الحصص الفردية</option></select></label><label class="small">المعلمة <select id="lgTch"><option value="">جميع المعلمات</option>'+st.map(t=>'<option>'+esc(t.name)+'</option>').join('')+'</select></label><button class="btn sm gold" id="lgTbl">سجل الحصص (جدول)</button><button class="btn sm" id="lgSheets">السجل مع الكشوف المعبأة</button><button class="btn sm pri" id="lgAna">تحليل الحصص وأثرها على النتائج</button></div></section>'}
 document.addEventListener('click',e=>{const st=(S.staff||[]).slice().sort((a,b)=>a.name.localeCompare(b.name,'ar'));
   if(e.target.closest('#isOne')){const t=st[+($('#isTch')||{}).value||0];if(!t)return;const m=orderedStaff().find(x=>x.t===t)||{};offer('كشف الحصة الفردية - '+shortName(t.name)+'.html',docShell('كشف الحصة الفردية',indivSheet(t,m)));return}
-  if(e.target.closest('#lgAna')){const t=($('#lgTch')||{}).value||'';const h=sessAnalysis(t);if(!h){toast('لا توجد حصص إثرائية مسجلة'+(t?' لهذه المعلمة':''));return}const nm='تحليل الحصص الإثرائية'+(t?' - '+shortName(t):'');offer(nm+'.html',docShell(nm,h+'<style>.ah{font-size:11pt;color:#62102A;margin:8px 0 2px}</style>'));return}
+  if(e.target.closest('#lgAna')){const t=($('#lgTch')||{}).value||'';const h=sessAnalysis(t);if(!h){toast('لا توجد حصص إثرائية مسجلة'+(t?' لهذه المعلمة':''));return}const nm='تحليل الحصص الإثرائية وأثرها'+(t?' - '+shortName(t):'');offer(nm+'.html',docShell(nm,h+'<style>.ah{font-size:11pt;color:#62102A;margin:8px 0 2px}</style>'));return}
   if(e.target.closest('#lgTbl')||e.target.closest('#lgSheets')){const k=($('#lgKind')||{}).value||'g',t=($('#lgTch')||{}).value||'';const h=sessLog(k,t,!!e.target.closest('#lgSheets'));if(!h){toast('لا توجد حصص '+(k==='g'?'جماعية':'فردية')+' مرفوعة'+(t?' لهذه المعلمة':'')+'. ارفعي ملف النموذج من «السنابل السبع» ← الحصص الإثرائية.');return}const nm=(k==='g'?'سجل الحصص الجماعية':'سجل الحصص الفردية')+(t?' - '+shortName(t):' - جميع المعلمات');offer(nm+'.html',docShell(nm,h));return}
   if(e.target.closest('#gsOne')){const t=st[+($('#gsTch')||{}).value||0];if(!t)return;const m=orderedStaff().find(x=>x.t===t)||{};offer('كشف الحصة الجماعية - '+shortName(t.name)+'.html',docShell('كشف الحصة الجماعية',groupSheet(t,m)));return}
   if(e.target.closest('#gsAll')){if(!st.length){toast('لا توجد معلمات');return}{const L=orderedStaff();offer('كشوف الحصة الجماعية - جميع المعلمات.html',docShell('كشوف الحصة الجماعية',indivIndex(L,'الجماعية')+L.map(x=>groupSheet(x.t,x)).join('')))};return}
@@ -1324,7 +1324,7 @@ function importRoster(rows){
 function typeOf(v){const n=norm(v);for(const k of MATCH_ORDER){if(KEYS[k-1].kw.some(w=>n.includes(norm(w))))return k}return 0}
 function nameMatch(a,b){const A=norm(a).split(' ').filter(Boolean),B=norm(b).split(' ').filter(Boolean);if(!A.length||!B.length)return false;if(A.join(' ')===B.join(' '))return true;if(A[0]!==B[0])return false;if(A.length===1)return false;return A.slice(1).every(w=>B.slice(1).includes(w))}
 const LVL=x=>{const n=norm(x);const o=[];if(n.includes('عاشر'))o.push('10');if(n.includes('حادي'))o.push('11');if(n.includes('ثاني عشر'))o.push('12');return o};
-function officialTeacher(typed,sec,sub){const t=staffFor(sec,sub);if(t)return t.name;const w=norm(typed).split(' ').filter(Boolean);if(!w.length)return '';const st=S.staff||[];const same=st.filter(x=>norm(x.name).split(' ')[0]===w[0]);let c=same.filter(x=>w.slice(1).length&&w.slice(1).every(t=>norm(x.name).split(' ').includes(t)));if(c.length!==1)c=same.filter(x=>subjKeys(x.subject).has(subjKey(sub)));return c.length===1?c[0].name:String(typed||'').trim()}
+function officialTeacher(typed,sec,sub){const t=staffFor(sec,sub);if(t)return t.name;const w=norm(typed).split(' ').filter(Boolean);if(!w.length)return '';const st=S.staff||[];const same=st.filter(x=>norm(x.name).split(' ')[0]===w[0]);let c=same.filter(x=>w.slice(1).length&&w.slice(1).every(t=>norm(x.name).split(' ').includes(t)));if(c.length!==1)c=same.filter(x=>subjKeys(x.subject).has(subjKey(sub)));if(c.length===1)return c[0].name;const fz=fuzzyStaff(typed);return fz?fz.name:String(typed||'').trim()}
 function actKey(a){return [String(a.date||'').slice(0,10),norm(a.teacher),secKey(a.section),subjKey(a.subject),a.type,a.whole?'*':(a.students||[]).map(x=>norm(x).split(' ').slice(0,2).join(' ')).sort().join(','),(norm(a.detail).match(/الحصه (\S+)/)||[])[1]||'',a.src==='indivf'?norm(a.detail)+'#'+String(a.evidence||'').slice(-60):''].join('|')}
 function dedupeAll(){const seen=new Set();let n=0;S.actions=S.actions.filter(a=>{const k=actKey(a);if(seen.has(k)){n++;return false}seen.add(k);return true});return n}
 function mergeActs(out,sameKind){const replace=(S.settings.actMode||'append')==='replace';let base=replace?S.actions.filter(a=>!sameKind(a)):S.actions.slice();const removed=S.actions.length-base.length;
@@ -1375,52 +1375,125 @@ function anBars(items,o){o=o||{};const L=items.filter(x=>x.v>0);if(!L.length)ret
    '<text x="'+(W-lw-w1-w2-5)+'" y="'+(y+15)+'" font-size="11" text-anchor="end" fill="#2A1820" font-family="Tajawal,Arial">'+(x.lab!=null?x.lab:(x.v+(x.v2?' + '+x.v2:'')))+'</text>'});
   return g+'</svg>'}
 function anLegend(a,b){return '<p class="inote" style="color:#333"><span style="display:inline-block;width:10px;height:10px;background:#62102A;border-radius:2px"></span> '+a+(b?' &nbsp; <span style="display:inline-block;width:10px;height:10px;background:#B8903A;border-radius:2px"></span> '+b:'')+'</p>'}
+/* مطابقة اسم المعلمة كما كُتب في النموذج بقائمة المعلمات الرسمية (تتسامح مع الأخطاء الإملائية: عاشه/عائشة، فاطمك/فاطمة، ماجد ة/ماجدة) */
+function skelW(w){return norm(w).replace(/[اأإآءئؤيى]/g,'').replace(/[ةهك]$/,'ه')}
+function tokT(n){return norm(String(n||'').replace(/\s+ة(?=\s|$)/g,'ة')).split(' ').filter(Boolean)}
+function fuzzyStaff(n){const st=S.staff||[];if(!n)return null;const ex=st.find(x=>norm(x.name)===norm(n));if(ex)return ex;const w=tokT(n).map(skelW);if(w.length<2)return null;
+  const c=st.filter(x=>{const b=tokT(x.name).map(skelW);return b[0]===w[0]&&w.slice(1).every(t=>b.includes(t))});return c.length===1?c[0]:null}
+/* رسم أعمدة متباعدة حول الصفر (ارتفاع/انخفاض) */
+function anDiv(items,o){o=o||{};if(!items.length)return '<p class="inote">لا توجد بيانات.</p>';const W=640,lw=o.lw||190,rh=24,H=items.length*rh+22;const mx=Math.max(1,...items.map(x=>Math.abs(x.v)));const cw=W-lw-20,zero=10+cw/2,sc=(cw/2-34)/mx;
+  let g='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto;direction:ltr" role="img" aria-label="'+esc(o.t||'رسم')+'"><line x1="'+zero+'" y1="0" x2="'+zero+'" y2="'+(H-18)+'" stroke="#8a7a80" stroke-width="1"/>';
+  items.forEach((x,i)=>{const y=i*rh+2,w=Math.abs(x.v)*sc,pos=x.v>=0;const xr=pos?zero:zero-w;
+    g+='<text x="'+(W-4)+'" y="'+(y+15)+'" font-size="11.5" text-anchor="end" fill="#2A1820" font-family="Tajawal,Arial">'+esc(x.l)+'</text>'+
+      '<rect x="'+xr+'" y="'+(y+3)+'" width="'+Math.max(w,1.5)+'" height="16" rx="3" fill="'+(pos?'#0A8F8B':'#B23A48')+'"/>'+
+      '<text x="'+(pos?zero+w+4:zero-w-4)+'" y="'+(y+15)+'" font-size="11" text-anchor="'+(pos?'start':'end')+'" fill="#2A1820" font-family="Tajawal,Arial">'+(x.lab!=null?x.lab:(x.v>0?'+':'')+x.v)+'</text>'});
+  g+='<text x="'+(zero-6)+'" y="'+(H-4)+'" font-size="10" text-anchor="end" fill="#6b5a60" font-family="Tajawal,Arial">انخفاض</text><text x="'+(zero+6)+'" y="'+(H-4)+'" font-size="10" fill="#6b5a60" font-family="Tajawal,Arial">ارتفاع</text>';
+  return g+'</svg>'}
 function sessAnalysis(tName){
-  const G=S.actions.filter(a=>a.type===3&&(a.src==='group'||(a.whole&&a.src!=='indivf'))&&(!tName||norm(a.teacher)===norm(tName)));
-  const I=S.actions.filter(a=>a.type===3&&(a.src==='indivf'||(!a.whole&&a.src!=='group'))&&(!tName||norm(a.teacher)===norm(tName)));
+  const LV={10:'العاشر',11:'الحادي عشر',12:'الثاني عشر'};const r1=x=>Math.round(x*10)/10;const sg=x=>(x>0?'+':'')+r1(x);
+  const isCore=t=>!/فنون|بدني|اعمال|مهارات/.test(norm((t.subject||'')+' '+(t.dept||'')));
+  /* توحيد اسم المعلمة في كل حصة باسمها الرسمي */
+  const unk={};const tn=a=>{const f=fuzzyStaff(a.teacher);if(!f&&a.teacher)unk[String(a.teacher).trim()]=(unk[String(a.teacher).trim()]||0)+1;return f?f.name:String(a.teacher||'').trim()};
+  const all=S.actions.map(a=>Object.assign({},a,{teacher:tn(a)}));
+  const isG=a=>a.type===3&&(a.src==='group'||(a.whole&&a.src!=='indivf')),isI=a=>a.type===3&&(a.src==='indivf'||(!a.whole&&a.src!=='group'));
+  const mine=a=>!tName||norm(a.teacher)===norm(tName);
+  const G=all.filter(a=>isG(a)&&mine(a)),I=all.filter(a=>isI(a)&&mine(a)),O=all.filter(a=>a.type!==3&&mine(a));
   if(!G.length&&!I.length)return null;
-  const staff=(S.staff||[]).filter(t=>(t.sections||[]).length&&(!tName||norm(t.name)===norm(tName)));const deptOf=n=>{const t=(S.staff||[]).find(x=>norm(x.name)===norm(n));return t?(t.dept||t.subject||'غير محدد'):'غير محدد'};
+  const staffAll=S.staff||[];const st=staffAll.find(x=>norm(x.name)===norm(tName||''));
+  const core=staffAll.filter(t=>isCore(t)&&((t.sections||[]).length||/منسق/.test(t.role||''))&&(!tName||norm(t.name)===norm(tName)));
+  const noSec=staffAll.filter(t=>isCore(t)&&!(t.sections||[]).length&&!/منسق/.test(t.role||''));
+  const deptOf=n=>{const t=staffAll.find(x=>norm(x.name)===norm(n));return t?(t.dept||t.subject||'غير محدد'):'غير محدد'};
   const cntStu=a=>a.src==='indivf'?((a.f&&a.f.cnt)||a.cnt||0):(a.students||[]).length;const stuI=I.reduce((x,a)=>x+cntStu(a),0);
   const by=(A,f)=>{const m={};A.forEach(a=>{(f(a)||['—']).forEach(k=>{if(k)m[k]=(m[k]||0)+1})});return m};const top=(m,n)=>Object.entries(m).sort((a,b)=>b[1]-a[1]).slice(0,n||12);
-  const nm=a=>[shortName(a.teacher)];const dep=a=>[deptOf(a.teacher)];
   const how=a=>(a.f&&a.f.how&&a.f.how.length?a.f.how:[(String(a.detail).split('—')[1]||'').trim()||'غير محدد']).map(x=>x.replace(/اعاده/,'إعادة').replace(/اسئله/,'أسئلة'));
-  const tch=new Set(G.concat(I).map(a=>norm(a.teacher)));const inact=staff.filter(t=>!tch.has(norm(t.name)));
-  const dG=by(G,dep),dI=by(I,dep);const depts=[...new Set(Object.keys(dG).concat(Object.keys(dI)))].map(d=>({l:d,v:dG[d]||0,v2:dI[d]||0})).sort((a,b)=>(b.v+b.v2)-(a.v+a.v2));
-  const mon=a=>[String(a.date||'').slice(0,7)];const months=[...new Set(G.concat(I).map(a=>String(a.date||'').slice(0,7)).filter(Boolean))].sort();const MN=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-  const mG=by(G,mon),mI=by(I,mon);const mItems=months.map(m=>({l:MN[+m.slice(5,7)-1]+' '+m.slice(0,4),v:mG[m]||0,v2:mI[m]||0}));
-  const hG=top(by(G,how),8),hI=top(by(I,how),8);const per=top(by(G,a=>[a.f&&a.f.per||'']),8),ins=top(by(G,a=>[a.f&&a.f.ins||'']),8),when=top(by(I,a=>[a.f&&a.f.when||'']),8);
-  /* الربط بالنتائج: لكل معلمة ومادتها — القيمة المضافة لطالباتها المستهدفات ونسبة تحقيق الأهداف */
-  const L=lastTestIdx(S);const tests=S.settings.tests||[];
-  const rows=staff.map(t=>{const g=G.filter(a=>norm(a.teacher)===norm(t.name)).length,i=I.filter(a=>norm(a.teacher)===norm(t.name));const ni=i.length,si=i.reduce((x,a)=>x+cntStu(a),0);
-    const tg=D.targets.filter(x=>norm(x.row.teacher)===norm(t.name));    const vals=tg.map(x=>{const p=progOf(x.row);return p?p.b-x.row.scores[0]:null}).filter(v=>v!=null);const met=tg.filter(x=>{const p=progOf(x.row);return p&&p.met}).length;
-    return{t,g,ni,si,n:g+ni,tg:tg.length,va:vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:null,met,mp:vals.length?met/vals.length*100:null,meas:vals.length}}).filter(r=>r.n||r.tg);
-  const r1=x=>Math.round(x*10)/10;const sorted=rows.slice().sort((a,b)=>b.n-a.n);
-  let link='';
-  if(L<1)link='<p class="istate">يُقاس أثر الحصص على النتائج بعد رصد '+esc(tests[1]||'التقرير الثاني')+'، بمقارنة درجات الطالبات المستهدفات بدرجاتهن في '+esc(tests[0]||'التقرير الأول')+'.</p>';
-  else{const M=rows.filter(r=>r.va!=null);const med=M.map(r=>r.n).sort((a,b)=>a-b)[Math.floor(M.length/2)]||0;const hi=M.filter(r=>r.n>med&&r.n>0),lo=M.filter(r=>r.n<=med);const avg=(A,k)=>A.length?A.reduce((s2,r)=>s2+r[k],0)/A.length:null;
-    const vH=avg(hi,'va'),vL=avg(lo,'va'),pH=avg(hi.filter(r=>r.mp!=null),'mp'),pL=avg(lo.filter(r=>r.mp!=null),'mp');
-    link='<p class="istate">'+(vH!=null&&vL!=null?'بلغ متوسط القيمة المضافة للطالبات المستهدفات لدى المعلمات الأكثر تنفيذًا للحصص (أكثر من '+med+' حصة) '+(vH>=0?'+':'')+r1(vH)+' درجة، مقابل '+(vL>=0?'+':'')+r1(vL)+' درجة لدى بقية المعلمات'+(pH!=null&&pL!=null?'، وبلغت نسبة تحقيق الأهداف الفردية '+r1(pH)+'% مقابل '+r1(pL)+'%':'')+'. '+(vH>vL?'وهذا يشير إلى ارتباط إيجابي بين كثافة الحصص الإثرائية وتحسّن نتائج الطالبات.':'ولم يظهر فرق لصالح كثافة الحصص، مما يستدعي مراجعة نوعية الحصص وتوجيهها للمهارات الأضعف.'):'لم تكتمل بيانات المقارنة بعد.')+'</p>'+
-      '<h3 class="ah">القيمة المضافة لدى طالبات كل معلمة (بين '+esc(tests[0])+' و'+esc(tests[L])+')</h3>'+anBars(M.slice().sort((a,b)=>b.va-a.va).slice(0,20).map(r=>({l:shortName(r.t.name)+' ('+r.n+' حصة)',v:Math.max(0.1,r.va-Math.min(0,...M.map(z=>z.va))+0.5),lab:(r.va>=0?'+':'')+r1(r.va)})),{c1:'#0A8F8B',lw:200})}
-  const tbl='<table class="iidx" style="width:100%;margin-top:6px"><thead><tr><th>المعلمة</th><th>القسم</th><th>جماعية</th><th>فردية</th><th>طالبات (فردي)</th><th>المستهدفات</th>'+(L>=1?'<th>القيمة المضافة</th><th>حققن الهدف</th>':'')+'</tr></thead><tbody>'+
-    sorted.map(r=>'<tr><td>'+esc(shortName(r.t.name))+'</td><td>'+esc(r.t.dept||'')+'</td><td>'+r.g+'</td><td>'+r.ni+'</td><td>'+r.si+'</td><td>'+r.tg+'</td>'+(L>=1?'<td>'+(r.va==null?'—':(r.va>=0?'+':'')+r1(r.va))+'</td><td>'+(r.mp==null?'—':r.met+' ('+r1(r.mp)+'%)')+'</td>':'')+'</tr>').join('')+'</tbody></table>';
-  const topD=depts[0],topT=sorted[0];
-  const desc=['تم تنفيذ '+G.length+' حصة إثرائية جماعية و'+I.length+' حصة إثرائية فردية استفادت منها '+stuI+' طالبة، بمشاركة '+tch.size+' معلمة'+(staff.length?' من '+staff.length:'')+'.',
-    topD?'وجاء قسم '+topD.l+' في المقدمة بـ'+(topD.v+topD.v2)+' حصة'+(topT?'، وأكثر المعلمات تنفيذًا '+shortName(topT.t.name)+' بـ'+topT.n+' حصة':'')+'.':'',
-    hG.length?'وأكثر أنواع الحصص الجماعية: '+hG.slice(0,3).map(x=>x[0]+' ('+x[1]+')').join('، ')+'.':'',
-    hI.length?'وأكثر أنواع الدعم الفردي: '+hI.slice(0,3).map(x=>x[0]+' ('+x[1]+')').join('، ')+'.':'',
-    when.length?'ونُفّذت الحصص الفردية غالبًا خلال '+when.slice(0,2).map(x=>x[0]+' ('+x[1]+')').join(' و')+'.':'',
-    ins.length?'وكانت الحصص الجماعية في الغالب بدلًا عن حصص '+ins.slice(0,3).map(x=>x[0]+' ('+x[1]+')').join('، ')+'.':'',
-    inact.length&&!tName?'ولم تُسجَّل حصص لـ'+inact.length+' معلمة: '+inact.slice(0,12).map(t=>shortName(t.name)).join('، ')+(inact.length>12?' وغيرهن':'')+'.':''].filter(Boolean);
-  const card=(l,v)=>'<td style="text-align:center;padding:6px"><div style="font-size:18pt;font-weight:800;color:#62102A">'+v+'</div><div style="font-size:9pt">'+l+'</div></td>';
-  return '<section class="page"><div class="isheet"><div class="ttl"><h1>تحليل الحصص الإثرائية'+(tName?' — '+esc(shortName(tName)):'')+'</h1></div>'+
-    '<table class="ih"><tr>'+card('حصة جماعية',G.length)+card('حصة فردية',I.length)+card('طالبة استفادت فرديًا',stuI)+card('معلمة منفذة',tch.size+(staff.length&&!tName?' / '+staff.length:''))+'</tr></table>'+
-    '<h3 class="ah">التحليل الوصفي</h3><div class="istate" style="text-align:justify;line-height:1.9">'+desc.map(x=>'<p style="margin:0 0 4px">'+esc(x)+'</p>').join('')+'</div>'+
-    (!tName?'<h3 class="ah">الحصص حسب القسم</h3>'+anLegend('جماعية','فردية')+anBars(depts,{}):'')+
-    '<h3 class="ah">الحصص حسب الشهر</h3>'+anLegend('جماعية','فردية')+anBars(mItems,{})+
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><h3 class="ah">أنواع الحصص الجماعية</h3>'+anBars(hG.map(x=>({l:x[0],v:x[1]})),{lw:150})+'</div><div><h3 class="ah">أنواع الدعم الفردي</h3>'+anBars(hI.map(x=>({l:x[0],v:x[1]})),{lw:150,c1:'#B8903A'})+'</div></div>'+
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><h3 class="ah">الجماعية بدلًا عن</h3>'+anBars(ins.map(x=>({l:x[0],v:x[1]})),{lw:150})+'</div><div><h3 class="ah">توقيت الحصص الفردية</h3>'+anBars(when.map(x=>({l:x[0],v:x[1]})),{lw:150,c1:'#B8903A'})+'</div></div>'+
-    '</div></section><section class="page"><div class="isheet"><div class="ttl"><h1>أثر الحصص على النتائج</h1></div>'+link+'<h3 class="ah">الإحصاء التفصيلي لكل معلمة</h3>'+tbl+
-    '<p class="inote">القيمة المضافة = متوسط تغيّر درجات الطالبات المستهدفات للمعلمة بين التقرير الأول وآخر تقرير مرصود. الحصص الفردية من نموذج Forms تُحسب بعددها، لأن أسماء الطالبات في كشف التوقيع.</p></div></section>'}
+  /* التزام كل معلمة */
+  const cnt=n=>({g:G.filter(a=>norm(a.teacher)===norm(n)).length,i:I.filter(a=>norm(a.teacher)===norm(n)).length});
+  const cov=core.map(t=>Object.assign({t,dept:t.dept||t.subject||'غير محدد',co:/منسق/.test(t.role||'')},cnt(t.name)));cov.forEach(c=>c.n=c.g+c.i);
+  const done=cov.filter(c=>c.n),miss=cov.filter(c=>!c.n);const covP=cov.length?done.length/cov.length*100:0;
+  const nonCoreDone=[...new Set(G.concat(I).map(a=>a.teacher))].filter(n=>{const t=staffAll.find(x=>norm(x.name)===norm(n));return t&&!isCore(t)});
+  const dl=[...new Set(cov.map(c=>c.dept))];const dCov=dl.map(d=>{const C=cov.filter(c=>c.dept===d);return{d,n:C.length,ok:C.filter(c=>c.n).length,g:C.reduce((s,c)=>s+c.g,0),i:C.reduce((s,c)=>s+c.i,0)}}).sort((a,b)=>b.ok/b.n-a.ok/a.n||b.g+b.i-a.g-a.i);
+  const full=dCov.filter(x=>x.ok===x.n).map(x=>x.d);
+  const months=[...new Set(G.concat(I).map(a=>String(a.date||'').slice(0,7)).filter(Boolean))].sort();const MN=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+  const mG=by(G,a=>[String(a.date||'').slice(0,7)]),mI=by(I,a=>[String(a.date||'').slice(0,7)]);const mItems=months.map(m=>({l:MN[+m.slice(5,7)-1]+' '+m.slice(0,4),v:mG[m]||0,v2:mI[m]||0}));
+  const hG=top(by(G,how),8),hI=top(by(I,how),8),ins=top(by(G,a=>[a.f&&a.f.ins||'']),8),when=top(by(I,a=>[a.f&&a.f.when||'']),8);
+  /* ---------- الربط بالنتائج: لكل مستوى ومادة ---------- */
+  const L=lastTestIdx(S);const tests=S.settings.tests||[];const lvlOf=s=>{const m=/^(1[0-2])-/.exec(secKey(s||''));return m?m[1]:''};
+  const aLvl=a=>lvlOf(a.section)||((String(a.f&&a.f.lvl||'').match(/1[0-2]/)||[])[0]||'');
+  const stat=v=>{const n=v.length;if(!n)return null;const m=v.reduce((a,b)=>a+b,0)/n;const sd=n>1?Math.sqrt(v.reduce((a,b)=>a+(b-m)*(b-m),0)/(n-1)):0;return{n,m,sd,pass:v.filter(x=>x>=50).length/n*100}};
+  const dLab=d=>{const a=Math.abs(d);return a<0.2?'ضئيل':a<0.5?'صغير':a<0.8?'متوسط':'كبير'};
+  const prevY=Object.keys(S.hist||{}).filter(y=>y<curYear()).sort().pop();const H=prevY?S.hist[prevY]:[];
+  const subjName={};S.roster.forEach(r=>{const k=subjKey(r.subject);subjName[k]=subjName[k]||String(r.subject).replace(/ه$/,'ة')});
+  const groups={};S.roster.forEach(r=>{const l=lvlOf(r.section),k=subjKey(r.subject);if(!l||/^(art|pe)$/.test(k))return;const v=r.scores[L];if(v==null||isNaN(v))return;(groups[l+'|'+k]=groups[l+'|'+k]||[]).push(r)});
+  const hIdx=(()=>{let m=-1;H.forEach(r=>(r.scores||[]).forEach((v,i)=>{if(v!=null&&i>m)m=i}));return Math.min(L,m)})();
+  const cmp=Object.entries(groups).map(([gk,R])=>{const[l,k]=gk.split('|');if(tName&&st&&!subjKeys(st.subject).has(k))return null;
+    const cur=stat(R.map(r=>r.scores[L]));const hv=hIdx>=0?H.filter(r=>lvlOf(r.section)===l&&subjKey(r.subject)===k).map(r=>r.scores[hIdx]).filter(v=>v!=null&&!isNaN(v)):[];const old=hIdx===L?stat(hv):null;
+    const sel=a=>aLvl(a)===l&&subjKey(a.subject)===k;const g=G.filter(sel).length,i=I.filter(sel).length,o=O.filter(sel).length;
+    let d=null,delta=null;if(old&&old.n>=10){delta=cur.m-old.m;const sp=Math.sqrt((cur.sd*cur.sd+old.sd*old.sd)/2);d=sp?delta/sp:0}
+    /* الدفعة نفسها: درجات الطالبات أنفسهن في العام الماضي */
+    let coh=null;if(hIdx>=0&&+l>10){const pm=new Map(H.filter(r=>lvlOf(r.section)===String(+l-1)&&subjKey(r.subject)===k).map(r=>[r.idh||norm(r.name),r.scores[hIdx]]));const pr=R.map(r=>[r.scores[L],pm.get(r.idh||norm(r.name))]).filter(p=>p[1]!=null&&!isNaN(p[1]));if(pr.length>=10){const df=pr.map(p=>p[0]-p[1]),s=stat(df);coh={n:pr.length,m:s.m,dz:s.sd?s.m/s.sd:0}}}
+    return{l,k,name:subjName[k]||k,cur,old,delta,d,g,i,o,coh}}).filter(Boolean).sort((a,b)=>a.l-b.l||a.name.localeCompare(b.name,'ar'));
+  const withD=cmp.filter(c=>c.delta!=null);
+  const pear=(X,Y)=>{const n=X.length;if(n<6)return null;const mx=X.reduce((a,b)=>a+b,0)/n,my=Y.reduce((a,b)=>a+b,0)/n;let sxy=0,sx=0,sy=0;X.forEach((x,j)=>{sxy+=(x-mx)*(Y[j]-my);sx+=(x-mx)**2;sy+=(Y[j]-my)**2});return sx&&sy?sxy/Math.sqrt(sx*sy):null};
+  const rr=pear(withD.map(c=>c.g+c.i),withD.map(c=>c.delta));
+  const why=c=>{const ses=c.g+c.i;const act=(c.g?c.g+' حصة جماعية':'')+(c.g&&c.i?' و':'')+(c.i?c.i+' حصة فردية':'')+(c.o?(ses?' و':'')+c.o+' إجراءً أكاديميًا آخر':'');const lab='مادة '+c.name+' في المستوى '+LV[c.l];
+    if(c.delta==null){return c.coh?'تغيّر متوسط الطالبات أنفسهن في '+lab+' بمقدار '+sg(c.coh.m)+' نقطة مقارنة بنتائجهن في العام الماضي ('+c.coh.n+' طالبة)'+(ses?'، مع تنفيذ '+act+'.':'.'):''}
+    const head=(c.delta>=1?'ارتفع':c.delta<=-1?'انخفض':'استقر')+' متوسط '+lab+(Math.abs(c.delta)>=1?' بمقدار '+r1(Math.abs(c.delta))+' نقطة مئوية':'')+' عن العام الماضي ('+r1(c.old.m)+'% ← '+r1(c.cur.m)+'%)، بحجم أثر '+r1(c.d)+' ('+dLab(c.d)+')';
+    if(c.delta>=1)return head+(ses||c.o?'، وتزامن ذلك مع تنفيذ '+act+' في المادة والمستوى نفسيهما؛ مما يرجّح إسهام هذه الحصص والبرامج في التحسن'+(c.d>=0.4?'، إذ تجاوز حجم الأثر عتبة الأثر التربوي المرغوب (0.40).':'.'):'، دون حصص إثرائية مسجلة في المادة؛ فيُعزى التحسن إلى التدريس الصفي أو طبيعة الدفعة.');
+    if(c.delta<=-1)return head+(ses?'، رغم تنفيذ '+act+'؛ والتوصية: مراجعة نوعية الحصص وتوجيهها نحو المهارات الأضعف في تحليل الأسئلة.':'، ولم تُسجَّل حصص إثرائية في المادة؛ والتوصية: تكثيف الحصص الإثرائية الجماعية والفردية للشعب الأدنى.');
+    return head+(ses?'، مع تنفيذ '+act+'.':'.')};
+  const rise=withD.filter(c=>c.delta>=1).sort((a,b)=>b.delta-a.delta),fall=withD.filter(c=>c.delta<=-1).sort((a,b)=>a.delta-b.delta);
+  const sesR=rise.filter(c=>c.g+c.i).length;
+  /* ---------- الصفحات ---------- */
+  const css='<style>.ah{font-size:11pt;color:#62102A;margin:8px 0 3px;border-bottom:1px solid #E6D8BE;padding-bottom:2px}.kp{width:100%;border-collapse:separate;border-spacing:5px 0;margin:4px 0 8px}.kp td{background:#FBF5E8;border:1px solid #E6D8BE;border-radius:8px;text-align:center;padding:6px 2px}.kp b{display:block;font-size:16pt;color:#62102A;line-height:1.2}.kp span{font-size:8.5pt;color:#4A3A40}.ok{background:#E6F4EA}.no{background:#FBE7E9}.cv{width:100%;border-collapse:collapse;font-size:8.2pt;line-height:1.35}.cv th{background:#62102A;color:#fff;padding:2px 3px;font-weight:600}.cv td{border:1px solid #E6D8BE;padding:1px 4px;white-space:nowrap}.cv td.w{white-space:normal}.cv .dh td{background:#F3EBDD;font-weight:700;color:#62102A}.meth{background:#F7F2EA;border-right:3px solid #B8903A;padding:6px 10px;font-size:9pt;line-height:1.8;text-align:justify;margin:6px 0}.nar p{margin:0 0 5px;text-align:justify;line-height:1.85}</style>';
+  const kp=a=>'<table class="kp"><tr>'+a.map(x=>'<td><b>'+x[1]+'</b><span>'+x[0]+'</span></td>').join('')+'</tr></table>';
+  const topD=dCov.slice().sort((a,b)=>(b.g+b.i)-(a.g+a.i))[0];
+  const desc=[
+    'تم تنفيذ '+G.length+' حصة إثرائية جماعية و'+I.length+' حصة إثرائية فردية استفادت منها '+stuI+' طالبة'+(tName?'.':'، ونفّذت الحصص '+done.length+' معلمة من أصل '+cov.length+' معلمة ومنسقة في المواد الأساسية، بنسبة التزام '+r1(covP)+'%.'),
+    !tName&&full.length?'وحققت أقسام '+full.join('، ')+' التزامًا كاملًا بنسبة 100%.':'',
+    !tName&&topD?'وجاء قسم '+topD.d+' في مقدمة الأقسام تنفيذًا بـ'+(topD.g+topD.i)+' حصة.':'',
+    hG.length?'وأكثر أساليب الحصص الجماعية: '+hG.slice(0,3).map(x=>x[0]+' ('+x[1]+')').join('، ')+'.':'',
+    hI.length?'وأكثر أساليب الدعم الفردي: '+hI.slice(0,3).map(x=>x[0]+' ('+x[1]+')').join('، ')+(when.length?'، ونُفّذ غالبًا خلال '+when.slice(0,2).map(x=>x[0]+' ('+x[1]+')').join(' و'):'')+'.':'',
+    !tName&&miss.length?'ولم تُسجَّل حصص لـ'+miss.length+' معلمة في المواد الأساسية (مبيّنات في صفحة التزام المعلمات).':'',
+    !tName&&nonCoreDone.length?'كما نفّذت '+nonCoreDone.length+' معلمة من المواد غير الأساسية حصصًا إثرائية بمبادرة منها، ولا تدخل في نسبة الالتزام.':''].filter(Boolean);
+  const p1='<section class="page"><div class="isheet"><div class="ttl"><h1>تحليل الحصص الإثرائية وأثرها على التحصيل'+(tName?' — '+esc(shortName(tName)):'')+'</h1></div>'+
+    kp([['حصة جماعية',G.length],['حصة فردية',I.length],['طالبة استفادت فرديًا',stuI]].concat(tName?[]:[['نسبة التزام المعلمات',r1(covP)+'%'],['معلمة منفذة',done.length+' / '+cov.length]]).concat([['إجراءات أكاديمية أخرى',O.length]]))+
+    '<h3 class="ah">أولًا: التحليل الوصفي</h3><div class="istate nar">'+desc.map(x=>'<p>'+esc(x)+'</p>').join('')+'</div>'+
+    (!tName?'<h3 class="ah">ثانيًا: نسبة التزام معلمات كل قسم بتنفيذ الحصص</h3>'+anBars(dCov.map(x=>({l:x.d+' ('+x.ok+'/'+x.n+')',v:Math.max(0.5,x.ok/x.n*100),lab:r1(x.ok/x.n*100)+'%'})),{c1:'#0A8F8B',lw:230})+
+      '</div></section><section class="page"><div class="isheet"><div class="ttl"><h1>توزيع الحصص على الأقسام والأشهر</h1></div><h3 class="ah">ثالثًا: عدد الحصص حسب القسم</h3>'+anLegend('جماعية','فردية')+anBars(dCov.map(x=>({l:x.d,v:x.g,v2:x.i})).sort((a,b)=>(b.v+b.v2)-(a.v+a.v2)),{lw:230}):'')+
+    '<h3 class="ah">'+(tName?'ثانيًا':'رابعًا')+': تطور التنفيذ حسب الشهر</h3>'+anLegend('جماعية','فردية')+anBars(mItems,{})+'</div></section>';
+  const p2='<section class="page"><div class="isheet"><div class="ttl"><h1>أساليب الحصص وتوقيتها</h1></div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><h3 class="ah">أساليب الحصص الجماعية</h3>'+anBars(hG.map(x=>({l:x[0],v:x[1]})),{lw:150})+'</div><div><h3 class="ah">أساليب الدعم الفردي</h3>'+anBars(hI.map(x=>({l:x[0],v:x[1]})),{lw:150,c1:'#B8903A'})+'</div></div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><h3 class="ah">الحصص الجماعية بدلًا عن</h3>'+anBars(ins.map(x=>({l:x[0],v:x[1]})),{lw:150})+'</div><div><h3 class="ah">توقيت الحصص الفردية</h3>'+anBars(when.map(x=>({l:x[0],v:x[1]})),{lw:150,c1:'#B8903A'})+'</div></div>'+
+    (Object.keys(unk).length&&!tName?'<p class="inote">أسماء وردت في النموذج ولم تُطابق قائمة المعلمات، فلم تُحتسب في نسبة الالتزام: '+esc(Object.entries(unk).map(([n,c])=>n+' ('+c+')').join('، '))+'.</p>':'')+
+    '</div></section>';
+  /* صفحة التزام كل معلمة: جدولان متجاوران مرتبان حسب القسم */
+  const covRows=[];dl.slice().sort((a,b)=>a.localeCompare(b,'ar')).forEach(d=>{const C=cov.filter(c=>c.dept===d).sort((a,b)=>b.co-a.co||b.n-a.n);covRows.push('<tr class="dh"><td colspan="4">'+esc(d)+' ('+C.filter(c=>c.n).length+'/'+C.length+')</td></tr>');C.forEach(c=>covRows.push('<tr class="'+(c.n?'ok':'no')+'"><td>'+esc(shortName(c.t.name))+(c.co?' (منسقة)':'')+'</td><td style="text-align:center">'+c.g+'</td><td style="text-align:center">'+c.i+'</td><td style="text-align:center">'+(c.n?'منفذة':'لم تُنفّذ')+'</td></tr>'))});
+  const half=Math.ceil(covRows.length/2);const covT=R=>'<table class="cv"><thead><tr><th>المعلمة</th><th>جماعية</th><th>فردية</th><th>الحالة</th></tr></thead><tbody>'+R.join('')+'</tbody></table>';
+  const p3=tName?'':'<section class="page"><div class="isheet"><div class="ttl"><h1>التزام معلمات المواد الأساسية بتنفيذ الحصص الإثرائية</h1></div>'+
+    '<p class="istate" style="text-align:justify">تشمل القائمة معلمات المواد الأساسية ومنسقاتها ('+cov.length+')، ولا تشمل الفنون البصرية والتربية البدنية وإدارة الأعمال والمهارات الحياتية والمهنية. ونسبة الالتزام '+r1(covP)+'% ('+done.length+' منفذة، و'+miss.length+' لم تُنفّذ).</p>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:start">'+covT(covRows.slice(0,half))+covT(covRows.slice(half))+'</div>'+
+    (noSec.length?'<p class="inote">لم تُحتسب لعدم وجود شعب لهن في توزيع المعلمات: '+esc(noSec.map(t=>shortName(t.name)).join('، '))+'.</p>':'')+'</div></section>';
+  /* صفحة الأثر على التحصيل */
+  const meth='<div class="meth"><b>منهجية القياس:</b> تُقارن متوسطات النسب المئوية في '+esc(tests[L]||'')+' بين العام الحالي'+(prevY?' والعام '+esc(yLabel(prevY)):' والعام الماضي')+' للمستوى والمادة نفسيهما، ويُحسب حجم الأثر بمعامل كوهين (d) = فرق المتوسطين ÷ الانحراف المعياري المجمّع؛ وتُعد القيمة 0.2 أثرًا صغيرًا، و0.5 متوسطًا، و0.8 كبيرًا، والقيمة 0.40 عتبة الأثر التربوي المرغوب وفق تصنيف هاتي (Hattie). وتُقارن نتائج الطالبات أنفسهن بنتائجهن في العام الماضي (مقارنة الدفعة) حيث يتوفر الرقم الشخصي. والعلاقة بين الحصص والنتائج علاقة ارتباط يُستأنس بها في التفسير، لا علاقة سببية قاطعة؛ إذ تتأثر النتائج بعوامل أخرى كالتدريس الصفي وطبيعة الدفعة.</div>';
+  const cmpT='<table class="cv" style="font-size:8.4pt"><thead><tr><th>المستوى</th><th>المادة</th><th>المتوسط الحالي</th><th>النجاح</th><th>العام الماضي</th><th>الفرق</th><th>حجم الأثر</th><th>الدفعة نفسها</th><th>جماعية</th><th>فردية</th><th>إجراءات أخرى</th></tr></thead><tbody>'+
+    cmp.map(c=>'<tr><td>'+LV[c.l]+'</td><td class="w">'+esc(c.name)+'</td><td style="text-align:center">'+r1(c.cur.m)+'%</td><td style="text-align:center">'+r1(c.cur.pass)+'%</td><td style="text-align:center">'+(c.old?r1(c.old.m)+'%':'—')+'</td><td style="text-align:center" class="'+(c.delta==null?'':c.delta>=1?'ok':c.delta<=-1?'no':'')+'">'+(c.delta==null?'—':sg(c.delta))+'</td><td style="text-align:center">'+(c.d==null?'—':r1(c.d))+'</td><td style="text-align:center">'+(c.coh?sg(c.coh.m):'—')+'</td><td style="text-align:center">'+c.g+'</td><td style="text-align:center">'+c.i+'</td><td style="text-align:center">'+c.o+'</td></tr>').join('')+'</tbody></table>';
+  const sum=[withD.length?'من بين '+withD.length+' مادة أمكنت مقارنتها بالعام الماضي، ارتفع المتوسط في '+rise.length+' مادة، وانخفض في '+fall.length+' مادة، واستقر في '+(withD.length-rise.length-fall.length)+'.'+(rise.length?' ونُفّذت حصص إثرائية في '+sesR+' من المواد التي ارتفعت نتائجها.':''):'لا تتوفر نتائج العام الماضي للفترة نفسها؛ لذا تُعرض المقارنة بالدفعة نفسها حيث تتوفر، وتكتمل المقارنة عند رفع نتائج العام الماضي للمستويات كلها.',
+    rr!=null?'وبلغ معامل الارتباط (بيرسون) بين عدد الحصص المنفذة في المادة ومقدار تغيّر متوسطها '+(Math.round(rr*100)/100)+'، وهو ارتباط '+(Math.abs(rr)<0.1?'منعدم تقريبًا':Math.abs(rr)<0.3?'ضعيف':Math.abs(rr)<0.5?'متوسط':'قوي')+' '+(rr>=0?'موجب':'سالب')+(rr>=0.3?'؛ أي أن المواد الأكثر حصصًا كانت الأكثر تحسنًا.':'.'):''].filter(Boolean);
+  const notes=rise.concat(fall).map(why).concat(cmp.filter(c=>c.delta==null&&c.coh&&Math.abs(c.coh.m)>=2).sort((a,b)=>b.coh.m-a.coh.m).map(why)).filter(Boolean).slice(0,16);
+  const p4=cmp.length?'<section class="page"><div class="isheet"><div class="ttl"><h1>أثر الحصص الإثرائية على التحصيل الأكاديمي</h1></div>'+meth+
+    '<h3 class="ah">أولًا: مقارنة نتائج كل مادة بالعام الماضي وما نُفّذ فيها</h3>'+cmpT+
+    '</div></section>'+
+    '<section class="page"><div class="isheet"><div class="ttl"><h1>قراءة الأثر وتفسيره</h1></div>'+(withD.length?'<h3 class="ah">ثانيًا: تغيّر متوسط كل مادة عن العام الماضي (نقطة مئوية)</h3>'+anDiv(withD.slice().sort((a,b)=>b.delta-a.delta).map(c=>({l:c.name+' — '+LV[c.l]+' ('+(c.g+c.i)+' حصة)',v:r1(c.delta),lab:sg(c.delta)})),{lw:250}):'')+'<h3 class="ah">'+(withD.length?'ثالثًا':'ثانيًا')+': التفسير</h3><div class="istate nar">'+sum.concat(notes).map(x=>'<p>'+esc(x)+'</p>').join('')+'</div>'+
+    (L>=1?'':'<p class="inote">يُضاف قياس القيمة المضافة لكل طالبة مستهدفة (بين التقرير الأول وآخر تقرير) بعد رصد '+esc(tests[1]||'التقرير الثاني')+'.</p>')+'</div></section>'
+    :'<section class="page"><div class="isheet"><div class="ttl"><h1>أثر الحصص الإثرائية على التحصيل الأكاديمي</h1></div><p class="istate">لم تُرفع درجات بعد؛ يُحسب الأثر بعد رفع ملف النتائج.</p></div></section>';
+  /* القيمة المضافة للمستهدفات لكل معلمة (بعد رصد التقرير الثاني) */
+  let p5='';if(L>=1){const rows=core.map(t=>{const c=cnt(t.name);const tg=D.targets.filter(x=>norm(x.row.teacher)===norm(t.name));const vals=tg.map(x=>{const p=progOf(x.row);return p?p.b-x.row.scores[0]:null}).filter(v=>v!=null);const met=tg.filter(x=>{const p=progOf(x.row);return p&&p.met}).length;
+      return{t,n:c.g+c.i,g:c.g,i:c.i,tg:tg.length,va:vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:null,met,mp:vals.length?met/vals.length*100:null}}).filter(r=>r.va!=null);
+    if(rows.length){const med=rows.map(r=>r.n).sort((a,b)=>a-b)[Math.floor(rows.length/2)];const hi=rows.filter(r=>r.n>med),lo=rows.filter(r=>r.n<=med);const avg=(A,k)=>A.length?A.reduce((s,r)=>s+r[k],0)/A.length:null;const vH=avg(hi,'va'),vL=avg(lo,'va');const mn=Math.min(0,...rows.map(z=>z.va));
+      p5='<section class="page"><div class="isheet"><div class="ttl"><h1>القيمة المضافة للطالبات المستهدفات</h1></div><p class="istate" style="text-align:justify">'+(vH!=null&&vL!=null?'بلغ متوسط القيمة المضافة للطالبات المستهدفات لدى المعلمات الأكثر تنفيذًا للحصص (أكثر من '+med+' حصة) '+sg(vH)+' درجة، مقابل '+sg(vL)+' لدى بقية المعلمات؛ '+(vH>vL?'وهذا يشير إلى ارتباط إيجابي بين كثافة الحصص وتحسن نتائج المستهدفات.':'ولم يظهر فرق لصالح كثافة الحصص، والتوصية: مراجعة نوعية الحصص وتوجيهها للمهارات الأضعف.'):'')+'</p>'+
+        anBars(rows.sort((a,b)=>b.va-a.va).slice(0,22).map(r=>({l:shortName(r.t.name)+' ('+r.n+' حصة)',v:Math.max(0.1,r.va-mn+0.5),lab:sg(r.va)})),{c1:'#0A8F8B',lw:210})+
+        '<p class="inote">القيمة المضافة = متوسط تغيّر درجات الطالبات المستهدفات للمعلمة بين '+esc(tests[0]||'')+' و'+esc(tests[L]||'')+'.</p></div></section>'}}
+  return css+p1+p2+p3+p4+p5}
 /* سجل الحصص: جدول بكل البيانات لكل معلمة، ثم الكشوف المعبأة */
 function sessLog(kind,tName,withSheets){const src=kind==='g'?'group':'indivf';const A=S.actions.filter(a=>a.src===src&&(!tName||norm(a.teacher)===norm(tName))).sort((x,y)=>norm(x.teacher).localeCompare(norm(y.teacher),'ar')||String(x.date).localeCompare(String(y.date)));
   if(!A.length)return null;const L=orderedStaff();const metaOf=a=>{const m=L.find(x=>norm(x.t.name)===norm(a.teacher));return m||{}};const by={};A.forEach(a=>(by[a.teacher]=by[a.teacher]||[]).push(a));
