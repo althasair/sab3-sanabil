@@ -928,7 +928,10 @@ async function rfLoad(){if(!CLD.db||RF.busy)return;RF.busy=true;try{
   catch(e){console.warn(e);RF.docs=RF.docs||[];toast('تعذّر تحميل القراءات: '+(e.message||e))}RF.busy=false;render()}
 function rfStaff(){let st=((S.staff&&S.staff.length?S.staff:(typeof sanStaff==='function'&&sanStaff())||[])).filter(t=>t&&t.name);(RF.docs||[]).forEach(d=>{if(d.name&&d.per===rfPer()&&!st.some(t=>rfMatch(d.name,t.name)))st.push({name:d.name,dept:d.dept||'أخرى',role:d.role==='coord'?'منسقة':'',sections:d.role==='coord'?[]:['-']})});if(!CLD.admin)st=st.filter(t=>CLD.dept.includes(nkA(t.dept)));return st}
 function rfPer(){return UI.per!=null?UI.per:0}
-function rfNA(t){const L=(t.sections||[]).map(sc=>{const m=String(secKey(sc)||sc).match(/(\d{2})\s*[-–\/]/)||String(sc).match(/^\s*(\d{2})/);return m?m[1]:''}).filter(Boolean);return L.length>0&&L.every(x=>x==='12')}
+function rfNA(t){const secs=(t.sections||[]).map(sc=>secKey(sc)).filter(Boolean);if(!secs.length)return false;const B=(S.cur||{})[rfPer()];
+  if(B&&Object.keys(B).length){if(!rfNA.c||rfNA.c.B!==B){const m={};Object.values(B).forEach(o=>{if(!o||!o.s)return;const k=secKey(o.s)||o.s;Object.keys(o.g||{}).forEach(sb=>{if(typeof o.g[sb]==='number')(m[k]=m[k]||new Set()).add(sb)})});rfNA.c={B,m}}
+    const m=rfNA.c.m;return !secs.some(k=>{const st=m[k];if(!st)return false;const sb=typeof subjFor==='function'?subjFor(t,k):'';return !sb||st.has(sb)})}
+  return secs.every(k=>k.startsWith('12-'))}
 function rfDocOf(t,role){return (RF.docs||[]).filter(d=>d.per===rfPer()&&(role?d.role===role:d.role==='teacher')&&rfMatch(d.name||'',t.name)).sort((a,b)=>String(b.at).localeCompare(String(a.at)))[0]||null}
 function rfMsg(kind,t,role){const co=role==='coord';const per=PERIODS[rfPer()]||'';const first=String(t.name).split(' ')[0];const me=CLD.admin?'آسيا الذبياني':(CLD.nm||'');
   const subj=kind==='t'?'شكر وتقدير — قراءة نتائج '+per:'تذكير — قراءة نتائج '+per;
@@ -939,7 +942,7 @@ function vRFollow(){if(RF.docs==null){rfLoad();return head('متابعة قرا�
   const st=rfStaff();const by={};st.forEach(t=>{const d=t.dept||'أخرى';(by[d]=by[d]||[]).push(t)});
   const isCo=t=>/منسق/.test(t.role||'');let tot=0,done=0,cT=0,cD=0,na=0;
   const boxes=Object.keys(by).sort((a,b)=>a.localeCompare(b,'ar')).map(d=>{const L=by[d];const co=L.filter(isCo),te=L.filter(t=>!isCo(t)&&(t.sections||[]).length);
-    const row=(t,role)=>{if(role!=='coord'&&rfNA(t)){na++;return '<div class="rfr na"><span class="rfs na">—</span><span class="rfn" title="'+esc(t.name)+'">'+esc(shortName(t.name))+' <small>(تدرّس الثاني عشر فقط)</small></span><span class="rfb"><span class="rfna">لا ينطبق</span></span></div>'}const doc=rfDocOf(t,role);const ok=!!doc;if(role==='coord'){cT++;if(ok)cD++}else{tot++;if(ok)done++}
+    const row=(t,role)=>{if(role!=='coord'&&rfNA(t)){na++;return '<div class="rfr na"><span class="rfs na">—</span><span class="rfn" title="'+esc(t.name)+'">'+esc(shortName(t.name))+' <small>(لا توجد نتائج لشعبها في هذه الفترة)</small></span><span class="rfb"><span class="rfna">لا ينطبق</span></span></div>'}const doc=rfDocOf(t,role);const ok=!!doc;if(role==='coord'){cT++;if(ok)cD++}else{tot++;if(ok)done++}
       const fbn=doc?RF.fbs.filter(f=>f.to===doc.uid&&f.per===rfPer()).length:0;
       return '<div class="rfr'+(role==='coord'?' co':'')+'"><span class="rfs '+(ok?'ok':'no')+'">'+(ok?'✓':'✗')+'</span><button class="rfn" data-rfopen="'+esc(doc?doc._id:'')+'" '+(ok?'':'disabled')+' title="'+esc(t.name)+'">'+esc(shortName(t.name))+(role==='coord'?' <small>(المنسقة · قراءة القسم)</small>'+(rfNA(t)?' <span class="rfna" title="شعبها في الثاني عشر فقط؛ أما تحليل القسم فينطبق عليها">شعبها: لا ينطبق</span>':''):'')+(fbn?' <small class="rfc">· علّقت المنسقة</small>':'')+'</button><span class="rfb"><button class="rfbt g" data-rfmsg="t" data-rfn="'+esc(t.name)+'"'+(ok?'':' disabled')+'>شكر</button><button class="rfbt r" data-rfmsg="r" data-rfrole="'+role+'" data-rfn="'+esc(t.name)+'"'+(ok?' disabled':'')+'>تذكير</button></span></div>'};
     const rows=co.map(t=>row(t,'coord')).join('')+te.map(t=>row(t,'teacher')).join('');const te2=te.filter(t=>!rfNA(t)),n=te2.length,k=te2.filter(t=>rfDocOf(t)).length;
