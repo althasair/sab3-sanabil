@@ -1625,7 +1625,7 @@ async function onUser(u){
   const email=String(u.email||'').toLowerCase();
   let cl={};try{cl=(await u.getIdTokenResult()).claims||{}}catch(e){console.warn(e)}
   if(ADMIN_EMAILS.includes(email)||cl.role==='admin'){AUTH.role='admin';AUTH.prof={role:'admin',name:cl.nm||'آسيا الذبياني'};await adminLoad();return}
-  if(cl.role==='viewer'){AUTH.role='viewer';AUTH.prof={role:'viewer',name:cl.nm||'التوجيه'};await viewerLoad();return}
+  if(cl.role==='viewer'){AUTH.role='viewer';const dps=Array.isArray(cl.dept)?cl.dept:[];AUTH.prof={role:'viewer',name:cl.nm||'التوجيه',nk:cl.nk||'',depts:dps,dept:dps.join('، '),all:!dps.length||dps.some(d=>norm(d).includes('جميع'))};if(AUTH.prof.all)await viewerLoad();else await scopedLoad();return}
   if(cl.role!=='teacher'&&cl.role!=='coord'){AUTH.role='guest';AUTH.err='هذا الحساب غير مفعّل في المنصة. ادخلي برقمك السري في الميزان.';S=blankState();D=derive(S);render();return}
   AUTH.role=cl.role;AUTH.prof={role:cl.role,name:cl.nm||'',nk:cl.nk||'',depts:Array.isArray(cl.dept)?cl.dept:[],dept:(cl.dept||[]).join('، ')};await scopedLoad();
 }
@@ -1700,15 +1700,15 @@ function pubStats(){const T=D.targets;const got=T.reduce((x,t)=>x+t.core,0);retu
 async function scopedLoad(){
   const P=AUTH.prof;const st=blankState();
   try{const c=await CLOUD.db.collection('shared').doc('cfg').get();if(c.exists){const cd=c.data();st.settings=Object.assign({},DEFAULT_SETTINGS,cd.settings||{});const all=cd.staff||[];
-      st.staff=AUTH.role==='coord'?all.filter(t=>P.depts.includes(norm(t.dept))):all.filter(t=>norm(t.name)===P.nk)}}catch(e){console.warn(e)}
-  P.keys=[...new Set(st.staff.flatMap(staffKeys))];if(AUTH.role==='teacher'&&st.staff[0])P.name=st.staff[0].name;if(AUTH.role==='coord'&&st.staff[0])P.dept=[...new Set(st.staff.map(t=>t.dept))].join('، ');
-  if(!st.staff.length)AUTH.err=AUTH.role==='coord'?'لم يُعثر على معلمات قسمك في توزيع المعلمات بسبع سنابل. تواصلي مع النائب الأكاديمي.':'لم يُعثر على اسمك في توزيع المعلمات بسبع سنابل. تواصلي مع النائب الأكاديمي.';else AUTH.err='';
+      st.staff=(AUTH.role==='coord'||AUTH.role==='viewer')?all.filter(t=>P.depts.includes(norm(t.dept))):all.filter(t=>norm(t.name)===P.nk)}}catch(e){console.warn(e)}
+  P.keys=[...new Set(st.staff.flatMap(staffKeys))];if(AUTH.role==='teacher'&&st.staff[0])P.name=st.staff[0].name;if((AUTH.role==='coord'||AUTH.role==='viewer')&&st.staff[0])P.dept=[...new Set(st.staff.map(t=>t.dept))].join('، ');
+  if(!st.staff.length)AUTH.err=(AUTH.role==='coord'||AUTH.role==='viewer')?'لم يُعثر على معلمات قسمك في توزيع المعلمات بسبع سنابل. تواصلي مع النائب الأكاديمي.':'لم يُعثر على اسمك في توزيع المعلمات بسبع سنابل. تواصلي مع النائب الأكاديمي.';else AUTH.err='';
   const keys=P.keys;const docs=await Promise.all(keys.map(k=>CLOUD.db.collection('sec').doc(k).get().catch(()=>null)));
   const enr=new Map();const seen=new Set();
   docs.forEach(d=>{if(!d||!d.exists)return;const x=d.data();(x.roster||[]).forEach(r=>st.roster.push(r));(x.enroll||[]).forEach(e=>enr.set(norm(e.name)+'|'+e.section,e));(x.actions||[]).forEach(a=>{const k=a.eid||JSON.stringify([a.date,a.teacher,a.section,a.subject,a.type,a.students,a.detail]);if(!seen.has(k)){seen.add(k);st.actions.push(a)}})});
   st.enroll=[...enr.values()];
   S=normState(st);S.staffV2=1;const base=S.actions.slice();D=derive(S);UI.tab=tabOK(UI.tab)?UI.tab:'home';render();
-  const qs=AUTH.role==='coord'?(P.depts.length?P.depts:['-']).map(d=>CLOUD.db.collection('entries').where('dept','==',d)):[CLOUD.db.collection('entries').where('uid','==',AUTH.user.uid)];
+  const qs=(AUTH.role==='coord'||AUTH.role==='viewer')?(P.depts.length?P.depts:['-']).map(d=>CLOUD.db.collection('entries').where('dept','==',d)):[CLOUD.db.collection('entries').where('uid','==',AUTH.user.uid)];
   const parts=qs.map(()=>new Map());const onS=()=>{CLOUD.entries=new Map();parts.forEach(m=>m.forEach((v,k)=>CLOUD.entries.set(k,v)));const ids=new Set(CLOUD.entries.keys());S.actions=base.filter(a=>!a.eid||!ids.has(a.eid));CLOUD.entries.forEach((e,id)=>S.actions.push(entryToAct(id,e)));D=derive(S);render()};
   const uns=qs.map((q,i)=>q.onSnapshot(s=>{parts[i]=new Map();s.forEach(d=>parts[i].set(d.id,d.data()));onS()},e=>{console.warn(e);toast('تعذّر قراءة الإجراءات من قاعدة البيانات',5000)}));CLOUD.unsub=()=>uns.forEach(f=>f());
 }
