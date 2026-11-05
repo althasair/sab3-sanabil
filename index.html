@@ -1256,9 +1256,12 @@ async function syncMizan(){
 function readSheet(file){return new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>{try{const wb=XLSX.read(new Uint8Array(fr.result),{type:'array',cellDates:true});const book={};wb.SheetNames.forEach(n=>{const ws=wb.Sheets[n];let R=0,C=0,any=false;for(const k in ws){if(k[0]==='!')continue;const a=XLSX.utils.decode_cell(k);any=true;if(a.r>R)R=a.r;if(a.c>C)C=a.c}if(any)ws['!ref']=XLSX.utils.encode_range({s:{r:0,c:0},e:{r:R,c:C}});book[n]=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:false,dateNF:'yyyy-mm-dd'})});const first=book[wb.SheetNames[0]];first.book=book;res(first)}catch(e){rej(e)}};fr.onerror=rej;fr.readAsArrayBuffer(file)})}
 const splitList=v=>String(v||'').split(/[;؛\n]+/).map(s=>s.trim()).filter(Boolean);
 function findCol(h,inc,exc){return h.findIndex(x=>has(x,inc)&&!(exc&&has(x,exc)))}
-function resHdr(rows){const top=rows.slice(0,8);let i=top.findIndex(r=>r.filter(x=>/منتصف|نهاي/.test(String(x))).length>=4);if(i>=0)return i;
+function resHdr(rows){const top=rows.slice(0,15);const nmRow=j=>[rows[j],rows[j+1]].some(r=>(r||[]).some(x=>/^الاس+م$/.test(norm(String(x||'')).replace(/ـ/g,''))));
+  let i=top.findIndex(r=>r.filter(x=>/منتصف|نهاي/.test(String(x))).length>=4);if(i>=0)return i;
+  /* ملف مادة واحدة (مثل اللغة العربية وحدها): عمود أو عمودان فقط للفترة */
+  i=top.findIndex((r,j)=>r.some(x=>/منتصف|نهاي/.test(String(x)))&&nmRow(j));if(i>=0)return i;
   /* كشف درجات الشعبة: الفترة مكتوبة فوق الجدول، ورأس الأعمدة «التقييم الرئيسي» */
-  i=top.findIndex(r=>r.filter(x=>String(x).trim()==='التقييم الرئيسي').length>=3);if(i>=0&&/منتصف|نهاي/.test(norm(top.slice(0,i).map(r=>r.join(' ')).join(' '))))return i;return -1}
+  i=top.findIndex((r,j)=>{const c=r.filter(x=>String(x).trim()==='التقييم الرئيسي').length;return c>=3||(c>=1&&nmRow(j))});if(i>=0&&/منتصف|نهاي/.test(norm(top.slice(0,i).map(r=>r.join(' ')).join(' '))))return i;return -1}
 function isResultsBook(book){return !!book&&Object.values(book).some(sh=>resHdr(sh)>=0)}
 function subjDK(x){return norm(x).replace(/ـ/g,'').replace(/^ال/,'').replace(/\s+/g,'')}
 function importResults(book){
@@ -1275,8 +1278,10 @@ function importResults(book){
     if(cN<0)return;
     const tn=norm(sn);const trk=tn.includes('علمي')?'علمي':tn.includes('ادبي')?'أدبي':tn.includes('تكنو')?'تكنولوجي':'';
     let lastSub='';const cols=[];
-    H.forEach((h,i)=>{if(U[i])lastSub=U[i];const nh=MAIN?(h==='التقييم الرئيسي'?perTxt:''):norm(h);if(!/منتصف|نهاي/.test(nh)||/تحويل|مجموع|نسبه|القيمه/.test(nh))return;
-      const sem=/فصل\s*2|الثاني/.test(nh)?2:/فصل\s*3|الثالث/.test(nh)?2:0;const rep=sem+(nh.includes('نهاي')?1:0);const sub=(U[i]||lastSub).trim();if(!sub)return;const key=subjKey(sub);if(SKIP.has(key))return;
+    /* ملف مادة واحدة: اسم المادة من العنوان فوق الجدول أو من اسم الورقة */
+    const ttl=rows.slice(0,hi).map(r=>r.join(' ')).join(' ')+' '+sn;const SUBN={ar:'اللغة العربية',en:'اللغة الإنجليزية',isl:'التربية الإسلامية',math:'الرياضيات',soc:'الدراسات الاجتماعية',geo:'الجغرافيا',hist:'التاريخ',comp:'الحوسبة وتكنولوجيا المعلومات',chem:'الكيمياء',phy:'الفيزياء',bio:'الأحياء',sci:'العلوم',bus:'إدارة الأعمال'};const tk=[...subjKeys(ttl)].find(k=>SUBN[k]);const subTitle=tk?SUBN[tk]:'';
+    H.forEach((h,i)=>{if(U[i]&&!/منتصف|نهاي|درجه|من\s*\d/.test(norm(U[i])))lastSub=U[i];const nh=MAIN?(h==='التقييم الرئيسي'?perTxt:''):norm(h);if(!/منتصف|نهاي/.test(nh)||/تحويل|مجموع|نسبه|القيمه/.test(nh))return;
+      const sem=/فصل\s*2|الثاني/.test(nh)?2:/فصل\s*3|الثالث/.test(nh)?2:0;const rep=sem+(nh.includes('نهاي')?1:0);const sub=(U[i]&&!/منتصف|نهاي|درجه|من\s*\d/.test(norm(U[i]))?U[i]:lastSub||subTitle).trim();if(!sub)return;const key=subjKey(sub);if(SKIP.has(key))return;
       cols.push({i,rep,sub,key,den:nh.includes('منتصف')?30:50});semSeen.add(rep)});
     if(!cols.length)return;
     // verify denominators against data
