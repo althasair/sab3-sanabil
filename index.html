@@ -564,7 +564,7 @@ function level(r){if(r>=1)return{c:'gold',t:'حقل مكتمل'};if(r>=.8)return
 
 /* ---------- state ---------- */
 let BOOT_ERR=null,RAW_STORE=null;try{RAW_STORE=localStorage.getItem(STORE)}catch(e){}
-let S=load();try{if(S&&typeof S!=='object')S=null;if(S){S.roster=Array.isArray(S.roster)?S.roster.filter(r=>r&&r.name):null;S.actions=Array.isArray(S.actions)?S.actions.filter(Boolean):[];S.charters=Array.isArray(S.charters)?S.charters.filter(c=>c&&Array.isArray(c.items)):[];if(S.roster)S.roster.forEach(r=>{if(!Array.isArray(r.scores))r.scores=[];while(r.scores.length<4)r.scores.push(null);r.section=String(r.section||'');r.subject=String(r.subject||'');r.teacher=String(r.teacher||'')});if(S.staff&&!Array.isArray(S.staff))S.staff=null;if(S.settings&&!Array.isArray(S.settings.tests))delete S.settings.tests}}catch(e){BOOT_ERR=e;S=null}
+let S=load();try{if(S&&typeof S!=='object')S=null;if(S){S.roster=Array.isArray(S.roster)?S.roster.filter(r=>r&&r.name&&!/^[\d.\s]+$/.test(String(r.subject||''))):null;S.actions=Array.isArray(S.actions)?S.actions.filter(Boolean):[];S.charters=Array.isArray(S.charters)?S.charters.filter(c=>c&&Array.isArray(c.items)):[];if(S.roster)S.roster.forEach(r=>{if(!Array.isArray(r.scores))r.scores=[];while(r.scores.length<4)r.scores.push(null);r.section=String(r.section||'');r.subject=String(r.subject||'');r.teacher=String(r.teacher||'')});if(S.staff&&!Array.isArray(S.staff))S.staff=null;if(S.settings&&!Array.isArray(S.settings.tests))delete S.settings.tests}}catch(e){BOOT_ERR=e;S=null}
 if(!S||!S.roster)S=makeDemo();if(!S.staff||!S.staff.length||(S.staff.length===60&&!S.staff.some(t=>t.email)&&!S.staffV2))S.staff=DEFAULT_STAFF.map(t=>Object.assign({email:'',phone:''},t));S.staffV2=1;S.settings=Object.assign({},DEFAULT_SETTINGS,S.settings||{});if(!S.settings.thr70){S.settings.threshold=70;S.settings.thr70=1}if(!S.settings.va4){S.settings.minStep=4;S.settings.va4=1}if(S.settings.tests[0]==='الاختبار الأول')S.settings.tests=DEFAULT_SETTINGS.tests.slice();if(S.demo&&S.roster.length&&(S.roster[0].nat===undefined||!S.realT||S.demoV!==2)){const keep={vp:S.settings.vp,staff:S.staff,contacts:S.contacts};S=makeDemo();S.settings.vp=keep.vp;S.staff=keep.staff;S.contacts=keep.contacts;}
 let D;try{D=derive(S)}catch(e){BOOT_ERR=e;const vp=S.settings&&S.settings.vp;S=makeDemo();if(vp)S.settings.vp=vp;D=derive(S)}
 const UI={tab:'home',fSec:'',fSub:'',q:'',fKey:0,impA:0,impB:null};
@@ -1309,7 +1309,7 @@ function importResults(book){
   const SKIP=new Set(['pe','art']);const byK=new Map();const barred=new Map();let semSeen=new Set(),tracks={};const yrSeen=new Set();
   Object.entries(book).forEach(([sn,rows])=>{
     const hi=resHdr(rows);if(hi<0)return;
-    const H=rows[hi].map(x=>String(x||'').trim()),U=(rows[hi+1]||[]).map(x=>String(x||'').trim());
+    const H=rows[hi].map(x=>String(x||'').trim());const flat=H.some(x=>/^الاس+م$/.test(norm(x).replace(/ـ/g,'')));const U=flat?[]:(rows[hi+1]||[]).map(x=>String(x||'').trim());const d0=flat?hi+1:hi+2;
     const MAIN=H.includes('التقييم الرئيسي'),perTxt=norm(rows.slice(0,hi).map(r=>r.join(' ')).join(' '));
     const lab=i=>norm((H[i]||'')+' '+(U[i]||'')).replace(/ـ/g,'');
     const yrM=/(20\d\d)\s*[-–\/]\s*(20\d\d)/.exec(rows.slice(0,hi).map(r=>r.join(' ')).join(' '));if(yrM)yrSeen.add(yrM[1]+'-'+yrM[2]);
@@ -1320,14 +1320,14 @@ function importResults(book){
     const tn=norm(sn);const trk=tn.includes('علمي')?'علمي':tn.includes('ادبي')?'أدبي':tn.includes('تكنو')?'تكنولوجي':'';
     let lastSub='';const cols=[];
     /* ملف مادة واحدة: اسم المادة من العنوان فوق الجدول أو من اسم الورقة */
-    const ttl=rows.slice(0,hi).map(r=>r.join(' ')).join(' ')+' '+sn;const SUBN={ar:'اللغة العربية',en:'اللغة الإنجليزية',isl:'التربية الإسلامية',math:'الرياضيات',soc:'الدراسات الاجتماعية',geo:'الجغرافيا',hist:'التاريخ',comp:'الحوسبة وتكنولوجيا المعلومات',chem:'الكيمياء',phy:'الفيزياء',bio:'الأحياء',sci:'العلوم',bus:'إدارة الأعمال'};const tk=[...subjKeys(ttl)].find(k=>SUBN[k]);const subTitle=tk?SUBN[tk]:'';
+    const ttl=rows.slice(0,hi).map(r=>r.join(' ')).join(' ')+' '+sn;const SUBN={ar:'اللغة العربية',en:'اللغة الإنجليزية',isl:'التربية الإسلامية',math:'الرياضيات',soc:'الدراسات الاجتماعية',geo:'الجغرافيا',hist:'التاريخ',comp:'الحوسبة وتكنولوجيا المعلومات',chem:'الكيمياء',phy:'الفيزياء',bio:'الأحياء',sci:'العلوم',bus:'إدارة الأعمال'};const mSub=/الماده\s*:\s*([^-–\n]+)/.exec(norm(ttl));const tk=[...subjKeys(mSub?mSub[1]:ttl)].find(k=>SUBN[k]);const subTitle=tk?SUBN[tk]:(mSub?mSub[1].trim():'');
     H.forEach((h,i)=>{if(U[i]&&!/منتصف|نهاي|درجه|من\s*\d/.test(norm(U[i])))lastSub=U[i];const nh=MAIN?(h==='التقييم الرئيسي'?perTxt:''):norm(h);if(!/منتصف|نهاي/.test(nh)||/تحويل|مجموع|نسبه|القيمه/.test(nh))return;
-      const sem=/فصل\s*2|الثاني/.test(nh)?2:/فصل\s*3|الثالث/.test(nh)?2:0;const rep=sem+(nh.includes('نهاي')?1:0);const sub=(U[i]&&!/منتصف|نهاي|درجه|من\s*\d/.test(norm(U[i]))?U[i]:lastSub||subTitle).trim();if(!sub)return;const key=subjKey(sub);if(SKIP.has(key))return;
+      const sem=/فصل\s*2|الثاني/.test(nh)?2:/فصل\s*3|الثالث/.test(nh)?2:0;const rep=sem+(nh.includes('نهاي')?1:0);const sub=(U[i]&&!/منتصف|نهاي|درجه|من\s*\d|^[\d.\s]+$/.test(norm(U[i]))?U[i]:lastSub||subTitle).trim();if(!sub)return;const key=subjKey(sub);if(SKIP.has(key))return;
       cols.push({i,rep,sub,key,den:nh.includes('منتصف')?30:50});semSeen.add(rep)});
     if(!cols.length)return;
     // verify denominators against data
-    cols.forEach(c=>{let mx=0;rows.slice(hi+2).forEach(r=>{const sec=r.slice(0,10).find(x=>/^1[0-2]\s*[\/\-]\s*\d+$/.test(String(x).trim()));if(!sec)return;const v=parseFloat(r[c.i]);if(!isNaN(v)&&v>mx)mx=v});if(mx>c.den)c.den=mx<=50?50:100});
-    rows.slice(hi+2).forEach(r=>{const name=String(r[cN]||'').trim();const secRaw=r.slice(0,10).find(x=>/^1[0-2]\s*[\/\-]\s*\d+$/.test(String(x).trim()));if(!name||!secRaw)return;
+    cols.forEach(c=>{let mx=0;rows.slice(d0).forEach(r=>{const sec=r.slice(0,10).find(x=>/^1[0-2]\s*[\/\-]\s*\d+$/.test(String(x).trim()));if(!sec)return;const v=parseFloat(r[c.i]);if(!isNaN(v)&&v>mx)mx=v});if(mx>c.den)c.den=mx<=50?50:100});
+    rows.slice(d0).forEach(r=>{const name=String(r[cN]||'').trim();const secRaw=r.slice(0,10).find(x=>/^1[0-2]\s*[\/\-]\s*\d+$/.test(String(x).trim()));if(!name||!secRaw)return;
       const sec=secKey(secRaw);const g=sec.split('-')[0];const tr=g==='10'?'عام':trk;if(tr&&g!=='10')tracks[sec]=tr;
       cols.forEach(c=>{if(/محروم/.test(String(r[c.i])))barred.set(norm(name)+'|'+sec,name+' ('+sec+')');const v=parseFloat(String(r[c.i]).replace(',','.'));if(isNaN(v))return;const k=norm(name)+'|'+sec+'|'+subjDK(c.sub);
         let o=byK.get(k);if(!o){o={name,section:sec,subject:c.sub.replace(/ه$/,'ة'),teacher:'',grade:'',track:tr,idh:cID!=null&&String(r[cID]||'').trim()?hashStr(String(r[cID]).trim()):'',nat:cNat!=null?String(r[cNat]||'').trim():'',scores:[null,null,null,null],raw:[null,null,null,null],den:[null,null,null,null]};byK.set(k,o)}
@@ -1928,7 +1928,7 @@ async function viewerLoad(){
   D=derive(S);UI.tab=tabOK(UI.tab)?UI.tab:'home';render();loadBoard();
   CLOUD.unsub=CLOUD.db.collection('entries').onSnapshot(q=>{CLOUD.entries=new Map();q.forEach(d=>CLOUD.entries.set(d.id,d.data()));mergeEntries();D=derive(S);render()},e=>console.warn(e));
 }
-function normState(x){x.roster=Array.isArray(x.roster)?x.roster:[];x.actions=Array.isArray(x.actions)?x.actions:[];x.charters=Array.isArray(x.charters)?x.charters:[];x.settings=Object.assign({},DEFAULT_SETTINGS,x.settings||{});if(!Array.isArray(x.staff)||!x.staff.length)x.staff=DEFAULT_STAFF.map(t=>Object.assign({email:'',phone:''},t));x.roster.forEach(r=>{if(!Array.isArray(r.scores))r.scores=[];while(r.scores.length<4)r.scores.push(null)});return x}
+function normState(x){x.roster=Array.isArray(x.roster)?x.roster.filter(r=>r&&!/^[\d.\s]+$/.test(String(r.subject||''))):[];x.actions=Array.isArray(x.actions)?x.actions:[];x.charters=Array.isArray(x.charters)?x.charters:[];x.settings=Object.assign({},DEFAULT_SETTINGS,x.settings||{});if(!Array.isArray(x.staff)||!x.staff.length)x.staff=DEFAULT_STAFF.map(t=>Object.assign({email:'',phone:''},t));x.roster.forEach(r=>{if(!Array.isArray(r.scores))r.scores=[];while(r.scores.length<4)r.scores.push(null)});return x}
 function entryToAct(id,e){return{date:e.date||'',teacher:e.teacher||'',section:e.section||'',subject:e.subject||'',students:Array.isArray(e.students)?e.students:[],whole:!!e.whole,absent:Array.isArray(e.absent)?e.absent:[],type:+e.type||3,detail:e.detail||'',evidence:e.evid?'صورة':'',evid:e.evid||'',pending:APPROVE_TYPES.includes(+e.type)&&e.ok!==true,ok:e.ok===true,back:e.back||'',okBy:e.okBy||'',src:'teacher',eid:id,uid:e.uid||'',by:e.byName||''}}
 function mergeEntries(){const keep=S.actions.filter(a=>!a.eid);CLOUD.entries.forEach((e,id)=>keep.push(entryToAct(id,e)));S.actions=keep}
 

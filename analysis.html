@@ -435,6 +435,8 @@ function periodOf(txt){const n=norm(txt);return (/الفصل (الدراسي )?�
 function blank(){return{reg:{},cur:{},last:{},staff:null,coord:{},readings:{},files:{}}}
 let S=blank();
 try{const x=JSON.parse(localStorage.getItem(KEY)||'null');if(x&&typeof x==='object')S=Object.assign(blank(),x)}catch(e){}
+/* تنظيف: درجات حُفظت سابقًا تحت «مادة» رقمية بسبب كشف المادة الواحدة */
+try{Object.values(S.cur||{}).forEach(b=>Object.values(b).forEach(o=>{Object.keys(o.g||{}).forEach(k=>{if(/^[\d.\s]+$/.test(k))delete o.g[k]})}))}catch(e){}
 function save(){if(typeof CLD!=='undefined'&&CLD.ro)return;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){toast('تعذّر الحفظ في المتصفح')}if(typeof anaPushSoon==='function')anaPushSoon()}
 function sanStaff(){try{const x=JSON.parse(localStorage.getItem(SAN)||'null');if(x&&Array.isArray(x.staff)&&x.staff.length&&x.staff.some(t=>t.sections&&t.sections.length))return x.staff}catch(e){}return null}
 const UI={tab:'overview',per:null,lvl:'',sec:'',sub:'',nat:'',cat:'',pf:'',sort:'tot'};
@@ -454,9 +456,11 @@ function kindOf(b){const sh=Object.values(b);const top=(r,n)=>r.slice(0,n);
 function importCur(b){let n=0,per=null,lv=new Set();
   Object.values(b).forEach(rows=>{const hi=rows.slice(0,8).findIndex(r=>r.some(c=>cell(c)==='التقييم الرئيسي'));if(hi<0)return;
     const top=rows.slice(0,hi).map(r=>r.join(' ')).join(' ');const p=periodOf(top);per=p;
-    const H=rows[hi],U=rows[hi+1]||[];const cols=[];H.forEach((c,j)=>{if(cell(c)==='التقييم الرئيسي'&&cell(U[j]))cols.push({j,s:canon(U[j])})});
+    /* صيغتان: رأس من سطرين (المادة تحت «التقييم الرئيسي») أو كشف مادة واحدة رأسه سطر واحد والمادة في العنوان «المادة: …» */
+    const H=rows[hi];const flat=H.some(c=>norm(c)==='الاسم');const U=flat?[]:(rows[hi+1]||[]);const tSub=((/الماده\s*:\s*([^-–\n]+)/.exec(norm(top))||[])[1]||'').trim();const cols=[];
+    H.forEach((c,j)=>{if(cell(c)!=='التقييم الرئيسي')return;const s=flat?canon(tSub):canon(U[j]);if(s&&!/^[\d.]+$/.test(s))cols.push({j,s})});
     let cP=0,cN=1,cS=2;for(let j=0;j<6;j++){if(norm(U[j])==='الرقم'||norm(H[j])==='الرقم')cP=j;if(norm(U[j])==='الاسم'||norm(H[j])==='الاسم')cN=j;if(/الشعبه/.test(norm(H[j])))cS=j}
-    const data=rows.slice(hi+2).filter(r=>secKey(r[cS]));
+    const data=rows.slice(flat?hi+1:hi+2).filter(r=>secKey(r[cS]));
     let den=DEN[p];cols.forEach(c=>{data.forEach(r=>{const v=parseFloat(r[c.j]);if(!isNaN(v)&&v>den)den=v<=50?50:100})});
     const bucket=S.cur[p]=S.cur[p]||{};
     data.forEach(r=>{const pid=cell(r[cP]),sec=secKey(r[cS]);if(!pid)return;lv.add(lvlOf(sec));
