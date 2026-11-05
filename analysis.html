@@ -930,10 +930,10 @@ function rfStaff(){let st=((S.staff&&S.staff.length?S.staff:(typeof sanStaff==='
 function rfPer(){return UI.per!=null?UI.per:0}
 function rfNA(t){const L=(t.sections||[]).map(sc=>{const m=String(secKey(sc)||sc).match(/(\d{2})\s*[-–\/]/)||String(sc).match(/^\s*(\d{2})/);return m?m[1]:''}).filter(Boolean);return L.length>0&&L.every(x=>x==='12')}
 function rfDocOf(t,role){return (RF.docs||[]).filter(d=>d.per===rfPer()&&(role?d.role===role:d.role==='teacher')&&rfMatch(d.name||'',t.name)).sort((a,b)=>String(b.at).localeCompare(String(a.at)))[0]||null}
-function rfMsg(kind,t){const per=PERIODS[rfPer()]||'';const first=String(t.name).split(' ')[0];const me=CLD.admin?'آسيا الذبياني':(CLD.nm||'');
+function rfMsg(kind,t,role){const co=role==='coord';const per=PERIODS[rfPer()]||'';const first=String(t.name).split(' ')[0];const me=CLD.admin?'آسيا الذبياني':(CLD.nm||'');
   const subj=kind==='t'?'شكر وتقدير — قراءة نتائج '+per:'تذكير — قراءة نتائج '+per;
   const body=kind==='t'?'الأستاذة الفاضلة / '+first+' المحترمة\nالسلام عليكم ورحمة الله وبركاته،\n\nأتقدم بخالص الشكر والتقدير على تسليم قراءة نتائج '+per+'؛ فالقراءة الواعية للنتائج أول طريق الدعم الصحيح لطالباتنا، وجهدكِ محل تقدير واعتزاز.\n\nمع خالص التحية،\n'+me
-    :'الأستاذة الفاضلة / '+first+' المحترمة\nالسلام عليكم ورحمة الله وبركاته،\n\nنذكّركِ بتسليم قراءة نتائج '+per+' من صفحة «تحليل النتائج» ← «قراءة نتائجي»؛ حرصًا على اكتمال قراءة القسم ودعم طالباتنا في الوقت المناسب. شاكرين تعاونكِ.\n\nمع خالص التحية،\n'+me;
+    :'الأستاذة الفاضلة / '+first+' المحترمة\nالسلام عليكم ورحمة الله وبركاته،\n\n'+(co?'نذكّركِ بتسليم قراءة نتائج القسم ('+per+') من صفحة «تحليل النتائج» ← «قراءة نتائج القسم»؛':'نذكّركِ بتسليم قراءة نتائج '+per+' من صفحة «تحليل النتائج» ← «قراءة نتائجي»؛')+' حرصًا على اكتمال قراءة القسم ودعم طالباتنا في الوقت المناسب. شاكرين تعاونكِ.\n\nمع خالص التحية،\n'+me;
   return {subj,body}}
 function vRFollow(){if(RF.docs==null){rfLoad();return head('متابعة قراءة النتائج','')+'<div class="box"><div class="empty">جارٍ تحميل القراءات…</div></div>'}
   const st=rfStaff();const by={};st.forEach(t=>{const d=t.dept||'أخرى';(by[d]=by[d]||[]).push(t)});
@@ -941,7 +941,7 @@ function vRFollow(){if(RF.docs==null){rfLoad();return head('متابعة قرا�
   const boxes=Object.keys(by).sort((a,b)=>a.localeCompare(b,'ar')).map(d=>{const L=by[d];const co=L.filter(isCo),te=L.filter(t=>!isCo(t)&&(t.sections||[]).length);
     const row=(t,role)=>{if(role!=='coord'&&rfNA(t)){na++;return '<div class="rfr na"><span class="rfs na">—</span><span class="rfn" title="'+esc(t.name)+'">'+esc(shortName(t.name))+' <small>(تدرّس الثاني عشر فقط)</small></span><span class="rfb"><span class="rfna">لا ينطبق</span></span></div>'}const doc=rfDocOf(t,role);const ok=!!doc;if(role==='coord'){cT++;if(ok)cD++}else{tot++;if(ok)done++}
       const fbn=doc?RF.fbs.filter(f=>f.to===doc.uid&&f.per===rfPer()).length:0;
-      return '<div class="rfr'+(role==='coord'?' co':'')+'"><span class="rfs '+(ok?'ok':'no')+'">'+(ok?'✓':'✗')+'</span><button class="rfn" data-rfopen="'+esc(doc?doc._id:'')+'" '+(ok?'':'disabled')+' title="'+esc(t.name)+'">'+esc(shortName(t.name))+(role==='coord'?' <small>(المنسقة · قراءة القسم)</small>':'')+(fbn?' <small class="rfc">· علّقت المنسقة</small>':'')+'</button><span class="rfb"><button class="rfbt g" data-rfmsg="t" data-rfn="'+esc(t.name)+'"'+(ok?'':' disabled')+'>شكر</button><button class="rfbt r" data-rfmsg="r" data-rfn="'+esc(t.name)+'"'+(ok?' disabled':'')+'>تذكير</button></span></div>'};
+      return '<div class="rfr'+(role==='coord'?' co':'')+'"><span class="rfs '+(ok?'ok':'no')+'">'+(ok?'✓':'✗')+'</span><button class="rfn" data-rfopen="'+esc(doc?doc._id:'')+'" '+(ok?'':'disabled')+' title="'+esc(t.name)+'">'+esc(shortName(t.name))+(role==='coord'?' <small>(المنسقة · قراءة القسم)</small>'+(rfNA(t)?' <span class="rfna" title="شعبها في الثاني عشر فقط؛ أما تحليل القسم فينطبق عليها">شعبها: لا ينطبق</span>':''):'')+(fbn?' <small class="rfc">· علّقت المنسقة</small>':'')+'</button><span class="rfb"><button class="rfbt g" data-rfmsg="t" data-rfn="'+esc(t.name)+'"'+(ok?'':' disabled')+'>شكر</button><button class="rfbt r" data-rfmsg="r" data-rfrole="'+role+'" data-rfn="'+esc(t.name)+'"'+(ok?' disabled':'')+'>تذكير</button></span></div>'};
     const rows=co.map(t=>row(t,'coord')).join('')+te.map(t=>row(t,'teacher')).join('');const te2=te.filter(t=>!rfNA(t)),n=te2.length,k=te2.filter(t=>rfDocOf(t)).length;
     return '<div class="rfd"><div class="rfh"><b>'+esc(d)+'</b><span class="rfp'+(n&&k===n?' full':'')+'">'+k+' / '+n+(n&&k===n?' ✓':'')+'</span></div>'+rows+'</div>'}).join('');
   return head('متابعة قراءة النتائج','اضغطي على اسم المعلمة لفتح قراءتها وتعليق المنسقة تحتها. «شكر» لمن سلّمت، و«تذكير» لمن لم تسلّم.')+
@@ -962,7 +962,7 @@ document.addEventListener('click',e=>{const t=e.target;
   if(t.matches&&(t.matches('.rfm')||t.closest('button[data-rfclose]'))){RF.open=null;render();return}
   const sv=t.closest&&t.closest('[data-rfsave]');if(sv){rfSave(sv.dataset.rfsave);return}
   if(t.closest&&t.closest('[data-rfreload]')){RF.docs=null;render();return}
-  const m=t.closest&&t.closest('[data-rfmsg]');if(m&&!m.disabled){const st=rfStaff().find(x=>x.name===m.dataset.rfn)||{name:m.dataset.rfn};const M=rfMsg(m.dataset.rfmsg,st);
+  const m=t.closest&&t.closest('[data-rfmsg]');if(m&&!m.disabled){const st=rfStaff().find(x=>x.name===m.dataset.rfn)||{name:m.dataset.rfn};const M=rfMsg(m.dataset.rfmsg,st,m.dataset.rfrole);
     try{navigator.clipboard.writeText(M.body)}catch(_){}
     if(st.email){location.href='mailto:'+encodeURIComponent(st.email)+'?subject='+encodeURIComponent(M.subj)+'&body='+encodeURIComponent(M.body);toast('فُتحت الرسالة في البريد، ونُسخ نصها أيضًا')}else toast('نُسخ نص الرسالة؛ الصقيه في تيمز أو البريد (لا يوجد بريد مسجل لهذه المعلمة)',5000)}});
 
