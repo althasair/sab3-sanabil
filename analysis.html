@@ -459,7 +459,7 @@ function importCur(b){let n=0,per=null,lv=new Set();
     const bucket=S.cur[p]=S.cur[p]||{};
     data.forEach(r=>{const pid=cell(r[cP]),sec=secKey(r[cS]);if(!pid)return;lv.add(lvlOf(sec));
       const g={};cols.forEach(c=>{const raw=r[c.j];const v=parseFloat(raw);if(!isNaN(v)&&cell(raw)!=='')g[c.s]=r1(v/den*100);else if(cell(raw))g[c.s]=cell(raw)});
-      bucket[pid]={n:cell(r[cN]),s:sec,g};n++});
+      bucket[pid]={n:cell(r[cN]),s:sec,g:Object.assign({},(bucket[pid]||{}).g||{},g)};n++});
     S.files['cur'+p+'_'+[...lv].join('')]={at:new Date().toISOString(),n,den}});
   if(per==null)throw new Error('لم يتم التعرف على كشف الدرجات');UI.per=per;
   return'تم استيراد درجات '+n+' طالبة — '+PERIODS[per]+' — المستوى '+[...lv].join(' و')}
@@ -856,6 +856,12 @@ async function anaPush(){if(CLD.cloudAdmin||!Object.keys(S.cur||{}).length)retur
     put('anasec',sec.replace(/[\/.#$\[\]]/g,'_'),{sec,who,reg,cur,last,lv})});
   for(let i=0;i<W.length;i+=15)await Promise.all(W.slice(i,i+15));try{localStorage.setItem('sab3_ana_hash2',JSON.stringify(H))}catch(_){}
   if(W.length)toast('تم حفظ التحليل في قاعدة البيانات للمنسقات والمعلمات')}catch(e){console.warn(e);toast('تعذّر حفظ التحليل في قاعدة البيانات: '+(e&&e.message||e))}}
+/* ملفات النتائج المرفوعة في «البيانات والنماذج» بسبع سنابل تُقرأ هنا تلقائيًا (نفس المتصفح) */
+async function anaInbox(){if(CLD.ro||anaInbox.busy)return;let L=[];try{L=JSON.parse(localStorage.getItem('sab3_ana_inbox')||'[]')}catch(_){}if(!L.length)return;anaInbox.busy=true;
+  try{const db=await new Promise((res,rej)=>{const r=indexedDB.open('sab3_files',1);r.onupgradeneeded=()=>r.result.createObjectStore('f');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
+    const files=[];for(const id of L){const b=await new Promise(res=>{const q=db.transaction('f').objectStore('f').get(id);q.onsuccess=()=>res(q.result||null);q.onerror=()=>res(null)});if(b)files.push(b)}
+    localStorage.setItem('sab3_ana_inbox','[]');if(files.length){CLD.cloudAdmin=false;await handleFiles(files);toast('تم تحديث التحليل من '+files.length+' ملف رُفع في سبع سنابل',5000)}}catch(e){console.warn(e)}anaInbox.busy=false}
+window.addEventListener('focus',()=>anaInbox());window.addEventListener('storage',e=>{if(e.key==='sab3_ana_inbox')anaInbox()});
 async function anaBoot(u){
   if(!u){CLD.wait=false;if(!Object.keys(S.cur).length){CLD.wait=true;CLD.msg='ادخلي أولًا من منصة سبع سنابل برقمكِ السري، ثم افتحي «تحليل النتائج».'}build();render();return}
   let cl={};try{cl=(await u.getIdTokenResult()).claims||{}}catch(_){}
@@ -863,7 +869,7 @@ async function anaBoot(u){
   const isVP=String(u.email||'').toLowerCase()==='althasair@gmail.com';let role=isVP?'admin':(cl.role||'');if(role==='admin'&&!isVP&&cl.mz&&cl.mz!=='admin'){role='principal';CLD.pr=true}CLD.role=role;
   if(role==='admin'){CLD.admin=true;CLD.wait=false;
     if(!Object.keys(S.cur||{}).length){try{const m=await CLD.db.collection('ana').doc('meta').get();if(m.exists){const md=m.data();const parts=await Promise.all([...Array(md.n||0).keys()].map(i=>CLD.db.collection('ana').doc('s'+i).get()));const d=JSON.parse(parts.map(x=>x.exists?x.data().t:'').join(''));if(d&&d.cur&&Object.keys(d.cur).length){Object.assign(S,d);CLD.cloudAdmin=true;UI.per=null}}}catch(e){console.warn(e)}}
-    build();render();anaPushSoon();return}
+    build();render();anaPushSoon();anaInbox();return}
   CLD.ro=true;S=blank();
   try{if(role==='coord'||role==='viewer'||role==='principal'){const m=await CLD.db.collection('ana').doc('meta').get();
       if(m.exists){const md=m.data();const parts=await Promise.all([...Array(md.n||0).keys()].map(i=>CLD.db.collection('ana').doc('s'+i).get()));Object.assign(S,JSON.parse(parts.map(x=>x.exists?x.data().t:'').join('')))}
