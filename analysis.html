@@ -451,7 +451,8 @@ try{const x=JSON.parse(localStorage.getItem(KEY)||'null');if(x&&typeof x==='obje
 /* تنظيف: درجات حُفظت سابقًا تحت «مادة» رقمية بسبب كشف المادة الواحدة */
 try{Object.values(S.cur||{}).forEach(b=>Object.values(b).forEach(o=>{Object.keys(o.g||{}).forEach(k=>{if(/^[\d.\s]+$/.test(k))delete o.g[k]})}))}catch(e){}
 function save(){if(typeof CLD!=='undefined'&&CLD.ro)return;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){toast('تعذّر الحفظ في المتصفح')}if(typeof anaPushSoon==='function')anaPushSoon()}
-function sanStaff(){try{const x=JSON.parse(localStorage.getItem(SAN)||'null');if(x&&Array.isArray(x.staff)&&x.staff.length&&x.staff.some(t=>t.sections&&t.sections.length))return x.staff}catch(e){}return null}
+function fixStaffA(a){const F=[['رؤى صبحي','الأحياء'],['رولا عيد','الكيمياء']];(a||[]).forEach(t=>{if(!t||nkA(t.dept||'')!==nkA('العلوم العامة'))return;const f=F.find(([n])=>nkA(t.name).startsWith(nkA(n)));if(f)t.dept=f[1]});return a}
+function sanStaff(){try{const x=JSON.parse(localStorage.getItem(SAN)||'null');if(x&&Array.isArray(x.staff)&&x.staff.length&&x.staff.some(t=>t.sections&&t.sections.length))return fixStaffA(x.staff)}catch(e){}return null}
 const UI={tab:'overview',per:null,lvl:'',sec:'',sub:'',nat:'',cat:'',pf:'',sort:'tot'};
 
 /* ---------- import ---------- */
@@ -896,10 +897,10 @@ async function anaBoot(u){
   try{if(role==='coord'||role==='viewer'||role==='principal'){const m=await CLD.db.collection('ana').doc('meta').get();
       if(m.exists){const md=m.data();const parts=await Promise.all([...Array(md.n||0).keys()].map(i=>CLD.db.collection('ana').doc('s'+i).get()));Object.assign(S,JSON.parse(parts.map(x=>x.exists?x.data().t:'').join('')))}
       else CLD.msg='لم تُنشر نتائج التحليل بعد.';
-      if(!S.staff||!S.staff.length){try{const c=await CLD.db.collection('shared').doc('cfg').get();if(c.exists)S.staff=c.data().staff||[]}catch(_){}}
+      if(!S.staff||!S.staff.length){try{const c=await CLD.db.collection('shared').doc('cfg').get();if(c.exists)S.staff=fixStaffA(c.data().staff||[])}catch(_){}}
       if(role==='viewer'&&CLD.dept.length&&!CLD.dept.some(d=>nkA(d).includes('جميع'))){const my=(S.staff||[]).filter(t=>CLD.dept.includes(nkA(t.dept)));const ok=new Set(my.flatMap(t=>(t.sections||[]).map(sc=>subjFor(t,secKey(sc)))).concat(my.map(t=>t.subject)).filter(Boolean));
         Object.values(S.cur||{}).forEach(b=>Object.values(b).forEach(o=>{Object.keys(o.g||{}).forEach(k=>{if(!ok.has(k))delete o.g[k]})}));Object.values(S.last||{}).forEach(lv=>Object.values(lv||{}).forEach(arr=>(arr||[]).forEach(o=>{if(o&&o.g)Object.keys(o.g).forEach(k=>{if(!ok.has(k))delete o.g[k]})})));S.staff=my;S.readings={};CLD.vdept=true}}
-    else if(role==='teacher'){const c=await CLD.db.collection('shared').doc('cfg').get();const all=c.exists?(c.data().staff||[]):[];
+    else if(role==='teacher'){const c=await CLD.db.collection('shared').doc('cfg').get();const all=c.exists?(fixStaffA(c.data().staff||[])):[];
       const me=all.filter(t=>nkA(t.name)===cl.nk);const secs=[...new Set(me.flatMap(t=>(t.sections||[]).map(secKey)))];
       if(!secs.length)CLD.msg='لم يُعثر على شعبكِ في توزيع المعلمات. تواصلي مع النائب الأكاديمي.';
       S.staff=all;const docs=await Promise.all(secs.map(x=>CLD.db.collection('anasec').doc(x.replace(/[\/.#$\[\]]/g,'_')).get().catch(()=>null)));
