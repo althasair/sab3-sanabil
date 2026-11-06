@@ -595,7 +595,7 @@ const ICON={
  data:'<ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3"/>'
 };
 const TABS=[['home','الرئيسية','home'],['entry','إدخال الإجراءات','add'],['students','الطالبات المستهدفات','stu'],['teachers','المعلمات','tch'],['rank','تصنيف أداء المعلمات','cup'],['seven','السنابل السبع','seven'],['impact','الأثر','imp'],['track','تتبع الطالبات','imp'],['charter','ميثاق الشراكة','ch'],['data','البيانات والنماذج','data']];
-function renderNav(){$('#nav').innerHTML=TABS.filter(([id])=>(id!=='track'||AUTH.role==='admin'||AUTH.role==='viewer')&&(id!=='stats'||AUTH.role==='admin')).map(([id,l,ic])=>'<button type="button" data-tab="'+id+'"'+(UI.tab===id?' aria-current="page"':'')+'><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'+ICON[ic]+'</svg>'+l+'</button>').join('')+'<span class="navsep"></span>'+EXTRA_NAV}
+function renderNav(){$('#nav').innerHTML=TABS.filter(([id])=>(id!=='track'||AUTH.role==='admin'||AUTH.role==='viewer')&&(id!=='stats'||['admin','coord','viewer'].includes(AUTH.role))).map(([id,l,ic])=>'<button type="button" data-tab="'+id+'"'+(UI.tab===id?' aria-current="page"':'')+'><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'+ICON[ic]+'</svg>'+l+'</button>').join('')+'<span class="navsep"></span>'+EXTRA_NAV}
 const EXTRA_NAV='<a href="analysis.html" style="display:flex;align-items:center;gap:8px;padding:9px 18px;border-radius:14px;color:#fff;background:#16233F;font-weight:800;font-size:15px;white-space:nowrap;flex:none;text-decoration:none"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16M7 16v-4M12 16V8M17 16V5"/></svg>تحليل النتائج</a><a href="report.html" style="display:flex;align-items:center;gap:8px;padding:9px 18px;border-radius:14px;color:#fff;background:#0A8F8B;font-weight:800;font-size:15px;white-space:nowrap;flex:none;text-decoration:none"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7M9 16h5"/></svg>التقرير الأكاديمي السلوكي</a><a href="initiatives.html" style="display:flex;align-items:center;gap:8px;padding:9px 18px;border-radius:14px;color:#fff;background:#B8903A;font-weight:800;font-size:15px;white-space:nowrap;flex:none;text-decoration:none"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.6 5.5 6 .8-4.4 4.2 1.1 6L12 16.8 6.7 19.5l1.1-6L3.4 9.3l6-.8z"/></svg>المبادرات والأنشطة</a>';
 
 $('#nav').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(!b)return;UI.tab=b.dataset.tab;try{history.replaceState(null,'','#'+UI.tab)}catch(_){}render();window.scrollTo({top:0})});
@@ -2165,11 +2165,12 @@ async function loadMizanPA(){try{const d=await CLOUD.db.collection('adm').doc('m
   const subOf=(n,sec)=>{const t=(S.staff||[]).find(y=>nameMatch(y.name||'',n)||nameMatch(n,y.name||''));return t?(typeof subjFor==='function'?subjFor(t,secKey(sec)):t.subject)||t.subject||'':''};
   const acts=L.map(r=>({date:String(r.d||'').slice(0,10),teacher:r.t,section:r.s,subject:subOf(r.t,r.s),students:r.st||[],whole:false,type:5,detail:'من الميزان — '+[r.c,r.tp,r.w].filter(Boolean).join(' — '),evidence:'',src:'mizan',mid:r.id}));
   S.actions=S.actions.filter(a=>a.src!=='mizan').concat(acts);S.mzpaAt=x.at;refresh();schedulePush()}catch(e){console.warn(e)}}
-async function loadMizan(){loadMizanPA();try{const d=await CLOUD.db.collection('shared').doc('mizan').get();if(!d.exists)return;const x=d.data();if(S.mz&&S.mz.at===x.at)return;S.mz={at:x.at,list:JSON.parse(x.t||'[]'),abs:JSON.parse(x.abs||'[]'),auto:1};refresh();schedulePush()}catch(e){console.warn(e)}}
+async function loadMizan(){loadMizanPA();try{const d=await CLOUD.db.collection('shared').doc('mizan').get();if(!d.exists)return;const x=d.data();let abs=JSON.parse(x.abs||'[]');try{const a=await CLOUD.db.collection('adm').doc('mizanpa').get();if(a.exists&&a.data().abs)abs=JSON.parse(a.data().abs)}catch(_){}if(S.mz&&S.mz.at===x.at&&JSON.stringify(S.mz.abs)===JSON.stringify(abs)&&S.mz.cv)return;S.mz={at:x.at,list:JSON.parse(x.t||'[]'),abs,cv:JSON.parse(x.cv||'[]'),auto:1};refresh();schedulePush()}catch(e){console.warn(e)}}
 /* قراءات المعلمات في «تحليل النتائج» ← سنبلة القراءة */
 async function loadReads(){try{const q=await CLOUD.db.collection('reads').get();const rd={};q.forEach(d=>{const x=d.data();if(x.role!=='teacher'&&x.role!=='coord')return;const f=fuzzyStaff(x.name);if(f)rd[norm(f.name)]=Math.max(rd[norm(f.name)]||0,(+x.per||0)+1)});
   if(JSON.stringify(rd)!==JSON.stringify(S.rd||{})){S.rd=rd;refresh();schedulePush()}}catch(e){console.warn(e)}}
-async function loadBoard(){try{const d=await CLOUD.db.collection('shared').doc('board').get();if(d.exists){window.__BOARD=d.data();D=derive(S);render()}}catch(e){console.warn(e)}}
+async function loadBoard(){try{const d=await CLOUD.db.collection('shared').doc('board').get();if(d.exists){window.__BOARD=d.data();D=derive(S);render()}}catch(e){console.warn(e)}
+  if(['coord','viewer'].includes(AUTH.role))try{const m=await CLOUD.db.collection('shared').doc('mizan').get();if(m.exists){window.__CV=JSON.parse(m.data().cv||'[]');if(UI.tab==='stats')render()}}catch(e){console.warn(e)}}
 /* --- guidance guests: whole platform, view only (nothing is saved from their device) --- */
 async function viewerLoad(){
   S=blankState();AUTH.err='';
@@ -2394,8 +2395,10 @@ document.head.insertAdjacentHTML('beforeend','<style>.behT td,.behT th{padding:6
 /* ===================== الأرقام والإحصائيات ===================== */
 ICON.stats='<path d="M12 3a9 9 0 1 0 9 9h-9z"/><path d="M15 3.5A9 9 0 0 1 20.5 9H15z"/>';
 TABS.splice(TABS.findIndex(t=>t[0]==='impact')+1,0,['stats','الأرقام والإحصائيات','stats']);
-/* لوحة الأرقام للنائب الأكاديمي والمديرة والمستشارة الأكاديمية فقط (حساب الإدارة) */
-document.head.insertAdjacentHTML('beforeend','<style>'+
+/* لوحة الأرقام: حساب الإدارة (النائب والمديرة والمستشارة) للمدرسة كاملة، والمنسقة والموجهة لقسمهما فقط */
+ROLE_TABS.coord.push('stats');ROLE_TABS.viewer.push('stats');
+document.head.insertAdjacentHTML('beforeend','<style id="stcss">'+
+'.st-print{position:relative;display:inline-flex;align-items:center;gap:8px;margin:0 auto 20px;padding:10px 22px;border-radius:99px;border:1px solid rgba(243,221,160,.6);background:var(--foil);color:#4A0B20;font:800 16px var(--f-ui);cursor:pointer;box-shadow:0 10px 24px -14px rgba(0,0,0,.6)}.st-print:hover{filter:brightness(1.05)}'+
 '.st-wrap{font-family:var(--f-ui);font-weight:600;color:var(--ink)}'+
 '.st-hero{position:relative;overflow:hidden;border-radius:30px;padding:34px 26px 28px;color:#FFF7E6;text-align:center;background:radial-gradient(120% 140% at 50% -20%,#9A2550 0%,#5A0E27 48%,#2B0C17 100%);box-shadow:0 26px 54px -30px rgba(74,11,32,.8);margin-bottom:26px}'+
 '.st-hero:before{content:"";position:absolute;inset:0;background:radial-gradient(35% 55% at 8% 110%,rgba(224,190,115,.35),transparent 70%),radial-gradient(35% 55% at 92% 110%,rgba(224,190,115,.28),transparent 70%);pointer-events:none}'+
@@ -2471,22 +2474,23 @@ const ST_MN=['يناير','فبراير','مارس','أبريل','مايو','ي�
 function stMonthly(rows,keys,cap){/* rows: [{m:'YYYY-MM',k}] */const byM={};rows.forEach(r=>{if(!/^\d{4}-\d{2}$/.test(r.m))return;(byM[r.m]=byM[r.m]||{})[r.k]=(byM[r.m][r.k]||0)+1});const months=Object.keys(byM).sort().slice(-8);if(!months.length)return '<div class="st-empty">لا توجد سجلات مؤرخة بعد.</div>';const tot=m=>Object.values(byM[m]).reduce((x,y)=>x+y,0);const mm=Math.max(1,...months.map(tot));
   return '<div class="st-stack">'+months.map((m,i)=>'<div class="c"><b>'+tot(m)+'</b><div class="col" style="height:'+(tot(m)/mm*150)+'px;animation-delay:'+(i*70)+'ms">'+keys.map(([k,,c])=>byM[m][k]?'<i style="height:'+(byM[m][k]/tot(m)*100)+'%;background:'+c+'"></i>':'').join('')+'</div><span>'+ST_MN[+m.slice(5)-1]+'</span></div>').join('')+'</div><div class="st-legend">'+keys.filter(([k])=>months.some(m=>byM[m][k])).map(([k,l,c])=>'<span><i style="background:'+c+'"></i>'+esc(l)+'</span>').join('')+'</div>'}
 function vStats(){
+  const ADM=AUTH.role==='admin';const myD=((AUTH.prof&&AUTH.prof.depts)||[]);const allD=ADM||!myD.length||myD.some(d=>/جميع/.test(d));const inD=d=>allD||myD.includes(norm(d||''));
   const T=D.targets,L=lastTestIdx(S),thr=S.settings.threshold,tests=S.settings.tests;
   const dOf=n=>{const f=fuzzyStaff(n);return f?(f.dept||f.subject||'—'):'—'};
   const ENR=(S.enroll&&S.enroll.length)?S.enroll:allStudents();
   const studs=ENR.length,graded=new Set(S.roster.map(r=>norm(r.name)+'|'+secKey(r.section))).size;
   const tStu=new Set(T.map(t=>norm(t.row.name)+'|'+secKey(t.row.section))).size;
   const acts=S.actions.length,core=T.length?T.reduce((a,t)=>a+t.core,0)/(T.length*4):0;
-  const B=boardGet();const BR=(B&&B.rows)||[];
+  const B=boardGet();const BR=((B&&B.rows)||[]).filter(r=>inD(r.d));
   const mzTot=BR.reduce((a,r)=>a+['a','i','v','h','w','p','o','r'].reduce((x,k)=>x+(+r[k]||0),0),0);
   const kpi=(ico,v,l,s,suf)=>'<div class="st-kpi"><span class="ico">'+ico+'</span><b data-cu="'+v+'"'+(suf?' data-suf="'+suf+'"':'')+'>0'+(suf||'')+'</b><span class="l">'+l+'</span>'+(s?'<small>'+s+'</small>':'')+'</div>';
-  let h='<div class="st-hero"><h2>الشيماء بالأرقام</h2><p class="vs">﴿وَكُلَّ شَيْءٍ أَحْصَيْنَاهُ كِتَابًا﴾<cite>النبأ: 29</cite></p><p class="sub">كل رقم هنا من عمل حقيقي سُجّل في سبع سنابل والميزان، ويتحدّث تلقائيًا مع كل إدخال.<br>آخر تحديث: '+new Date().toLocaleDateString('ar-EG-u-nu-latn',{day:'numeric',month:'long',year:'numeric'})+'</p><div class="st-kpis">'+
-   kpi('🎓',studs||graded,'طالبة في المدرسة','من سجل القيد')+
+  const dName=ADM||allD?'':((AUTH.prof&&AUTH.prof.dept)||'');let h='<div class="st-hero"><h2>'+(dName?'قسم '+esc(dName)+' بالأرقام':'الشيماء بالأرقام')+'</h2><p class="vs">﴿وَكُلَّ شَيْءٍ أَحْصَيْنَاهُ كِتَابًا﴾<cite>النبأ: 29</cite></p><p class="sub">كل رقم هنا من عمل حقيقي سُجّل في سبع سنابل والميزان، ويتحدّث تلقائيًا مع كل إدخال.<br>آخر تحديث: '+new Date().toLocaleDateString('ar-EG-u-nu-latn',{day:'numeric',month:'long',year:'numeric'})+'</p><button type="button" class="st-print" data-stprint>🖨️ طباعة التقرير</button><div class="st-kpis">'+
+   kpi('🎓',studs||graded,ADM?'طالبة في المدرسة':'طالبة في شعب القسم','من سجل القيد')+
    kpi('🎯',tStu,'طالبة مستهدفة','أقل من '+thr+'% في مادة أو أكثر')+
    kpi('🌾',Math.round(core*100),'امتلاء السنابل','متوسط السنابل الأساسية','%')+
    kpi('✍️',acts,'إجراء في سبع سنابل','لرفع التحصيل')+
    kpi('⚖️',mzTot,'عمل في الميزان','أنشطة وزيارات وورش وتواصل')+
-   kpi('👩‍🏫',(S.staff||[]).filter(t=>(t.sections||[]).length).length,'معلمة ومنسقة','في توزيع الشعب')+'</div></div>';
+   kpi('👩‍🏫',(S.staff||[]).filter(t=>(t.sections||[]).length&&inD(t.dept)).length,'معلمة ومنسقة',ADM?'في توزيع الشعب':'في القسم')+'</div></div>';
   let o='';
   /* ===== 1. الطالبات والنتائج ===== */
   o+=stSec(1,'الطالبات والنتائج')+'<div class="st-grid">';
@@ -2494,7 +2498,7 @@ function vStats(){
    const G=[['10','الصف العاشر','#1F7A8C'],['11','الصف الحادي عشر','#B8903A'],['12','الصف الثاني عشر','#7A1838']].map(([k,l,c])=>({l,c,n:ENR.filter(x=>gr(x)===k).length}));
    const TR=[['علمي','المسار العلمي','#2F5DA8'],['أدبي','المسار الأدبي','#8A4FB0'],['تكنولوجي','المسار التكنولوجي','#1F7A5B']].map(([k,l,c])=>{const by=['11','12'].map(g=>ENR.filter(x=>gr(x)===g&&trk(x)===k).length);return{l,c,n:by[0]+by[1],s:'الحادي عشر '+by[0]+' · الثاني عشر '+by[1]}}).filter(x=>x.n);
    const q=ENR.filter(x=>norm(x.nat||'').includes('قطر')).length;
-   o+=stCard('🎓','طالبات المدرسة','حسب المستوى والمسار والجنسية، من سجل القيد المرفوع ('+studs+' طالبة).',studs?'<div class="st-sub">المستوى</div>'+stTiles(G.map(x=>Object.assign(x,{s:Math.round(stPct(x.n,studs)*100)+'% من الطالبات'})))+(TR.length?'<div class="st-sub">المسار (الحادي عشر والثاني عشر)</div>'+stTiles(TR):'')+(ENR.some(x=>x.nat)?'<div class="st-sub">الجنسية</div>'+stTiles([{l:'قطريات',n:q,c:'#7A1838',s:Math.round(stPct(q,studs)*100)+'%'},{l:'غير قطريات',n:studs-q,c:'#4E7D96',s:Math.round(stPct(studs-q,studs)*100)+'%'}]):''):'<div class="st-empty">يظهر بعد رفع سجل القيد.</div>',true)}
+   if(!ADM)o+=stDeptStudents(ENR);else o+=stCard('🎓','طالبات المدرسة','حسب المستوى والمسار والجنسية، من سجل القيد المرفوع ('+studs+' طالبة).',studs?'<div class="st-sub">المستوى</div>'+stTiles(G.map(x=>Object.assign(x,{s:Math.round(stPct(x.n,studs)*100)+'% من الطالبات'})))+(TR.length?'<div class="st-sub">المسار (الحادي عشر والثاني عشر)</div>'+stTiles(TR):'')+(ENR.some(x=>x.nat)?'<div class="st-sub">الجنسية</div>'+stTiles([{l:'قطريات',n:q,c:'#7A1838',s:Math.round(stPct(q,studs)*100)+'%'},{l:'غير قطريات',n:studs-q,c:'#4E7D96',s:Math.round(stPct(studs-q,studs)*100)+'%'}]):''):'<div class="st-empty">يظهر بعد رفع سجل القيد.</div>',true)}
   const sc=S.roster.map(r=>r.scores[L]).filter(v=>v!=null&&!isNaN(v));
   {const cats=[['الرائدات','90 فأكثر',90,101,'#2E8B57'],['الطموحات','80–89',80,90,'#7CC36A'],['المثابرات','70–79',70,80,'#E2B832'],['الواعدات','50–69',50,70,'#E8853A'],['دعم مكثف','أقل من 50',0,50,'#D04E5B']];
    const bc=cats.map(c=>sc.filter(v=>v>=c[2]&&v<c[3]).length),bm=Math.max(1,...bc);
@@ -2510,8 +2514,8 @@ function vStats(){
   const e1=D.teachers.length?D.teachers.reduce((a,x)=>a+(x.e1||0)*x.targets.length,0)/Math.max(1,T.length):fill(1);
   o+=stSec(2,'السنابل والإجراءات')+'<div class="st-grid">';
   o+=stCard('🌾','السنابل السبع','نسبة الحالات المستهدفة التي امتلأت عندها كل سنبلة.',T.length?'<div class="st-rings">'+KEYS.map((k,i)=>stRing(k.k===1?e1:fill(k.k),k.name,(k.k===1?'رصد وقراءة':T.filter(t=>t.ears.has(k.k)).length+' من '+T.length),ST_PAL[i])).join('')+'</div>':'<div class="st-empty">تظهر بعد رفع النتائج وتحديد المستهدفات.</div>',true);
-  {const byD={};T.forEach(t=>{const d=dOf(t.row.teacher);(byD[d]=byD[d]||[]).push(t)});const dRows=Object.entries(byD).filter(([d])=>d!=='—').sort((a,b)=>b[1].length-a[1].length);
-   o+=stCard('🗺️','خريطة الأقسام والسنابل','نسبة حالات كل قسم التي امتلأت عندها السنبلة: الأخضر مكتمل، والذهبي في الطريق، والوردي يحتاج متابعة.',dRows.length?'<div class="tbl-wrap"><table class="st-heat"><thead><tr><th style="text-align:right">القسم</th><th>الحالات</th>'+KEYS.map(k=>'<th>'+esc(k.s)+'</th>').join('')+'</tr></thead><tbody>'+dRows.map(([d,a])=>'<tr><td class="d">'+esc(d)+'</td><td style="background:var(--gold-soft)">'+a.length+'</td>'+KEYS.map(k=>{const v=a.filter(t=>t.ears.has(k.k)).length/a.length;return '<td style="background:'+stHeatBg(v)+';color:'+stHeatFg(v)+'">'+Math.round(v*100)+'%</td>'}).join('')+'</tr>').join('')+'</tbody></table></div>':'<div class="st-empty">تظهر بعد تحديد المستهدفات.</div>',true)}
+  {const byD={};T.forEach(t=>{const d=ADM?dOf(t.row.teacher):nm3(t.row.teacher||'—');(byD[d]=byD[d]||[]).push(t)});const dRows=Object.entries(byD).filter(([d])=>d!=='—').sort((a,b)=>b[1].length-a[1].length);
+   o+=stCard('🗺️',ADM?'خريطة الأقسام والسنابل':'خريطة معلمات القسم والسنابل',(ADM?'نسبة حالات كل قسم':'نسبة حالات كل معلمة')+' التي امتلأت عندها السنبلة: الأخضر مكتمل، والذهبي في الطريق، والوردي يحتاج متابعة.',dRows.length?'<div class="tbl-wrap"><table class="st-heat"><thead><tr><th style="text-align:right">'+(ADM?'القسم':'المعلمة')+'</th><th>الحالات</th>'+KEYS.map(k=>'<th>'+esc(k.s)+'</th>').join('')+'</tr></thead><tbody>'+dRows.map(([d,a])=>'<tr><td class="d">'+esc(d)+'</td><td style="background:var(--gold-soft)">'+a.length+'</td>'+KEYS.map(k=>{const v=a.filter(t=>t.ears.has(k.k)).length/a.length;return '<td style="background:'+stHeatBg(v)+';color:'+stHeatFg(v)+'">'+Math.round(v*100)+'%</td>'}).join('')+'</tr>').join('')+'</tbody></table></div>':'<div class="st-empty">تظهر بعد تحديد المستهدفات.</div>',true)}
   o+=stCard('📈','نبض الإجراءات شهرًا بشهر','عدد إجراءات سبع سنابل في كل شهر، ملوّنة بحسب السنبلة.',stMonthly(S.actions.map(a=>({m:String(a.date||'').slice(0,7),k:a.type})),KEYS.map((k,j)=>[k.k,k.s,ST_PAL[j]])),true);
   {const en=S.actions.filter(a=>a.type===3),ind=en.filter(a=>enrKind(a)==='فردية').length,grp=en.length-ind;let pres=0,abs=0;en.filter(a=>a.whole).forEach(a=>{const n=ENR.filter(x=>x.section===secKey(a.section)).length;const ab=(a.absent||[]).length;if(n){pres+=Math.max(0,n-ab);abs+=ab}});
    o+=stCard('📖','الحصص الإثرائية','الفردية والجماعية، ونسبة حضور الطالبات في الجماعية.','<div class="st-big"><span class="num" data-cu="'+en.length+'">0</span><span class="u">حصة وجلسة</span></div>'+stBars([{l:'فردية',v:ind,c:'#7A1838'},{l:'جماعية',v:grp,c:'#B8903A'}].concat(pres+abs?[{l:'نسبة الحضور',v:Math.max(ind,grp,1)*(pres/(pres+abs)),t:Math.round(pres/(pres+abs)*100)+'%',c:'#2E8B57'}]:[])))}
@@ -2531,20 +2535,78 @@ function vStats(){
    else o+=stCard('🚀','أثر الإجراءات على المستهدفات','','<div class="st-empty">يظهر الأثر بعد رفع نتائج الاختبار التالي ومقارنتها بالأول.</div>',true);
    o+='</div>'}
   /* ===== 4. الميزان ===== */
-  if(BR.length){const cats=bCats().filter(([k])=>k!=='s');const sum=k=>BR.reduce((a,r)=>a+(+r[k]||0),0);const CR=BR.filter(r=>r.c);
-    o+=stSec(4,'الميزان: أعمال المعلمات')+'<div class="st-grid">';
+  if(BR.length){const cats=bCats().filter(([k])=>k!=='s');const sum=k=>BR.reduce((a,r)=>a+(+r[k]||0),0);const CR=ADM?BR.filter(r=>r.c):BR;
+    o+=stSec(4,'الحضور الصفي')+'<div class="st-grid">'+stVisits()+'</div>';
+    o+=stSec(5,'الميزان: أعمال المعلمات')+'<div class="st-grid">';
     o+=stCard('⚖️','ما وثّقته المعلمات في الميزان','مجموع السجلات في كل بند.',stBars(cats.map(([k,l],i)=>({l,v:sum(k),c:ST_PAL[i%ST_PAL.length]})).sort((a,b)=>b.v-a.v)));
     const score=r=>cats.reduce((a,[k])=>a+(+r[k]||0),0)+(+r.s||0);const best=BR.slice().sort((a,b)=>score(b)-score(a)).filter(r=>score(r)>0).slice(0,5);const med=['🥇','🥈','🥉','🏅','🏅'];
     o+=stCard('🏆','الأكثر عطاءً','مجموع الحصص الإثرائية وأعمال الميزان لكل معلمة.',best.length?'<div class="st-podium">'+best.map((r,i)=>'<div class="st-pod"><span class="m">'+med[i]+'</span><span class="nm">'+esc(nm3(r.n))+'</span><span class="p">'+score(r)+'</span></div>').join('')+'</div>':'<div class="st-empty">لا توجد أعمال مسجلة بعد.</div>');
-    o+=stCard('👥','مشاركة المعلمات','نسبة معلمات المواد الأساسية اللاتي سجّلن عملًا واحدًا على الأقل في كل بند ('+CR.length+' معلمة).','<div class="st-rings">'+[['v','الزيارة التبادلية'],['a','الأنشطة'],['p','التطوير المهني'],['w','تطوير الزميلات'],['o','التواصل مع أولياء الأمور'],['h','الإنجازات']].map(([k,l],i)=>stRing(stPct(CR.filter(r=>+r[k]>0).length,CR.length),l,CR.filter(r=>+r[k]>0).length+' معلمة',ST_PAL[i])).join('')+(B.abs?stRing(stPct(B.abs.ok.length,CR.length),'بلا غياب ولا استئذان',B.abs.ok.length+' معلمة هذا الشهر','#2E8B57'):'')+'</div>',true);
+    o+=stCard('👥','مشاركة المعلمات',(ADM?'نسبة معلمات المواد الأساسية':'نسبة معلمات القسم')+' اللاتي سجّلن عملًا واحدًا على الأقل في كل بند ('+CR.length+' معلمة).','<div class="st-rings">'+[['v','الزيارة التبادلية'],['a','الأنشطة'],['p','التطوير المهني'],['w','تطوير الزميلات'],['o','التواصل مع أولياء الأمور'],['h','الإنجازات']].map(([k,l],i)=>stRing(stPct(CR.filter(r=>+r[k]>0).length,CR.length),l,CR.filter(r=>+r[k]>0).length+' معلمة',ST_PAL[i])).join('')+(ADM&&B.abs?stRing(stPct(B.abs.ok.length,CR.length),'بلا غياب ولا استئذان',B.abs.ok.length+' معلمة هذا الشهر','#2E8B57'):'')+'</div>',true);
     if(S.mz&&Array.isArray(S.mz.list)&&S.mz.list.length){const MK=[['a','الأنشطة','#B8903A'],['i','المبادرات','#8A4FB0'],['v','الزيارات التبادلية','#1F7A8C'],['w','تطوير الزميلات','#5B8E3E'],['p','التطوير المهني','#2F5DA8'],['h','الإنجازات','#D0703A'],['o','أولياء الأمور','#7A1838'],['r','مصادر التعلم','#4E7D96']];
       o+=stCard('📅','نبض الميزان شهرًا بشهر','أعمال المعلمات الموثّقة في الميزان في كل شهر.',stMonthly(S.mz.list.map(x=>({m:String(x.d||'').slice(0,7),k:x.k})),MK),true)}
-    {const byDept={},cnt={};BR.forEach(r=>{const d=r.d||'—';byDept[d]=(byDept[d]||0)+score(r);cnt[d]=(cnt[d]||0)+1});
-     o+=stCard('🏛️','عطاء الأقسام','مجموع أعمال معلمات كل قسم في المنصتين، ومتوسطه لكل معلمة.',stBars(Object.entries(byDept).filter(([d])=>d!=='—').map(([l,v])=>({l,v,t:v+' · '+(Math.round(v/cnt[l]*10)/10)+' للمعلمة'})).sort((a,b)=>b.v-a.v)),true)}
+    {const byDept={},cnt={};BR.forEach(r=>{const d=ADM?(r.d||'—'):nm3(r.n);byDept[d]=(byDept[d]||0)+score(r);cnt[d]=(cnt[d]||0)+1});
+     o+=stCard('🏛️',ADM?'عطاء الأقسام':'عطاء معلمات القسم',ADM?'مجموع أعمال معلمات كل قسم في المنصتين، ومتوسطه لكل معلمة.':'مجموع أعمال كل معلمة في المنصتين.',stBars(Object.entries(byDept).filter(([d])=>d!=='—').map(([l,v])=>({l,v,t:ADM?v+' · '+(Math.round(v/cnt[l]*10)/10)+' للمعلمة':v})).sort((a,b)=>b.v-a.v)),true)}
     o+='</div>'}
+  window.__STSUM={ADM,dName,studs,tStu,core,acts,mzTot,thr,test:tests[L]||''};
   setTimeout(stCount,40);
   return '<div class="st-wrap">'+h+o+'</div>';
 }
+
+/* طالبات القسم حسب المادة والمستوى والمسار (للمنسقة والموجهة) */
+function stDeptStudents(ENR){
+  const myD=((AUTH.prof&&AUTH.prof.depts)||[]);const allD=!myD.length||myD.some(d=>/جميع/.test(d));
+  const TRK=S.settings.tracks||{};const gr=sec=>String(sec).split('-')[0];
+  const cols=[['10','','الصف العاشر'],['11','علمي','الحادي عشر علمي'],['11','أدبي','الحادي عشر أدبي'],['12','علمي','الثاني عشر علمي'],['12','أدبي','الثاني عشر أدبي'],['12','تكنولوجي','الثاني عشر تكنولوجي']];
+  const colOf=sec=>{const g=gr(sec);if(g==='10')return 0;const t=TRK[sec]||'';return cols.findIndex(c=>c[0]===g&&c[1]===t)};
+  const bySub={};(S.staff||[]).filter(t=>allD||myD.includes(norm(t.dept||''))).forEach(t=>{const sci=/علوم/.test(t.subject||'')&&!/اجتماع|حاسب/.test(t.subject||'');(t.sections||[]).forEach(sc=>{const sec=secKey(sc);const g=gr(sec),trk=TRK[sec]||'';const lbl=sci&&(g==='10'||trk==='أدبي'||!/كيمياء|فيزياء|احياء|أحياء/.test(t.subject))?'العلوم':(t.dept||t.subject);(bySub[lbl]=bySub[lbl]||new Set()).add(sec)})});
+  const cnt=sec=>ENR.filter(x=>x.section===sec).length;
+  const rows=Object.entries(bySub).map(([l,set])=>{const v=cols.map(()=>0);[...set].forEach(sec=>{const c=colOf(sec);if(c>=0)v[c]+=cnt(sec)});return{l,v,n:[...set].length}}).sort((a,b)=>a.l==='العلوم'?1:b.l==='العلوم'?-1:0);
+  const used=cols.map((c,i)=>rows.some(r=>r.v[i])?i:-1).filter(i=>i>=0);
+  if(!rows.length||!used.length)return stCard('🎓','طالبات القسم','','<div class="st-empty">تظهر بعد رفع سجل القيد.</div>',true);
+  const tot=r=>used.reduce((a,i)=>a+r.v[i],0);
+  return stCard('🎓','طالبات القسم حسب المادة والمسار','عدد الطالبات الملتحقات في الشعب التي تدرّسها معلمات القسم، من سجل القيد.','<div class="tbl-wrap"><table class="st-heat"><thead><tr><th style="text-align:right">المادة</th>'+used.map(i=>'<th>'+cols[i][2]+'</th>').join('')+'<th>المجموع</th></tr></thead><tbody>'+rows.map(r=>'<tr><td class="d">'+esc(r.l)+'</td>'+used.map(i=>'<td style="background:'+(r.v[i]?'var(--gold-soft)':'transparent')+'">'+(r.v[i]||'—')+'</td>').join('')+'<td style="background:#EFE3F0;color:var(--maroon)">'+tot(r)+'</td></tr>').join('')+'</tbody></table></div>',true)}
+/* الحضور الصفي: النائب الأكاديمي والمديرة والمنسقات (أعداد فقط، من الميزان) */
+const ST_Q=[['الربع الأول','2026-08-01','2026-10-11'],['الربع الثاني','2026-10-12','2026-11-29'],['الربع الثالث','2026-11-30','2027-02-27'],['الربع الرابع','2027-02-28','2027-06-30']];
+function stVisits(){
+  const ADM=AUTH.role==='admin';const myD=((AUTH.prof&&AUTH.prof.depts)||[]);const allD=ADM||!myD.length||myD.some(d=>/جميع/.test(d));
+  const CV=((ADM?(S.mz&&S.mz.cv):window.__CV)||[]).filter(x=>allD||myD.includes(norm(x.p||'')));
+  const cap=allD?'زيارات الحضور الصفي كما سُجّلت في الميزان، ونسبة المعلمات اللاتي شملتهن الزيارة.':'زيارات الحضور الصفي لمعلمات القسم كما سُجّلت في الميزان، ونسبة من شملتهن الزيارة.';
+  if(!CV.length)return stCard('🏫','الحضور الصفي',cap,'<div class="st-empty">تظهر بعد تسجيل زيارات الحضور الصفي في الميزان.</div>',true);
+  const tch=(S.staff||[]).filter(t=>(allD||myD.includes(norm(t.dept||'')))&&(t.sections||[]).length);const base=tch.length;
+  const W=[['vp','النائب الأكاديمي','#7A1838'],['pr','مديرة المدرسة','#B8903A'],['co',allD?'المنسقات':'منسقة القسم','#1F7A8C']];
+  const months=[...new Set(CV.map(x=>String(x.d||'').slice(0,7)).filter(m=>/^\d{4}-\d{2}$/.test(m)))].sort();
+  const qs=ST_Q.filter(q=>CV.some(x=>x.d>=q[1]&&x.d<=q[2]));
+  const rows=W.map(([w,l,c])=>{const L=CV.filter(x=>(x.w||'co')===w);const seen=new Set(L.map(x=>norm(x.t)));const cov=tch.filter(t=>seen.has(norm(t.name))).length;return{l,c,n:L.length,cov,pct:stPct(cov,base),m:months.map(m=>L.filter(x=>String(x.d||'').startsWith(m)).length),q:qs.map(q=>L.filter(x=>x.d>=q[1]&&x.d<=q[2]).length)}}).filter(r=>r.n);
+  let b='<div class="st-tiles" style="margin-bottom:16px">'+rows.map(r=>'<div class="st-tile" style="background:linear-gradient(160deg,'+r.c+'22,'+r.c+'0A);border:1px solid '+r.c+'40"><b style="color:'+r.c+'" data-cu="'+r.n+'">0</b><span>'+esc(r.l)+'</span><small>زيارة · شملت '+r.cov+' من '+base+' معلمة ('+Math.round(r.pct*100)+'%)</small></div>').join('')+'</div>';
+  b+='<div class="st-rings" style="margin-bottom:14px">'+rows.map(r=>stRing(r.pct,'تغطية '+r.l,r.cov+' من '+base+' معلمة',r.c)).join('')+'</div>';
+  b+='<div class="tbl-wrap"><table class="st-heat"><thead><tr><th style="text-align:right">الزائرة</th>'+months.map(m=>'<th>'+ST_MN[+m.slice(5)-1]+'</th>').join('')+qs.map(q=>'<th>'+q[0]+'</th>').join('')+'<th>المجموع</th><th>نسبة التغطية</th></tr></thead><tbody>'+rows.map(r=>'<tr><td class="d">'+esc(r.l)+'</td>'+r.m.map(v=>'<td style="background:'+(v?'var(--gold-soft)':'transparent')+'">'+(v||'—')+'</td>').join('')+r.q.map(v=>'<td style="background:#EFE3F0">'+v+'</td>').join('')+'<td style="background:#EFE3F0;color:var(--maroon)">'+r.n+'</td><td style="background:'+stHeatBg(r.pct)+';color:'+stHeatFg(r.pct)+'">'+Math.round(r.pct*100)+'%</td></tr>').join('')+'</tbody></table></div>';
+  if(allD){const by={};CV.filter(x=>(x.w||'co')==='co').forEach(x=>{by[x.p]=by[x.p]||{n:0,t:new Set()};by[x.p].n++;by[x.p].t.add(norm(x.t))});const dT=d=>(S.staff||[]).filter(t=>norm(t.dept||'')===norm(d)&&(t.sections||[]).length&&!/منسق/.test(t.role||'')).length;
+    if(Object.keys(by).length)b+='<div class="st-sub">حضور المنسقات لمعلمات أقسامهن</div>'+stBars(Object.entries(by).map(([l,o])=>{const n=dT(l);return{l,v:o.n,t:o.n+' زيارة · '+o.t.size+(n?' من '+n:'')+' معلمة'}}).sort((a,b)=>b.v-a.v))}
+  else{const byT={};CV.forEach(x=>{const k=norm(x.t);byT[k]=(byT[k]||0)+1});b+='<div class="st-sub">عدد الزيارات لكل معلمة (من الجميع)</div>'+stBars(tch.map(t=>({l:nm3(t.name),v:byT[norm(t.name)]||0,c:byT[norm(t.name)]?'#1F7A8C':'#D04E5B'})).sort((a,b)=>b.v-a.v))}
+  return stCard('🏫','الحضور الصفي',cap,b,true)}
+
+/* طباعة لوحة الأرقام تقريرًا على الترويسة */
+function stPrint(){
+  const W=document.querySelector('.st-wrap');if(!W)return;
+  const C=W.cloneNode(true);C.querySelectorAll('[data-cu]').forEach(el=>el.textContent=(+el.dataset.cu).toLocaleString('en-US')+(el.dataset.suf||''));C.querySelectorAll('[data-stprint]').forEach(b=>b.remove());
+  const X=window.__STSUM||{};const ttl=X.dName?'قسم '+X.dName+' بالأرقام':'الشيماء بالأرقام';
+  const sum='<p class="stsum">تم إعداد هذا التقرير من بيانات منصتي سبع سنابل والميزان حتى '+new Date().toLocaleDateString('ar-EG-u-nu-latn',{day:'numeric',month:'long',year:'numeric'})+'. '+(X.studs?'يضم '+(X.dName?'القسم':'سجل القيد')+' '+X.studs+' طالبة، ':'')+(X.tStu?'منهن '+X.tStu+' طالبة مستهدفة درجتها أقل من '+X.thr+'% في '+esc(X.test)+'. ':'')+'وبلغ امتلاء السنابل الأساسية '+Math.round((X.core||0)*100)+'%، وسُجّل '+(X.acts||0)+' إجراءً لرفع التحصيل، و'+(X.mzTot||0)+' عملًا في الميزان.</p>';
+  const nm=n=>'<b>أ. '+esc(n)+'</b>';
+  const sig=X.ADM?'<div class="stsig"><div><span>النائبة الإدارية</span>'+nm('وداد الكربي')+'</div><div><span>نائب المديرة للشؤون الأكاديمية</span><i>'+(S.settings.sig?'<img src="'+S.settings.sig+'" alt="">':'')+nm(S.settings.vp||'آسيا الذبياني')+'</i></div><div><span>مديرة المدرسة</span>'+nm(S.settings.principal||'شيخة الرميحي')+'</div></div>':'<div class="stsig one"><div><span>منسقة القسم</span>'+nm((AUTH.prof&&AUTH.prof.name)||'')+'</div></div>';
+  const css=(document.getElementById('stcss')||{}).textContent||'';
+  const imp='@import url("https://fonts.googleapis.com/css2?family=Aref+Ruqaa:wght@400;700&family=Tajawal:wght@500;700;800&display=swap");';
+  const pc=
+   ':root{--maroon:#62102A;--gold:#B8903A;--gold-soft:rgba(184,144,58,.14);--paper:#fff;--line:#E9DCC6;--ink:#2A1820;--muted:#6B5C61;--shadow:none;--foil:linear-gradient(100deg,#9B7329 0%,#D2AC58 40%,#A57B2C 76%,#C9A24A 100%);--brand-grad:linear-gradient(to left,#4A0B20 0%,#7A1838 45%,#B8903A 100%);--f-ui:"Tajawal","IBM Plex Sans Arabic",Tahoma,sans-serif;--f-display:"Tajawal","IBM Plex Sans Arabic",Tahoma,sans-serif;--f-callig:"Aref Ruqaa",Amiri,serif;--f-quran:"Amiri Quran",Amiri,serif}'+
+   '*{animation:none!important}.st-wrap{font-size:10.5pt}.st-hero{background:#fff!important;color:#2B0C17;border:1.5px solid #C9A24A;box-shadow:none;padding:14px 12px 12px;margin-bottom:10px;border-radius:16px}.st-hero:before{display:none}.st-hero h2{font-size:30px}.st-hero .vs{color:#7B1D34;font-size:17px}.st-hero .vs cite{color:#6B5C61}.st-hero .sub{display:none}'+
+   '.st-kpis{grid-template-columns:repeat(6,1fr);gap:6px}.st-kpi{background:#FBF6EA;border-color:#E3D2AE;padding:8px 4px;border-radius:12px}.st-kpi .ico{font-size:16px}.st-kpi b{color:#62102A;font-size:22px}.st-kpi span.l{color:#7A5A1E;font-size:11px}.st-kpi small{color:#5E4E54;font-size:9px;opacity:1}'+
+   '.st-sec{margin:14px 0 8px;break-after:avoid}.st-sec h3{font-size:22px}.st-sec .n{width:28px;height:28px;font-size:13px}'+
+   '.st-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:10px}.st-card{break-inside:avoid;page-break-inside:avoid;padding:12px 12px 10px;border-radius:16px;box-shadow:none;border-color:#E3D2AE}.st-card .bdg{width:34px;height:34px;font-size:17px}.st-card h4{font-size:14px}.st-card .cap{font-size:10.5px;margin-bottom:8px}'+
+   '.st-ring svg{width:76px;height:76px}.st-rings{grid-template-columns:repeat(auto-fit,minmax(92px,1fr))}.st-ring .n{font-size:11px}.st-ring small{font-size:9.5px}.st-bar{font-size:11px;grid-template-columns:minmax(70px,110px) 1fr auto}.st-bar .t{height:10px}.st-bar .r{font-size:11px}'+
+   '.st-hero h2{border:0;padding:0}.st-tiles{gap:6px}.st-tile{padding:6px 4px;min-width:90px;border-radius:12px}.st-sub{font-size:11px;margin:8px 0 5px}.st-heat{border-spacing:3px}.st-tile b{font-size:20px}.st-tile span{font-size:12px}.st-tile small{font-size:9.5px}.st-big .num{font-size:34px}.st-heat{font-size:10.5px}.st-heat td,.st-heat td.d{font-size:11px;padding:6px 3px}.st-heat th{font-size:10px}.st-hist{height:130px}.st-stack{height:140px}'+
+   '.stsum{font-size:11pt;line-height:1.9;text-align:justify;margin:4px 0 10px}.stsig{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;text-align:center;margin-top:22px;break-inside:avoid}.stsig.one{grid-template-columns:1fr}.stsig span{display:block;font-size:11pt}.stsig b{display:block;font-size:11pt;margin-top:4px}.stsig i{display:block;position:relative;font-style:normal;padding-top:4px}.stsig i img{position:absolute;left:50%;top:-14px;transform:translateX(-50%);height:62px;opacity:.85;pointer-events:none}';
+  const html=docShell(ttl,'<style>'+imp+css+pc+'</style><section class="page">'+sum+C.outerHTML.replace(/<section /g,'<div ').replace(/<\/section>/g,'</div>')+sig+'</section>');
+  let w=null;try{w=window.open(URL.createObjectURL(new Blob([html],{type:'text/html;charset=utf-8'})),'_blank')}catch(_){}if(!w){offer(ttl+'.html',html);return}w.addEventListener('load',()=>setTimeout(()=>{try{w.focus();w.print()}catch(_){}},1200))}
+document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('[data-stprint]'))stPrint()});
 
 ROLE_TABS.teacher.push('beh');ROLE_TABS.coord.push('beh');
 authBoot();
