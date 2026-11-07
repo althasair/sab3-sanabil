@@ -452,7 +452,9 @@ const DEFAULT_SETTINGS={threshold:70,tests:['التقرير الأول','الت�
 /* ---------- helpers ---------- */
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const norm=s=>String(s==null?'':s).replace(/[ً-ٰٟـ]/g,'').replace(/[أإآ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي').replace(/\s+/g,' ').trim().toLowerCase();
+const norm0=s=>String(s==null?'':s).replace(/[ً-ٰٟـ]/g,'').replace(/[أإآ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي').replace(/\s+/g,' ').trim().toLowerCase();
+/* ذاكرة مؤقتة لتطبيع الأسماء: تُستدعى آلاف المرات في كل عرض */
+const __NM=new Map();const norm=s=>{if(s==null)return '';const k=typeof s==='string'?s:String(s);let v=__NM.get(k);if(v===undefined){v=norm0(k);if(__NM.size>60000)__NM.clear();__NM.set(k,v)}return v};
 const has=(h,arr)=>arr.some(w=>norm(h).includes(norm(w)));
 const fmt=n=>n==null||isNaN(n)?'—':(Math.round(n*10)/10).toLocaleString('ar-EG-u-nu-latn');
 const pct=n=>isNaN(n)?'—':Math.round(n*100)+'%';
@@ -1461,7 +1463,9 @@ function anLegend(a,b){return '<p class="inote" style="color:#333"><span style="
 /* مطابقة اسم المعلمة كما كُتب في النموذج بقائمة المعلمات الرسمية (تتسامح مع الأخطاء الإملائية: عاشه/عائشة، فاطمك/فاطمة، ماجد ة/ماجدة) */
 function skelW(w){return norm(w).replace(/[اأإآءئؤيى]/g,'').replace(/[ةهك]$/,'ه')}
 function tokT(n){return norm(String(n||'').replace(/\s+ة(?=\s|$)/g,'ة')).split(' ').filter(Boolean)}
-function fuzzyStaff(n){const st=S.staff||[];if(!n)return null;const ex=st.find(x=>norm(x.name)===norm(n));if(ex)return ex;const w=tokT(n).map(skelW);if(w.length<2)return null;
+let __FZ={st:null,n:0,m:new Map()};
+function fuzzyStaff(n){const st=S.staff||[];if(!n)return null;if(__FZ.st!==st||__FZ.n!==st.length)__FZ={st,n:st.length,m:new Map()};const ck=String(n);if(__FZ.m.has(ck))return __FZ.m.get(ck);const r=fuzzyStaff0(n,st);__FZ.m.set(ck,r);return r}
+function fuzzyStaff0(n,st){const ex=st.find(x=>norm(x.name)===norm(n));if(ex)return ex;const w=tokT(n).map(skelW);if(w.length<2)return null;
   const c=st.filter(x=>{const b=tokT(x.name).map(skelW);return b[0]===w[0]&&w.slice(1).every(t=>b.includes(t))});return c.length===1?c[0]:null}
 /* رسم أعمدة متباعدة حول الصفر (ارتفاع/انخفاض) */
 function anDiv(items,o){o=o||{};if(!items.length)return '<p class="inote">لا توجد بيانات.</p>';const W=640,lw=o.lw||190,rh=24,H=items.length*rh+22;const mx=Math.max(1,...items.map(x=>Math.abs(x.v)));const cw=W-lw-20,zero=10+cw/2,sc=(cw/2-34)/mx;
@@ -2662,7 +2666,9 @@ function prRange(per){const p=per||UI.prPer||'y';if(p==='y')return['2026-08-23',
 function prDepts(){return [...new Set((S.staff||[]).filter(t=>(t.sections||[]).length&&t.dept).map(t=>t.dept))].sort((a,b)=>a.localeCompare(b,'ar'))}
 /* حساب تحقيق الأولويات لفئة: all | acad | adm | dept:<اسم القسم> */
 const PR_NONCORE=/إدارة الأعمال|الفنون|المهارات الحياتية|التربية البدنية/;
-function prCompute(cat,per){
+let __PRC={d:null,k:'',m:new Map()};
+function prCompute(cat,per){const sig=(S.settings.surveys||[]).length+'|'+JSON.stringify(S.settings.prTargets||{})+'|'+((S.mz&&S.mz.at)||'')+'|'+((window.__BOARD&&window.__BOARD.at)||'')+'|'+(window.__CV||[]).length+'|'+S.actions.length+'|'+(S.evals||[]).length;if(__PRC.d!==D||__PRC.k!==sig)__PRC={d:D,k:sig,m:new Map()};const key=cat+'#'+(per||UI.prPer||'y');if(__PRC.m.has(key))return __PRC.m.get(key);const res=prCompute0(cat,per);__PRC.m.set(key,res);return res}
+function prCompute0(cat,per){
   const [from,to]=prRange(per);const inR=d=>{d=String(d||'').slice(0,10);return d&&d>=from&&d<=to};
   const ADM=AUTH.role==='admin';const dept=cat.startsWith('dept:')?cat.slice(5):(!ADM&&AUTH.prof&&AUTH.prof.dept)||'';
   const myD=((AUTH.prof&&AUTH.prof.depts)||[]);const scoped=!!dept||(!ADM&&myD.length&&!myD.some(d=>/جميع/.test(d)));
@@ -2706,7 +2712,7 @@ function prCompute(cat,per){
 /* ترتيب الفرق (الأقسام + الكادر الإداري) في كل أولوية — يحسبه حساب الإدارة ويُنشر للمنسقات */
 function prRanksCompute(){const teams=prDepts().map(d=>['dept:'+d,d]).concat([['adm','الكادر الإداري']]);const out={};
   ['y'].concat(ST_Q.map((q,i)=>String(i))).forEach(per=>{const rows=teams.map(([k,l])=>{const x=prCompute(k,per);return{k,l,a:x.pct==null?null:Math.round(x.pct*100),p:x.R.map(r=>r.pct==null?null:Math.round(r.pct*100))}});out[per]=rows});return{r:JSON.stringify(out)}}
-function prRanks(per){let all=null;try{all=AUTH.role==='admin'?JSON.parse(prRanksCompute().r):(window.__PRK?JSON.parse(window.__PRK.r||'{}'):null)}catch(_){}if(!all)return null;const rows=all[per||UI.prPer||'y']||[];
+function prRanks(per){const P=per||UI.prPer||'y';let rows=null;try{if(AUTH.role==='admin'){rows=prDepts().map(d=>['dept:'+d,d]).concat([['adm','الكادر الإداري']]).map(([k,l])=>{const x=prCompute(k,P);return{k,l,a:x.pct==null?null:Math.round(x.pct*100),p:x.R.map(r=>r.pct==null?null:Math.round(r.pct*100))}})}else if(window.__PRK){rows=(JSON.parse(window.__PRK.r||'{}')[P])||null}}catch(_){}if(!rows)return null;
   const rk=(get)=>{const v=rows.map(r=>({k:r.k,v:get(r)})).filter(x=>x.v!=null).sort((a,b)=>b.v-a.v);const m={};v.forEach((x,i)=>{m[x.k]=(i&&v[i-1].v===x.v)?m[v[i-1].k]:i+1});return{m,n:v.length}};
   return{all:rk(r=>r.a),p:[0,1,2,3].map(i=>rk(r=>r.p[i]))}}
 function prNoteHtml(txt,attr){const ADM=AUTH.role==='admin';if(!txt&&!ADM)return '';return '<div class="pr-note"><div class="nh"><span>📝 ملاحظة النائب الأكاديمي</span>'+(ADM?'<button type="button" class="btn sm ghost noprint" '+attr+'>✏️ '+(txt?'تعديل':'إضافة')+'</button>':'')+'</div>'+(txt?'<p>'+esc(txt)+'</p>':'<p class="muted noprint">لا توجد ملاحظة بعد.</p>')+'</div>'}

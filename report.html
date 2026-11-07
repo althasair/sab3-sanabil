@@ -437,7 +437,8 @@ const CL_LO='نأمل تعاونكم في متابعة انتظام الطالب
 
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const norm=s=>String(s==null?'':s).replace(/[‎‏]/g,'').trim().replace(/[إأآ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').replace(/ـ/g,'').replace(/\s+/g,' ');
+const norm0=s=>String(s==null?'':s).replace(/[‎‏]/g,'').trim().replace(/[إأآ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').replace(/ـ/g,'').replace(/\s+/g,' ');
+const __M_norm=new Map();const norm=s=>{if(s==null)return '';const k=typeof s==='string'?s:String(s);let v=__M_norm.get(k);if(v===undefined){v=norm0(k);if(__M_norm.size>60000)__M_norm.clear();__M_norm.set(k,v)}return v};
 const cell=v=>String(v==null?'':v).replace(/[‎‏]/g,'').trim();
 const secKey=s=>{const m=String(s||'').match(/(1[0-2])\s*[\/\-]\s*(\d+)/);return m?m[1]+'-'+m[2]:''};
 const secSort=(a,b)=>{const[x1,y1]=a.split('-').map(Number),[x2,y2]=b.split('-').map(Number);return x1-x2||y1-y2};
