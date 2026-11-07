@@ -2170,6 +2170,7 @@ async function loadMizan(){loadMizanPA();try{const d=await CLOUD.db.collection('
 async function loadReads(){try{const q=await CLOUD.db.collection('reads').get();const rd={};q.forEach(d=>{const x=d.data();if(x.role!=='teacher'&&x.role!=='coord')return;const f=fuzzyStaff(x.name);if(f)rd[norm(f.name)]=Math.max(rd[norm(f.name)]||0,(+x.per||0)+1)});
   if(JSON.stringify(rd)!==JSON.stringify(S.rd||{})){S.rd=rd;refresh();schedulePush()}}catch(e){console.warn(e)}}
 async function loadBoard(){try{const d=await CLOUD.db.collection('shared').doc('board').get();if(d.exists){window.__BOARD=d.data();D=derive(S);render()}}catch(e){console.warn(e)}
+  if(['coord','viewer'].includes(AUTH.role))try{const q=await CLOUD.db.collection('shared').doc('prio').get();if(q.exists){window.__PRK=q.data();if(UI.tab==='prio')render()}}catch(e){console.warn(e)}
   if(['coord','viewer'].includes(AUTH.role))try{const m=await CLOUD.db.collection('shared').doc('mizan').get();if(m.exists){window.__CV=JSON.parse(m.data().cv||'[]');if(UI.tab==='stats')render()}}catch(e){console.warn(e)}}
 /* --- guidance guests: whole platform, view only (nothing is saved from their device) --- */
 async function viewerLoad(){
@@ -2208,6 +2209,7 @@ async function pushAll(){
     const docs=sectionDocs();for(const [id,d] of docs)w+=setIfChanged('sec',id,d);
     // 4) لوحة الصدارة (للمعلمات والمنسقات بعد الدخول)
     w+=setIfChanged('shared','board',(()=>{const B=boardCompute();delete B.at;return B})());
+    try{w+=setIfChanged('shared','prio',prRanksCompute())}catch(e){console.warn(e)}
     // 5) public numbers without names, for visitors
     w+=setIfChanged('pub','stats',pubStats());
     await flushPending();try{localStorage.setItem('sab3_last_sync',sAt)}catch(_){}
@@ -2630,6 +2632,7 @@ document.head.insertAdjacentHTML('beforeend','<style id="prcss">'+
 '.pr-card{position:relative;background:var(--paper);border:1px solid var(--line);border-radius:26px;box-shadow:var(--shadow);margin-bottom:20px;overflow:hidden;animation:stUp .6s both;break-inside:avoid}'+
 '.pr-head{display:grid;grid-template-columns:auto 1fr auto;gap:16px;align-items:center;padding:18px 22px;color:#fff}'+
 '.pr-head .no{width:58px;height:58px;border-radius:50%;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font:800 26px var(--f-display);box-shadow:inset 0 0 0 2px rgba(255,255,255,.45)}'+
+'.pr-head .pc .rk{display:block;margin-top:6px;background:rgba(0,0,0,.18);color:#fff;border-radius:99px;padding:3px 10px;font-size:12.5px;font-weight:800}'+
 '.pr-head h4{margin:0;font-size:22px;font-weight:800;line-height:1.4}.pr-head p{margin:2px 0 0;font-size:14px;font-weight:600;opacity:.92;line-height:1.7}'+
 '.pr-head .pc{text-align:center}.pr-head .pc b{display:block;font:800 40px/1 var(--f-display)}.pr-head .pc span{display:inline-block;margin-top:6px;background:rgba(255,255,255,.92);border-radius:99px;padding:3px 12px;font-size:12.5px;font-weight:800}'+
 '.pr-body{padding:18px 22px 20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:18px}'+
@@ -2645,11 +2648,12 @@ document.head.insertAdjacentHTML('beforeend','<style id="prcss">'+
 '.pr-sl{list-style:none;padding:0;margin:0}.pr-sl li{display:flex;gap:8px;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);padding:8px 0;font-size:14px;font-weight:700}'+
 '@media (max-width:640px){.pr-head{grid-template-columns:auto 1fr;padding:14px}.pr-head .pc{grid-column:1/-1;display:flex;gap:10px;align-items:center;justify-content:center}.pr-head h4{font-size:18px}.pr-row{grid-template-columns:96px 1fr 40px}}'+
 '</style>');
-function prRange(){const p=UI.prPer||'y';if(p==='y')return['2026-08-23','2027-06-30','منذ بداية العام الأكاديمي'];const q=ST_Q[+p];return q?[q[1],q[2],'خلال '+q[0]]:['2026-08-23','2027-06-30','منذ بداية العام الأكاديمي']}
+function prRange(per){const p=per||UI.prPer||'y';if(p==='y')return['2026-08-23','2027-06-30','منذ بداية العام الأكاديمي'];const q=ST_Q[+p];return q?[q[1],q[2],'خلال '+q[0]]:['2026-08-23','2027-06-30','منذ بداية العام الأكاديمي']}
 function prDepts(){return [...new Set((S.staff||[]).filter(t=>(t.sections||[]).length&&t.dept).map(t=>t.dept))].sort((a,b)=>a.localeCompare(b,'ar'))}
 /* حساب تحقيق الأولويات لفئة: all | acad | adm | dept:<اسم القسم> */
-function prCompute(cat){
-  const [from,to]=prRange();const inR=d=>{d=String(d||'').slice(0,10);return d&&d>=from&&d<=to};
+const PR_NONCORE=/إدارة الأعمال|الفنون|المهارات الحياتية|التربية البدنية/;
+function prCompute(cat,per){
+  const [from,to]=prRange(per);const inR=d=>{d=String(d||'').slice(0,10);return d&&d>=from&&d<=to};
   const ADM=AUTH.role==='admin';const dept=cat.startsWith('dept:')?cat.slice(5):(!ADM&&AUTH.prof&&AUTH.prof.dept)||'';
   const myD=((AUTH.prof&&AUTH.prof.depts)||[]);const scoped=!!dept||(!ADM&&myD.length&&!myD.some(d=>/جميع/.test(d)));
   const inD=d=>!scoped||(dept?norm(d||'')===norm(dept):myD.includes(norm(d||'')));
@@ -2672,44 +2676,51 @@ function prCompute(cat){
   const R=PRI.map(p=>({p,inds:[],nums:[],sv:SV.filter(v=>+v.pri===p.n)}));
   const ind=(i,l,v,t)=>{if(v!=null&&isFinite(v)){const pc=Math.round(v*100)+'%';R[i].inds.push({l,v:Math.max(0,Math.min(1,v)),t:pc,d:t&&t.indexOf('%')<0?t:(t||'').replace(/^\d+% · /,'')})}};
   const num=(i,l,n)=>{if(n)R[i].nums.push({l,n})};
+  const nc=!!dept&&PR_NONCORE.test(dept);const fill0=fill;const fillN=k=>nc?null:fill0(k);
   if(acad){
-    ind(0,'امتلاء السنابل الأساسية للمستهدفات',core,core!=null?Math.round(core*100)+'% · متوسط '+T.length+' حالة':null);ind(0,'تغطية المستهدفات بالحصص الإثرائية',fill(3),fT(3));ind(0,'التغذية الراجعة للمستهدفات',fill(4),fT(4));
-    if(ps.length)ind(0,'بلوغ المستهدفات هدفها الفردي',ps.filter(p=>p.met).length/ps.length,ps.filter(p=>p.met).length+' من '+ps.length);
+    if(!nc){ind(0,'امتلاء السنابل الأساسية للمستهدفات',core,core!=null?Math.round(core*100)+'% · متوسط '+T.length+' حالة':null);ind(0,'تغطية المستهدفات بالحصص الإثرائية',fill(3),fT(3));ind(0,'التغذية الراجعة للمستهدفات',fill(4),fT(4));}
+    if(ps.length&&!nc)ind(0,'بلوغ المستهدفات هدفها الفردي',ps.filter(p=>p.met).length/ps.length,ps.filter(p=>p.met).length+' من '+ps.length);
     num(0,'طالبة مستهدفة',new Set(T.map(t=>norm(t.row.name))).size);num(0,'حصة إثرائية',acts.filter(a=>a.type===3).length);num(0,'تغذية راجعة',acts.filter(a=>a.type===4).length);num(0,'ورقة طالبة حُلّلت',(S.evals||[]).filter(e=>+e.type===9&&inR(e.date)).length);
     ind(1,'المعلمات المشاركات في التطوير المهني',covK(['p']),cT(['p']));ind(1,'المعلمات المنفّذات للزيارة التبادلية',covK(['v']),cT(['v']));ind(1,'تغطية الحضور الصفي للمعلمات',cvCov,cvCov!=null?new Set(CV.map(x=>norm(x.t)).filter(n=>tN.has(n))).size+' من '+tch.length+' معلمة':null);ind(1,'المعلمات المقدّمات لتطوير الزميلات',covK(['w']),cT(['w']));
     num(1,'حضور تطوير مهني',cntK('p'));num(1,'تطوير للزميلات',cntK('w'));num(1,'زيارة تبادلية',cntK('v'));num(1,'زيارة صفية',CV.length);
-    ind(2,'المعلمات المنفّذات لأنشطة ومبادرات',covK(['a','i']),cT(['a','i']));ind(2,'تعزيز المستهدفات وتحفيزهن',fill(6),fT(6));ind(2,'الأنشطة وتعلّم الأقران للمستهدفات',fill(7),fT(7));
+    ind(2,'المعلمات المنفّذات لأنشطة ومبادرات',covK(['a','i']),cT(['a','i']));ind(2,'تعزيز المستهدفات وتحفيزهن',fillN(6),fT(6));ind(2,'الأنشطة وتعلّم الأقران للمستهدفات',fillN(7),fT(7));
     num(2,'نشاط وبرنامج',cntK('a'));num(2,'مبادرة',cntK('i'));num(2,'إنجاز ومشاركة',cntK('h'));num(2,'شهادة تكريم وتعزيز',acts.filter(a=>a.type===6).length);
-    ind(3,'التواصل مع أولياء أمور المستهدفات',fill(5),fT(5));ind(3,'مواثيق الشراكة للمستهدفات',fill(2),fT(2));ind(3,'المعلمات المتواصلات مع أولياء الأمور',covK(['o']),cT(['o']));
+    ind(3,'التواصل مع أولياء أمور المستهدفات',fillN(5),fT(5));ind(3,'مواثيق الشراكة للمستهدفات',fillN(2),fT(2));ind(3,'المعلمات المتواصلات مع أولياء الأمور',covK(['o']),cT(['o']));
     num(3,'تواصل مع ولي أمر',cntK('o'));num(3,'ميثاق شراكة',(S.charters||[]).length+Object.keys(S.charterRecv||{}).length);
   }
   R.forEach((r,i)=>r.sv.forEach(v=>{const a=svAg(v);ind(i,'رضا الطالبات: '+v.name.replace(/^رضا الطالبات عن /,''),a,a!=null?Math.round(a*100)+'% · متوسط موافقة '+(v.items||[]).length+' بنود':null)}));
   R.forEach(r=>{r.pct=r.inds.length?r.inds.reduce((a,x)=>a+x.v,0)/r.inds.length:null});
   const have=R.filter(r=>r.pct!=null);return{R,pct:have.length?have.reduce((a,r)=>a+r.pct,0)/have.length:null,tN:tch.length}
 }
+/* ترتيب الفرق (الأقسام + الكادر الإداري) في كل أولوية — يحسبه حساب الإدارة ويُنشر للمنسقات */
+function prRanksCompute(){const teams=prDepts().map(d=>['dept:'+d,d]).concat([['adm','الكادر الإداري']]);const out={};
+  ['y'].concat(ST_Q.map((q,i)=>String(i))).forEach(per=>{const rows=teams.map(([k,l])=>{const x=prCompute(k,per);return{k,l,a:x.pct==null?null:Math.round(x.pct*100),p:x.R.map(r=>r.pct==null?null:Math.round(r.pct*100))}});out[per]=rows});return{r:JSON.stringify(out)}}
+function prRanks(per){let all=null;try{all=AUTH.role==='admin'?JSON.parse(prRanksCompute().r):(window.__PRK?JSON.parse(window.__PRK.r||'{}'):null)}catch(_){}if(!all)return null;const rows=all[per||UI.prPer||'y']||[];
+  const rk=(get)=>{const v=rows.map(r=>({k:r.k,v:get(r)})).filter(x=>x.v!=null).sort((a,b)=>b.v-a.v);const m={};v.forEach((x,i)=>{m[x.k]=(i&&v[i-1].v===x.v)?m[v[i-1].k]:i+1});return{m,n:v.length}};
+  return{all:rk(r=>r.a),p:[0,1,2,3].map(i=>rk(r=>r.p[i]))}}
 function prText(r,catL,perL){const [lv]=prLevel(r.pct);if(r.pct==null)return 'لا توجد مؤشرات مسجلة لهذه الأولوية '+perL+'.';
   const top=r.inds.slice().sort((a,b)=>b.v-a.v),hi=top.filter(x=>x.v>=.6).slice(0,2),lo=top.filter(x=>x.v<.5).slice(-2);
   return 'تم '+perL+' تحقيق أولوية «'+r.p.s+'» على مستوى '+catL+' بنسبة <b>'+Math.round(r.pct*100)+'%</b> ('+lv+')'+(r.nums.length?'، وذلك من خلال '+r.nums.slice(0,4).map(x=>'<b>'+x.n+'</b> '+x.l).join('، و'):'')+'.'+(hi.length?' وتميّز الأداء في '+hi.map(x=>x.l+' ('+x.t+')').join(' و')+'.':'')+(lo.length?' ويُوصى بتعزيز '+lo.map(x=>x.l+' ('+x.t+')').join(' و')+' في الفترة القادمة.':'')}
 function vPrio(){
   const ADM=AUTH.role==='admin';const DS=prDepts();
-  let cat=UI.prCat||'all';if(!ADM){cat='dept:'+((AUTH.prof&&AUTH.prof.dept)||'')}
+  let cat=UI.prCat||'all';if(!ADM){const pd=(AUTH.prof&&AUTH.prof.dept)||((AUTH.prof&&AUTH.prof.depts)||[])[0]||'';const sd=(S.staff||[]).find(t=>norm(t.dept||'')===norm(pd));cat='dept:'+(sd?sd.dept:pd)}
   const catL=cat==='all'?'المدرسة':cat==='acad'?'الكادر الأكاديمي':cat==='adm'?'الكادر الإداري':'قسم '+cat.slice(5);
-  const [,,perL]=prRange();const X=prCompute(cat);
+  const [,,perL]=prRange();const X=prCompute(cat);const RK=(cat.startsWith('dept:')||cat==='adm')?prRanks():null;const rkT=(o)=>{if(!o)return '';const k=Object.keys(o.m).find(x=>norm(x)===norm(cat));return k?'الترتيب '+o.m[k]+' من '+o.n:''};
   let h='<div class="st-wrap pr-wrap"><div class="st-hero"><h2>تحقيق أولويات الشيماء</h2><p class="vs">﴿وَقُلِ اعْمَلُوا فَسَيَرَى اللَّهُ عَمَلَكُمْ وَرَسُولُهُ وَالْمُؤْمِنُونَ﴾<cite>التوبة: 105</cite></p>';
   if(ADM)h+='<div class="pr-cats noprint">'+[['all','المدرسة كاملة'],['acad','الكادر الأكاديمي'],['adm','الكادر الإداري']].map(([k,l])=>'<button type="button" data-prcat="'+k+'" class="'+(cat===k?'on':'')+'">'+l+'</button>').join('')+'<span class="sep"></span>'+DS.map(d=>'<button type="button" data-prcat="dept:'+esc(d)+'" class="'+(cat==='dept:'+d?'on':'')+'">'+esc(d)+'</button>').join('')+'</div>';
   h+='<div class="pr-per noprint"><select id="prPer">'+[['y','من بداية العام']].concat(ST_Q.map((q,i)=>[String(i),q[0]])).map(([v,l])=>'<option value="'+v+'"'+((UI.prPer||'y')===v?' selected':'')+'>'+l+'</option>').join('')+'</select><button type="button" class="st-print" data-prprint style="margin:0">🖨️ طباعة التقرير</button></div>';
   h+='<p class="sub" style="margin-bottom:14px">تحقيق '+catL+' لأولويات المدرسة '+perL+'، محسوبًا من سجلات سبع سنابل والميزان واستطلاعات الرضا.</p>';
-  const prR=(v,l,c)=>{const h=stRing(v||0,l,v==null?'لا توجد بيانات بعد':prLevel(v)[0],c);return v==null?h.replace('>0%</text>','>—</text>'):h};
-  h+='<div class="pr-ov">'+prR(X.pct,'التحقيق العام','#E9C46A')+X.R.map(r=>prR(r.pct,'الأولوية '+r.p.n,r.p.c)).join('')+'</div></div>';
-  h+='<details class="pr-how"><summary>ℹ️ كيف تُحسب النسبة؟</summary><ol><li><b>كل مؤشر نسبة مئوية لها بسط ومقام ظاهران بجانبها.</b> مثل: «تغطية المستهدفات بالحصص الإثرائية — 35 من 39 حالة» = 90%، أي أن 35 حالة من 39 حالة مستهدفة في هذه الفئة حصلت على حصة إثرائية واحدة على الأقل.</li><li><b>مقام مؤشرات الطالبات</b> = الحالات المستهدفة (طالبة أقل من 70% في مادة) في الفئة المختارة. <b>ومقام مؤشرات المعلمات</b> = معلمات الفئة المختارة (القسم كله، أو المدرسة كلها).</li><li><b>نسبة الأولوية</b> = متوسط مؤشراتها الظاهرة في بطاقتها. فإذا كانت مؤشراتها 90% و62% و72% فنسبتها (90+62+72)÷3 = 75%.</li><li><b>النسبة العامة</b> = متوسط الأولويات التي لها مؤشرات. والأولوية التي لا توجد لها بيانات بعد تظهر «—» ولا تدخل في المتوسط، فلا تظلم الفئة.</li><li><b>استطلاعات الرضا</b> تدخل مؤشرًا قيمته متوسط نسبة «موافق» في بنود الاستطلاع.</li><li><b>الفترة:</b> ما له تاريخ (الإجراءات، أعمال الميزان، الحضور الصفي، الاستطلاعات) يُحسب داخل الفترة المختارة، وامتلاء السنابل يُحسب على المستهدفات الحالية.</li></ol></details>';
+  const prR=(v,l,c,rk)=>{const h=stRing(v||0,l,v==null?'لا توجد بيانات بعد':prLevel(v)[0]+(rk?' · '+rk:''),c);return v==null?h.replace('>0%</text>','>—</text>'):h};
+  h+='<div class="pr-ov">'+prR(X.pct,'التحقيق العام','#E9C46A',RK&&rkT(RK.all))+X.R.map((r,i)=>prR(r.pct,'الأولوية '+r.p.n,r.p.c,RK&&rkT(RK.p[i]))).join('')+'</div></div>';
+  h+='<details class="pr-how"><summary>ℹ️ كيف تُحسب النسبة؟</summary><ol><li><b>كل مؤشر نسبة مئوية لها بسط ومقام ظاهران بجانبها.</b> مثل: «تغطية المستهدفات بالحصص الإثرائية — 35 من 39 حالة» = 90%، أي أن 35 حالة من 39 حالة مستهدفة في هذه الفئة حصلت على حصة إثرائية واحدة على الأقل.</li><li><b>مقام مؤشرات الطالبات</b> = الحالات المستهدفة (طالبة أقل من 70% في مادة) في الفئة المختارة. <b>ومقام مؤشرات المعلمات</b> = معلمات الفئة المختارة (القسم كله، أو المدرسة كلها).</li><li><b>نسبة الأولوية</b> = متوسط مؤشراتها الظاهرة في بطاقتها. فإذا كانت مؤشراتها 90% و62% و72% فنسبتها (90+62+72)÷3 = 75%.</li><li><b>النسبة العامة</b> = متوسط الأولويات التي لها مؤشرات. والأولوية التي لا توجد لها بيانات بعد تظهر «—» ولا تدخل في المتوسط، فلا تظلم الفئة.</li><li><b>الترتيب</b> = ترتيب القسم بين جميع الأقسام والكادر الإداري في نسبة الأولوية، فالأعلى نسبة هو الأول.</li><li><b>أقسام إدارة الأعمال والفنون البصرية والمهارات الحياتية والتربية البدنية</b> لا تُطلب منها الحصص الإثرائية ولا متابعة المستهدفات، فتُحسب نسبتها من مؤشرات المعلمات فقط، إنصافًا لها.</li><li><b>استطلاعات الرضا</b> تدخل مؤشرًا قيمته متوسط نسبة «موافق» في بنود الاستطلاع.</li><li><b>الفترة:</b> ما له تاريخ (الإجراءات، أعمال الميزان، الحضور الصفي، الاستطلاعات) يُحسب داخل الفترة المختارة، وامتلاء السنابل يُحسب على المستهدفات الحالية.</li></ol></details>';
   if(ADM)h+='<div class="pr-adm noprint"><button type="button" class="btn" data-prsv>📋 الاستطلاعات ('+prSurveys().length+')</button></div>';
-  X.R.forEach(r=>{const [lv,lc]=prLevel(r.pct);
-    h+='<section class="pr-card"><div class="pr-head" style="background:linear-gradient(120deg,'+r.p.c+','+r.p.c+'CC)"><span class="no">'+r.p.n+'</span><div><h4>الأولوية '+['الأولى','الثانية','الثالثة','الرابعة'][r.p.n-1]+': '+r.p.s+'</h4><p>'+r.p.t+'</p></div><div class="pc"><b>'+(r.pct==null?'—':Math.round(r.pct*100)+'%')+'</b><span style="color:'+lc+'">'+lv+'</span></div></div><div class="pr-body">';
+  X.R.forEach((r,ri)=>{const [lv,lc]=prLevel(r.pct);const rkx=RK&&rkT(RK.p[ri]);
+    h+='<section class="pr-card"><div class="pr-head" style="background:linear-gradient(120deg,'+r.p.c+','+r.p.c+'CC)"><span class="no">'+r.p.n+'</span><div><h4>الأولوية '+['الأولى','الثانية','الثالثة','الرابعة'][r.p.n-1]+': '+r.p.s+'</h4><p>'+r.p.t+'</p></div><div class="pc"><b>'+(r.pct==null?'—':Math.round(r.pct*100)+'%')+'</b><span style="color:'+lc+'">'+lv+'</span>'+(rkx?'<span class="rk">🏅 '+rkx+'</span>':'')+'</div></div><div class="pr-body">';
     h+='<div class="pr-blk"><h5>مؤشرات التحقيق</h5>'+(r.inds.length?stBars(r.inds.map(x=>({l:x.l+(x.d?' — '+x.d:''),v:x.v,t:x.t,c:x.v>=.8?'#2E8B57':x.v>=.6?'#7CC36A':x.v>=.4?'#E2B832':'#D04E5B'})),{max:1}):'<div class="pr-empty">لا توجد مؤشرات مسجلة لهذه الفئة بعد.</div>')+'</div>';
     h+='<div class="pr-blk"><h5>بالأرقام</h5>'+(r.nums.length?stTiles(r.nums.map((x,i)=>({l:x.l,n:x.n,c:[r.p.c,'#4E7D96','#8A4FB0','#D0703A'][i%4]}))):'<div class="pr-empty">—</div>')+r.sv.map(v=>'<div class="pr-sv"><div class="hd"><span>📋 '+esc(v.name)+'</span><small>'+(v.n?v.n+' طالبة · ':'')+(v.by?esc(v.by):'')+'</small></div>'+(v.items||[]).map(x=>'<div class="pr-row"><span class="l" title="'+esc(x[0])+'">'+esc(x[0])+'</span><span class="pr-stk"><i style="width:'+(+x[1]||0)+'%;background:#2E8B57"></i><i style="width:'+(+x[2]||0)+'%;background:#E2C27A"></i><i style="width:'+(+x[3]||0)+'%;background:#C8553D"></i></span><span class="r">'+(+x[1]||0)+'%</span></div>').join('')+'<div class="st-legend" style="margin-top:6px"><span><i style="background:#2E8B57"></i>موافق</span><span><i style="background:#E2C27A"></i>محايد</span><span><i style="background:#C8553D"></i>غير موافق</span></div></div>').join('')+'</div>';
     h+='<div class="pr-txt">'+prText(r,catL,perL)+'</div></div></section>'});
-  if(ADM&&(cat==='all'||cat==='acad')){const rows=[{d:'المدرسة كاملة',x:prCompute('all'),b:1},{d:'الكادر الأكاديمي',x:prCompute('acad'),b:1},{d:'الكادر الإداري',x:prCompute('adm'),b:1}].concat(DS.map(d=>({d:'قسم '+d,x:prCompute('dept:'+d)})));
-    h+=stCard('🏛️','تحقيق الفئات والأقسام للأولويات','نسبة تحقيق كل فئة لكل أولوية '+perL+'. تُحسب نسبة الأولوية متوسطًا لمؤشراتها، والنسبة العامة متوسطًا للأولويات.','<div class="tbl-wrap"><table class="st-heat"><thead><tr><th style="text-align:right">الفئة</th>'+PRI.map(p=>'<th>الأولوية '+p.n+'</th>').join('')+'<th>العام</th></tr></thead><tbody>'+rows.map(({d,x,b})=>'<tr'+(b?' style="font-weight:900"':'')+'><td class="d"'+(b?' style="color:var(--maroon)"':'')+'>'+esc(d)+'</td>'+x.R.map(r=>r.pct==null?'<td>—</td>':'<td style="background:'+stHeatBg(r.pct)+';color:'+stHeatFg(r.pct)+'">'+Math.round(r.pct*100)+'%</td>').join('')+(x.pct==null?'<td>—</td>':'<td style="background:'+stHeatBg(x.pct)+';color:'+stHeatFg(x.pct)+'">'+Math.round(x.pct*100)+'%</td>')+'</tr>').join('')+'</tbody></table></div>',true)}
+  if(ADM&&(cat==='all'||cat==='acad')){const RA=prRanks();const rows=[{d:'المدرسة كاملة',x:prCompute('all'),b:1},{d:'الكادر الأكاديمي',x:prCompute('acad'),b:1},{d:'الكادر الإداري',x:prCompute('adm'),k:'adm'}].concat(DS.map(d=>({d:'قسم '+d,x:prCompute('dept:'+d),k:'dept:'+d})));const rkc=(o,k)=>o&&k&&o.m[k]?'<small style="display:block;font-size:11px;opacity:.85">'+o.m[k]+' من '+o.n+'</small>':'';
+    h+=stCard('🏛️','تحقيق الفئات والأقسام للأولويات','نسبة تحقيق كل فئة لكل أولوية '+perL+'، وتحت كل نسبة ترتيب القسم بين الأقسام والكادر الإداري. تُحسب نسبة الأولوية متوسطًا لمؤشراتها، والنسبة العامة متوسطًا للأولويات.','<div class="tbl-wrap"><table class="st-heat"><thead><tr><th style="text-align:right">الفئة</th>'+PRI.map(p=>'<th>الأولوية '+p.n+'</th>').join('')+'<th>العام</th></tr></thead><tbody>'+rows.map(({d,x,b,k})=>'<tr'+(b?' style="font-weight:900"':'')+'><td class="d"'+(b?' style="color:var(--maroon)"':'')+'>'+esc(d)+'</td>'+x.R.map((r,i)=>r.pct==null?'<td>—</td>':'<td style="background:'+stHeatBg(r.pct)+';color:'+stHeatFg(r.pct)+'">'+Math.round(r.pct*100)+'%'+rkc(RA&&RA.p[i],k)+'</td>').join('')+(x.pct==null?'<td>—</td>':'<td style="background:'+stHeatBg(x.pct)+';color:'+stHeatFg(x.pct)+'">'+Math.round(x.pct*100)+'%'+rkc(RA&&RA.all,k)+'</td>')+'</tr>').join('')+'</tbody></table></div>',true)}
   window.__PRSUM={catL,perL,pct:X.pct};setTimeout(stCount,40);return h+'</div>'}
 function prSvModal(){const L=prSurveys();const DS=prDepts();
   modal('<h3 style="margin-top:0">استطلاعات الرضا</h3><p class="small muted">تدخل نتائج كل استطلاع في الأولوية التي تختارينها، فيُحسب متوسط نسبة الموافقة مؤشرًا من مؤشراتها.</p><ul class="pr-sl">'+(L.length?L.map(v=>'<li><span>'+esc(v.name)+' <small class="muted">· الأولوية '+v.pri+' · '+(v.cat==='adm'?'الكادر الإداري':v.cat==='acad'?'الكادر الأكاديمي':esc(String(v.cat).slice(5)))+' · '+esc(v.d)+'</small></span><button type="button" class="btn sm ghost" data-prsvdel="'+esc(v.id)+'">حذف</button></li>').join(''):'<li>لا توجد استطلاعات بعد.</li>')+'</ul>'+
