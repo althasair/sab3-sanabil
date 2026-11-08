@@ -2162,7 +2162,7 @@ async function adminLoad(){
       if(cloudAt&&!localDirty){const parts=await Promise.all([...Array(md.n||0).keys()].map(i=>CLOUD.db.collection('adm').doc('s'+i).get()));const txt=parts.map(p=>p.exists?p.data().t:'').join('');cloud=JSON.parse(txt)}}}catch(e){console.error(e);toast('تعذّر قراءة نسخة قاعدة البيانات، وتم فتح نسخة هذا الجهاز',5000)}
   if(cloud){try{if(!S.demo&&S.roster&&S.roster.length)localStorage.setItem('sab3_backup_before_cloud',JSON.stringify(S))}catch(_){}S=normState(cloud);try{localStorage.setItem(STORE,JSON.stringify(S));localStorage.setItem('sab3_last_sync',S.savedAt||cloudAt||'')}catch(_){}}
   D=derive(S);render();
-  CLOUD.unsub=CLOUD.db.collection('entries').onSnapshot(q=>{CLOUD.entries=new Map();q.forEach(d=>CLOUD.entries.set(d.id,d.data()));mergeEntries();D=derive(S);render();schedulePush()},e=>console.warn(e));
+  CLOUD.unsub=CLOUD.db.collection('entries').onSnapshot(q=>{CLOUD.entries=new Map();q.forEach(d=>CLOUD.entries.set(d.id,d.data()));mergeEntries();D=derive(S);render();schedulePush();try{entDeptFix()}catch(_){}},e=>console.warn(e));
   if(!cloud)schedulePush(500);
   loadReads();loadMizan();
 }
@@ -2188,8 +2188,10 @@ async function viewerLoad(){
   CLOUD.unsub=CLOUD.db.collection('entries').onSnapshot(q=>{CLOUD.entries=new Map();q.forEach(d=>CLOUD.entries.set(d.id,d.data()));mergeEntries();D=derive(S);render()},e=>console.warn(e));
 }
 /* أقسام معلمات العلوم العامة: رؤى مع الأحياء، ورولا مع الكيمياء (مثل توزيع المعلمات الأصلي) */
-const STAFF_DEPT_FIX=[['رؤى صبحي','الأحياء'],['رولا عيد','الكيمياء']];
-function fixStaff(a){(a||[]).forEach(t=>{if(!t||norm(t.dept||'')!==norm('العلوم العامة'))return;const f=STAFF_DEPT_FIX.find(([n])=>norm(t.name).startsWith(norm(n)));if(f)t.dept=f[1]});return a}
+const STAFF_DEPT_FIX=[['رؤى صبحي','الأحياء'],['رولا عيد','الكيمياء'],['نهى محسن','الفيزياء'],['بشرى جمعه','الأحياء'],['اسراء عزت','الكيمياء']];
+function fixStaff(a){(a||[]).forEach(t=>{if(!t)return;const f=STAFF_DEPT_FIX.find(([n])=>norm(t.name).startsWith(norm(n)));if(f&&norm(t.dept||'')!==norm(f[1]))t.dept=f[1]});return a}
+/* تصحيح قسم الإجراءات القديمة لمعلمات العلوم (رؤى/بشرى ← الأحياء، رولا/إسراء ← الكيمياء، نهى ← الفيزياء) حتى تراها منسقتها وتعتمدها */
+const __ENTFIX=new Set();function entDeptFix(){if(AUTH.role!=='admin'||!CLOUD.ok||!CLOUD.entries)return;const ST=fixStaff((S.staff||[]).slice());CLOUD.entries.forEach((e,id)=>{if(__ENTFIX.has(id)||!e||!e.key)return;const kt=ST.find(t=>staffKeys(t).includes(e.key));let dp=kt?norm(kt.dept||''):'';if(!dp){const f=STAFF_DEPT_FIX.find(([n])=>norm(e.teacher||'').startsWith(norm(n)));if(f)dp=norm(f[1])}if(dp&&dp!==e.dept){__ENTFIX.add(id);CLOUD.db.collection('entries').doc(id).update({dept:dp}).catch(err=>console.warn(err))}})}
 function normState(x){fixStaff(x.staff);x.roster=Array.isArray(x.roster)?x.roster.filter(r=>r&&!/^[\d.\s]+$/.test(String(r.subject||''))&&!/^(الرقم|الاسم|الرقم الشخصي|الشعبه الصفيه)$/.test(norm(r.subject||''))&&!(r.scores||[]).some(v=>v>100)):[];x.actions=Array.isArray(x.actions)?x.actions:[];x.charters=Array.isArray(x.charters)?x.charters:[];x.settings=Object.assign({},DEFAULT_SETTINGS,x.settings||{});if(!Array.isArray(x.staff)||!x.staff.length)x.staff=DEFAULT_STAFF.map(t=>Object.assign({email:'',phone:''},t));x.roster.forEach(r=>{if(!Array.isArray(r.scores))r.scores=[];while(r.scores.length<4)r.scores.push(null)});return x}
 function entryToAct(id,e){return{date:e.date||'',teacher:e.teacher||'',section:e.section||'',subject:e.subject||'',students:Array.isArray(e.students)?e.students:[],whole:!!e.whole,absent:Array.isArray(e.absent)?e.absent:[],type:+e.type||3,detail:e.detail||'',evidence:e.evid?'صورة':'',evid:e.evid||'',pending:APPROVE_TYPES.includes(+e.type)&&e.ok!==true,aw:+e.type===3&&!e.whole&&e.ok!==true,ok:e.ok===true,back:e.back||'',okBy:e.okBy||'',src:'teacher',eid:id,uid:e.uid||'',by:e.byName||''}}
 function mergeEntries(){const keep=S.actions.filter(a=>!a.eid),ev=[];CLOUD.entries.forEach((e,id)=>{if(+e.type===8||+e.type===9)ev.push(Object.assign({eid:id},e));else keep.push(entryToAct(id,e))});S.actions=keep;S.evals=(S.evals||[]).filter(x=>!x.eid).concat(ev)}

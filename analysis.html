@@ -462,7 +462,7 @@ try{const x=JSON.parse(localStorage.getItem(KEY)||'null');if(x&&typeof x==='obje
 /* تنظيف: درجات حُفظت سابقًا تحت «مادة» رقمية بسبب كشف المادة الواحدة */
 try{Object.values(S.cur||{}).forEach(b=>Object.values(b).forEach(o=>{Object.keys(o.g||{}).forEach(k=>{if(/^[\d.\s]+$/.test(k))delete o.g[k]})}))}catch(e){}
 function save(){if(typeof CLD!=='undefined'&&CLD.ro)return;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){toast('تعذّر الحفظ في المتصفح')}if(typeof anaPushSoon==='function')anaPushSoon()}
-function fixStaffA(a){const F=[['رؤى صبحي','الأحياء'],['رولا عيد','الكيمياء']];(a||[]).forEach(t=>{if(!t||nkA(t.dept||'')!==nkA('العلوم العامة'))return;const f=F.find(([n])=>nkA(t.name).startsWith(nkA(n)));if(f)t.dept=f[1]});return a}
+function fixStaffA(a){const F=[['رؤى صبحي','الأحياء'],['رولا عيد','الكيمياء'],['نهى محسن','الفيزياء'],['بشرى جمعه','الأحياء'],['اسراء عزت','الكيمياء']];(a||[]).forEach(t=>{if(!t)return;const f=F.find(([n])=>nkA(t.name).startsWith(nkA(n)));if(f&&nkA(t.dept||'')!==nkA(f[1]))t.dept=f[1]});return a}
 function sanStaff(){try{const x=JSON.parse(localStorage.getItem(SAN)||'null');if(x&&Array.isArray(x.staff)&&x.staff.length&&x.staff.some(t=>t.sections&&t.sections.length))return fixStaffA(x.staff)}catch(e){}return null}
 const UI={tab:'overview',per:null,lvl:'',sec:'',sub:'',nat:'',cat:'',pf:'',sort:'tot'};
 
