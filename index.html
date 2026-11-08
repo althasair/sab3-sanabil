@@ -2243,7 +2243,8 @@ function pubStats(){const T=D.targets;const got=T.reduce((x,t)=>x+t.core,0);retu
 async function scopedLoad(){
   const P=AUTH.prof;const st=blankState();
   try{const c=await CLOUD.db.collection('shared').doc('cfg').get();if(c.exists){const cd=c.data();st.settings=Object.assign({},DEFAULT_SETTINGS,cd.settings||{});try{const sg=await CLOUD.db.collection('shared').doc('sig').get();if(sg.exists&&sg.data().sig)st.settings.sig=sg.data().sig}catch(_){}const all=fixStaff(cd.staff||[]);
-      st.staff=(AUTH.role==='coord'||AUTH.role==='viewer')?all.filter(t=>P.depts.includes(norm(t.dept))):all.filter(t=>norm(t.name)===P.nk)}}catch(e){console.warn(e)}
+      st.staff=(AUTH.role==='coord'||AUTH.role==='viewer')?all.filter(t=>P.depts.includes(norm(t.dept))):all.filter(t=>norm(t.name)===P.nk);
+      if(AUTH.role==='coord'){const me=all.find(t=>norm(t.name)===P.nk)||fuzzyStaff0(P.nk,all)||(P.name?fuzzyStaff0(P.name,all):null);if(me&&(me.sections||[]).length){P.me=me;if(!st.staff.includes(me))st.staff.push(me)}}}}catch(e){console.warn(e)}
   P.keys=[...new Set(st.staff.flatMap(staffKeys))];if(AUTH.role==='teacher'&&st.staff[0])P.name=st.staff[0].name;if((AUTH.role==='coord'||AUTH.role==='viewer')&&st.staff[0])P.dept=[...new Set(st.staff.map(t=>t.dept))].join('، ');
   if(!st.staff.length)AUTH.err=(AUTH.role==='coord'||AUTH.role==='viewer')?'لم يُعثر على معلمات قسمك في توزيع المعلمات بسبع سنابل. تواصلي مع النائب الأكاديمي.':'لم يُعثر على اسمك في توزيع المعلمات بسبع سنابل. تواصلي مع النائب الأكاديمي.';else AUTH.err='';
   const keys=P.keys;const docs=await Promise.all(keys.map(k=>CLOUD.db.collection('sec').doc(k).get().catch(()=>null)));
@@ -2336,12 +2337,18 @@ function behFields(subj,sec){const pe=/بدني/.test(norm(subj));const g12=Stri
   const F=pe?[['الالتزام بالزي الرياضي','sel',B_FQ],['التفاعل أثناء الحصة','sel',B_FQ],['السلوك في القاعة الرياضية','sel',B_BH]]
    :[['التقييم الأول (من 20)','num',20],['التقييم الثاني (من 20)','num',20],['واجب ورقي 1 (من 2)','num',2],['واجب ورقي 2 (من 2)','num',2],['واجب إلكتروني 1 (من 2)','num',2],['واجب إلكتروني 2 (من 2)','num',2],['المشاركة (من 5)','num',5],['إحضار الأدوات والكتاب المدرسي والدفاتر','sel',B_FQ],['سلوك الطالبة في الصف','sel',B_BH]];
   if(g12)F.push(['المستوى الأكاديمي العام','sel',B_LV]);return F}
-function behMine(){const P=AUTH.prof||{};return (S.staff||[]).filter(t=>AUTH.role==='teacher'||norm(t.name)===P.nk)}
+function behMine(){const P=AUTH.prof||{};const st=S.staff||[];if(AUTH.role==='teacher')return st;
+  let m=st.filter(t=>norm(t.name)===P.nk);if(!m.length){const f=fuzzyStaff(P.nk)||fuzzyStaff(P.name);if(f)m=st.filter(t=>norm(t.name)===norm(f.name))}
+  if(!m.length&&P.me)m=[P.me];return m}
 function behGroups(){const out=[];behMine().forEach(t=>(t.sections||[]).forEach(sec=>{const s=secKey(sec);out.push({id:AUTH.user.uid+'__'+docKey(s,subjKey(t.subject)),sec:s,subj:t.subject,teacher:t.name,dept:t.dept||''})}));
   return out.sort((a,b)=>a.sec.localeCompare(b.sec,undefined,{numeric:true}))}
 function behStudents(sec){const seen=new Set();return (S.enroll||[]).filter(e=>secKey(e.section)===sec).map(e=>String(e.name).trim()).filter(n=>{const k=norm(n);if(seen.has(k))return false;seen.add(k);return true}).sort((a,b)=>a.localeCompare(b,'ar'))}
-async function behLoad(){if(BEH.loaded||!CLOUD.ok||!AUTH.user)return;BEH.loaded=true;
+async function behLoad(){if(AUTH.user&&BEH.mz!==AUTH.user.uid){BEH.mz=AUTH.user.uid;behMz()}if(BEH.loaded||!CLOUD.ok||!AUTH.user)return;BEH.loaded=true;
   try{const q=await CLOUD.db.collection('beh').where('uid','==',AUTH.user.uid).get();q.forEach(d=>{BEH.docs[d.id]=d.data()})}catch(e){console.warn(e)}render()}
+async function behMz(){try{const G=behGroups();if(!G.some(g=>!behStudents(g.sec).length))return;let tk='';try{tk=sessionStorage.getItem('mizan_token')||''}catch(_){}if(!tk)return;
+  const r=await fetch(MIZAN_API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'myStudents',token:tk}),redirect:'follow'});const j=await r.json();if(!j.ok||!Array.isArray(j.students))return;
+  const have=new Set((S.enroll||[]).map(e=>norm(e.name)+'|'+secKey(e.section)));const miss=new Set(G.filter(g=>!behStudents(g.sec).length).map(g=>g.sec));let n=0;
+  j.students.forEach(x=>{const sec=secKey(x.s);if(!miss.has(sec)||!x.n)return;const k=norm(x.n)+'|'+sec;if(have.has(k))return;have.add(k);(S.enroll=S.enroll||[]).push({name:String(x.n).trim(),section:sec});n++});if(n)render()}catch(e){console.warn(e)}}
 function behGet(g){const d=BEH.docs[g.id];const m={};((d&&d.stu)||[]).forEach(s=>m[norm(s.n)]=s.v||{});return m}
 function behCount(g){const F=behFields(g.subj,g.sec);const m=behGet(g);const st=behStudents(g.sec);let done=0;st.forEach(n=>{const v=m[norm(n)]||{};if(v[B_CHOOSE]==='لا'||F.every(([h])=>v[h]!==undefined&&v[h]!==''))done++});return{done,total:st.length}}
 window.vBeh=function(){
