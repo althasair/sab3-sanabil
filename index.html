@@ -1189,7 +1189,7 @@ function okCell(a){if(!needsOk(a))return '';const ind=a.type===3&&!a.whole;
   if(canOk(a))h+='<div class="row" style="gap:6px;margin-top:4px"><button type="button" class="btn sm gold" data-okent="'+esc(a.eid)+'">يعتمد</button><button type="button" class="btn sm" data-backent="'+esc(a.eid)+'">يُعاد للمعلمة</button></div>';return h}
 document.addEventListener('click',async e=>{const ok=e.target.closest&&e.target.closest('[data-okent]'),bk=e.target.closest&&e.target.closest('[data-backent]');if((!ok&&!bk)||!CLOUD.ok)return;
   const id=(ok||bk).dataset[ok?'okent':'backent'];const who=(AUTH.prof&&AUTH.prof.name)||'';let upd;
-  if(ok){if(!confirm('اعتماد هذا الإجراء يعني أنكِ اطّلعتِ على أدلته وتتحملين صحة بياناته. هل تعتمدينه؟'))return;upd={ok:true,okBy:who,okAt:new Date().toISOString(),back:''}}
+  if(ok){if(!confirm(OK_PLEDGE+'\n\nهل تعتمدين هذا الإجراء؟'))return;upd={ok:true,okBy:who,okAt:new Date().toISOString(),back:''}}
   else{const r=prompt('سبب الإعادة للمعلمة (مختصر):','الأدلة غير مكتملة');if(r==null)return;upd={ok:false,okBy:who,okAt:new Date().toISOString(),back:String(r).slice(0,120)||'أُعيد للمراجعة'}}
   try{await CLOUD.db.collection('entries').doc(id).update(upd);toast(ok?'تم الاعتماد ✓':'أُعيد الإجراء للمعلمة')}catch(err){console.warn(err);toast('تعذّر الحفظ: لا تملكين صلاحية على هذا الإجراء')}});
 {const _dv=derive;derive=function(st){if(st&&Array.isArray(st.actions)&&st.actions.some(a=>a.pending))return _dv(Object.assign({},st,{actions:st.actions.filter(a=>!a.pending)}));return _dv(st)}}
@@ -1923,9 +1923,10 @@ function cheer(kind,extra){const nm=sN(((AUTH.prof||{}).name)||'');const first=S
   const K=typeof kind==='number'?KEYS[kind-1].name:'';
   const M={cert:['جزاكِ الله خيرًا '+nmT+'🤍','تعزيزكِ لطالبتكِ يرفع معنوياتها، ويُسهم في رفع تحصيلها الأكاديمي. وقد رُصد التعزيز لها تلقائيًا في سنبلة «التعزيز والتحفيز» وحُسب لكِ، فلا حاجة لرصده مرة أخرى.'],
    eval:['شكرًا لكِ '+nmT+'🤍','متابعتكِ الدقيقة لطالبتكِ تصل إلى ولي أمرها في تقريرها الشهري، فيكون شريكًا معكِ في دعمها.'],
+   beh:['أحسنتِ معلمتي الفاضلة '+nmT+'🤍','لقد انتهيتِ من رصد التقرير الأكاديمي السلوكي لجميع طالباتكِ، فشكرًا لكِ على جهدكِ ومتابعتكِ. وأتمنى أن تكوني قد تحرّيتِ الدقة في رصده؛ فهو يصل إلى ولي الأمر صورةً صادقة عن ابنته.'],
    pa:['أحسنتِ '+nmT+'🤍','تحليلكِ لورقة طالبتكِ هو أول طريق علاجها؛ فمن عرف موضع الضعف أحسن الدواء. وقد حُفظ التحليل وأُضيف إلى ملفها.']}[kind]||['شكرًا لكِ على إضافة «'+K+'» '+nmT+'🤍','سيُضاف إلى تقريركِ، ويُحسب لكِ في السنابل، وتُنبت لكِ به سنبلة جديدة في حقلكِ؛ ﴿وَاللَّهُ يُضَاعِفُ لِمَن يَشَاءُ﴾.'];
   let stars='';for(let i=0;i<7;i++)stars+='<span class="chs'+(i<st?' on':'')+'">★</span>';
-  modal('<div class="cheer"><div class="chconf" aria-hidden="true">'+['🌾','✨','🤍','⭐','🌾','✨','⭐','🤍'].map((c,i)=>'<i style="--d:'+(i*0.12)+'s;--x:'+((i%2?1:-1)*(20+i*18))+'px">'+c+'</i>').join('')+'</div><div class="chi">'+(kind==='cert'?'🏅':kind==='pa'?'🔍':'🌾')+'</div><h3>'+M[0]+'</h3><p>'+M[1]+(extra?' '+esc(extra):'')+'</p><div class="chst">'+stars+'</div><p class="chdu">🤲 دعوة في ظهر الغيب: كتب الله أجركِ، وجعل ما تقدّمينه في ميزان حسناتكِ.</p><div class="row" style="justify-content:center"><button class="btn pri" data-close>آمين، شكرًا</button></div></div>')}
+  modal('<div class="cheer"><div class="chconf" aria-hidden="true">'+['🌾','✨','🤍','⭐','🌾','✨','⭐','🤍'].map((c,i)=>'<i style="--d:'+(i*0.12)+'s;--x:'+((i%2?1:-1)*(20+i*18))+'px">'+c+'</i>').join('')+'</div><div class="chi">'+(kind==='cert'?'🏅':kind==='beh'?'🏆':kind==='pa'?'🔍':'🌾')+'</div><h3>'+M[0]+'</h3><p>'+M[1]+(extra?' '+esc(extra):'')+'</p><div class="chst">'+stars+'</div><p class="chdu">🤲 دعوة في ظهر الغيب: كتب الله أجركِ، وجعل ما تقدّمينه في ميزان حسناتكِ.</p><div class="row" style="justify-content:center"><button class="btn pri" data-close>آمين، شكرًا</button></div></div>')}
 
 /* بطاقة الالتزام في تقرير الطالبة */
 function evBlock(name,sec,from,to){const E=stuEvals(name,sec).filter(e=>(!from||e.date>=from)&&(!to||e.date<=to));if(!E.length)return '';const last={};E.forEach(e=>last[subjKey(e.subject)]=e);const L=Object.values(last);
@@ -2372,7 +2373,20 @@ render=function(){
   if(AUTH.role==='loading'){try{renderNav();renderChrome()}catch(_){}$('#view').innerHTML='<section class="panel" style="text-align:center;padding:50px"><div class="small muted">جارٍ تحميل المنصة…</div></section>';return}
   if(AUTH.role==='guest'){try{renderNav();renderChrome()}catch(_){}$('#view').innerHTML=vGuest();return}
   if(!tabOK(UI.tab))UI.tab='home';_render();if(AUTH.err&&AUTH.role!=='admin'){const v=$('#view');if(v)v.insertAdjacentHTML('afterbegin','<div class="demo-bar"><b>'+esc(AUTH.err)+'</b></div>')}};
-const _manualLog=manualLog;manualLog=function(){return _manualLog()+entriesLog()};
+const _manualLog=manualLog;manualLog=function(){return okPanel()+_manualLog()+entriesLog()};
+/* اعتماد المنسقة دفعة واحدة لكل طالبة (أو لكل المعلّق للمعلمة)، مع إقرارها بمسؤولية الاعتماد */
+const OK_PLEDGE='إقرار المنسقة: باعتمادي هذه الإجراءات أُقرّ بأنني اطّلعتُ على أدلتها، وهي تواقيع الطالبات في الحصص الإثرائية الفردية، والتغذية الراجعة المكتوبة لكل طالبة، وأتحمّل مسؤولية الاعتماد بوصفه توثيقًا رسميًا لها.';
+function okPend(){return S.actions.filter(a=>a.src==='teacher'&&a.eid&&!a.ok&&!a.back&&canOk(a))}
+function okPanel(){const L=okPend();if(!L.length)return '';const by={};L.forEach(a=>{const st=(a.students||[]).length?a.students:['(الشعبة كاملة)'];st.forEach(n=>{const k=a.teacher+'|'+n+'|'+secKey(a.section)+'|'+a.subject;(by[k]=by[k]||{t:a.teacher,n,s:secKey(a.section),u:a.subject,ids:new Set(),ty:{}});by[k].ids.add(a.eid);by[k].ty[a.type]=(by[k].ty[a.type]||0)+1})});
+  const G=Object.values(by).sort((x,y)=>x.t.localeCompare(y.t,'ar')||x.s.localeCompare(y.s,undefined,{numeric:true})||x.n.localeCompare(y.n,'ar'));const T=[...new Set(L.map(a=>a.teacher))];
+  return '<section class="panel"><h3>بانتظار اعتمادكِ<small>'+L.length+' إجراء · '+G.length+' طالبة</small></h3><p class="small" style="background:#FFF4E5;border:1px solid #F2C98A;border-radius:10px;padding:8px 12px;line-height:1.9;text-align:justify;margin:0 0 10px"><b>'+OK_PLEDGE+'</b></p>'+
+    '<div class="row" style="gap:6px;flex-wrap:wrap;margin-bottom:10px">'+T.map(t=>'<button type="button" class="btn sm" data-okteach="'+esc(t)+'">اعتماد كل المعلّق لـ '+esc(nm3(t))+' ('+L.filter(a=>a.teacher===t).length+')</button>').join('')+'</div>'+
+    '<div class="tbl-wrap"><table><thead><tr><th>المعلمة</th><th>الطالبة</th><th>الشعبة والمادة</th><th>الإجراءات المعلّقة</th><th></th></tr></thead><tbody>'+G.map(g=>'<tr><td class="small">'+esc(nm3(g.t))+'</td><td style="white-space:nowrap"><b>'+esc(nmStu(g.n))+'</b></td><td class="small">'+esc(g.s)+' · '+esc(g.u)+'</td><td class="small">'+Object.entries(g.ty).map(([k,n])=>KEYS[k-1].name+' ('+n+')').join('، ')+'</td><td><button type="button" class="btn sm gold" data-okstu="'+esc([...g.ids].join(','))+'">اعتماد إجراءات الطالبة ('+g.ids.size+')</button></td></tr>').join('')+'</tbody></table></div></section>'}
+async function okMany(ids){if(!ids.length||!CLOUD.ok)return;if(!confirm(OK_PLEDGE+'\n\nهل تعتمدين ('+ids.length+') إجراء؟'))return;const who=(AUTH.prof&&AUTH.prof.name)||'';const at=new Date().toISOString();let n=0;
+  for(const id of ids){try{await CLOUD.db.collection('entries').doc(id).update({ok:true,okBy:who,okAt:at,back:''});n++}catch(e){console.warn(e)}}
+  toast(n===ids.length?'تم اعتماد '+n+' إجراء ✓':'تم اعتماد '+n+' من '+ids.length+'، وتعذّر الباقي',5000)}
+document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-okstu],[data-okteach]');if(!t)return;
+  const ids=t.dataset.okstu!=null?t.dataset.okstu.split(',').filter(Boolean):okPend().filter(a=>a.teacher===t.dataset.okteach).map(a=>a.eid);okMany([...new Set(ids)])});
 const _vData=vData;vData=function(){const h=_vData();const i=h.indexOf('</header>');return i<0?accountsPanel()+h:h.slice(0,i+9)+accountsPanel()+h.slice(i+9)};
 function vGuest(){const p=CLOUD.pub;const tile=(c,k,v,s)=>'<div class="tile '+c+'"><span class="k">'+k+'</span><span class="v">'+v+'</span><span class="s">'+s+'</span></div>';
   return (AUTH.err?'<div class="demo-bar"><b>'+esc(AUTH.err)+'</b></div>':'')+
@@ -2438,7 +2452,13 @@ async function behSave(){const G=behGroups();const g=G.find(x=>x.id===BEH.sel);i
   const F=behFields(g.subj,g.sec);const st=behStudents(g.sec);
   const stu=st.map(n=>{const o=(d.stu.find(x=>norm(x.n)===norm(n))||{v:{}}).v;const v={};v[B_CHOOSE]=o[B_CHOOSE]==='لا'?'لا':'نعم';F.forEach(([h])=>{v[h]=o[h]==null?'':o[h]});return{n,v}});
   const doc={uid:AUTH.user.uid,teacher:g.teacher,sec:g.sec,subj:g.subj,dept:norm(g.dept),H:[B_CHOOSE].concat(F.map(f=>f[0])),stu,at:new Date().toISOString()};
-  BEH.busy=true;render();try{await CLOUD.db.collection('beh').doc(g.id).set(doc);BEH.docs[g.id]=doc;delete BEH.dirty[g.id];toast('تم حفظ الرصد ✓')}catch(e){console.error(e);toast('تعذّر الحفظ: '+(e&&e.message||e),6000)}BEH.busy=false;render()}
+  BEH.busy=true;render();let ok=false;try{await CLOUD.db.collection('beh').doc(g.id).set(doc);BEH.docs[g.id]=doc;delete BEH.dirty[g.id];ok=true}catch(e){console.error(e);toast('تعذّر الحفظ: '+(e&&e.message||e),6000)}BEH.busy=false;render();if(ok)behAfterSave(g)}
+/* بعد الحفظ: تنبيه بالطالبات الناقصات، أو احتفال عند اكتمال رصد جميع الطالبات في كل الشعب */
+function behMissing(g){const F=behFields(g.subj,g.sec);const m=behGet(g);return behStudents(g.sec).filter(n=>{const v=m[norm(n)]||{};return !(v[B_CHOOSE]==='لا'||F.every(([h])=>v[h]!==undefined&&v[h]!==''))})}
+function behAfterSave(g){const miss=behMissing(g);const G=behGroups();const other=G.filter(x=>x.id!==g.id).map(x=>({x,c:behCount(x)})).filter(o=>!o.c.total||o.c.done<o.c.total);
+  if(miss.length){modal('<h3>تم حفظ الرصد ✓ وبقيت طالبات لم يكتمل رصدهن</h3><p class="small" style="line-height:1.9">معلمتي الفاضلة، في الشعبة <bdi dir="ltr">'+esc(g.sec)+'</bdi> ('+esc(g.subj)+') بقيت ('+miss.length+') '+(miss.length>2&&miss.length<11?'طالبات':'طالبة')+' لم تكتمل خاناتهن:</p><div class="small" style="background:#FFF4E5;border:1px solid #F2C98A;border-radius:10px;padding:8px 12px;line-height:2">'+miss.map(n=>esc(nm3(n))).join('، ')+'</div><p class="small muted">أكملي الخانات الفارغة ثم اضغطي «حفظ الرصد»، أو أزيلي علامة «تدرس المادة لديّ» عن الطالبة التي لا تدرّسينها.</p><div class="row" style="justify-content:center"><button class="btn pri" data-close>حسنًا</button></div>');return}
+  if(!other.length){cheer('beh');return}
+  toast('تم حفظ رصد الشعبة '+g.sec+' كاملًا ✓ وبقي: '+other.map(o=>o.x.sec+' · '+o.x.subj).join('، '),6000)}
 document.addEventListener('change',e=>{const el=e.target;if(el&&el.dataset&&el.dataset.bh!==undefined&&UI.tab==='beh')behUpd(el)});
 document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-behsel]');if(b){BEH.sel=b.dataset.behsel;render();return}if(e.target.closest&&e.target.closest('#behSave'))behSave()});
 

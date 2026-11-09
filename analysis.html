@@ -837,7 +837,7 @@ function render(){try{
   if(CLD.wait){$('#nav').innerHTML='<a class="backlink homebtn" href="./">الصفحة الرئيسية</a>';$('#view').innerHTML='<div class="box"><div class="empty">'+(CLD.msg||'جارٍ تحميل النتائج…')+'</div></div>';return}
   if(!tabOKA(UI.tab))UI.tab=CLD.role==='teacher'?'class':'overview';
   $('#nav').innerHTML='<a class="backlink homebtn" href="./"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg>الصفحة الرئيسية</a>'+TABS.filter(([id])=>tabOKA(id)).map(([id,l])=>'<button type="button" data-tab="'+id+'"'+(UI.tab===id?' aria-current="page"':'')+'>'+l+'</button>').join('');
-  const v={overview:vOverview,class:vClass,sections:vSections,subjects:vSubjects,teachers:vTeachers,last:vLast,top:()=>unlocked()?vTop():lockView(),cats:vCats,value:vValue,reading:vReading,data:vData,treading:()=>vTRead(),creading:()=>vCRead(),rfollow:()=>vRFollow()}[UI.tab]||vOverview;
+  const v={overview:vOverview,class:vClass,sections:vSections,subjects:vSubjects,teachers:vTeachers,last:vLast,top:()=>unlocked()?vTop():lockView(),cats:vCats,value:vValue,reading:vReading,data:vData,treading:()=>vTRead(),creading:()=>vCRead(),rfollow:()=>vRFollow(),bfollow:()=>vBFollow()}[UI.tab]||vOverview;
   $('#view').innerHTML=UI.tab==='data'?'<div class="content">'+v()+'</div>':'<div class="an-layout">'+sidebar()+'<div class="content">'+v()+'</div></div>';
   const n=M.stu.length;$('#marq').textContent='تحليل النتائج · '+(n?n+' طالبة في '+PERIODS[UI.per]+' · '+Object.keys(M.secs).length+' شعبة · المقارنة بالعام الماضي · الأوائل وفئات الدعم':'ارفعي كشف الدرجات من صفحة البيانات')+' · «وَقُل رَّبِّ زِدْنِي عِلْمًا»';
 }catch(e){console.error(e);$('#view').innerHTML='<div class="box"><div class="empty">حدث خطأ أثناء العرض: '+esc(e.message)+'</div></div>'}}
@@ -924,7 +924,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.target.id==='pin1
 
 /* ---------- قاعدة البيانات: المنسقات والتوجيه يرون التحليل كاملًا، والمعلمة شعبها بجميع المواد ---------- */
 const CLD={wait:typeof firebase!=='undefined'&&!!firebase.initializeApp,ro:false,role:'',msg:'',db:null,admin:false,timer:null};
-function tabOKA(id){if(id==='rfollow')return !!(CLD.admin&&!CLD.cloudAdminX)||CLD.role==='coord'||CLD.role==='principal';if(!CLD.ro)return !['treading','creading'].includes(id);if(id==='data')return false;if(id==='reading')return CLD.role==='principal';if(CLD.role==='principal')return !['treading','creading'].includes(id);if(CLD.role==='teacher')return ['class','subjects','cats','last','value','overview','treading'].includes(id);if(id==='treading')return false;if(id==='creading')return CLD.role==='coord';return true}
+function tabOKA(id){if(id==='rfollow'||id==='bfollow')return !!(CLD.admin&&!CLD.cloudAdminX)||CLD.role==='coord'||CLD.role==='principal';if(!CLD.ro)return !['treading','creading'].includes(id);if(id==='data')return false;if(id==='reading')return CLD.role==='principal';if(CLD.role==='principal')return !['treading','creading'].includes(id);if(CLD.role==='teacher')return ['class','subjects','cats','last','value','overview','treading'].includes(id);if(id==='treading')return false;if(id==='creading')return CLD.role==='coord';return true}
 const nkA0=s=>String(s==null?'':s).replace(/[ً-ٰٟـ]/g,'').replace(/[أإآ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي').replace(/\s+/g,' ').trim().toLowerCase();
 const __M_nkA=new Map();const nkA=s=>{if(s==null)return '';const k=typeof s==='string'?s:String(s);let v=__M_nkA.get(k);if(v===undefined){v=nkA0(k);if(__M_nkA.size>60000)__M_nkA.clear();__M_nkA.set(k,v)}return v};
 function hstr(t){let h=5381;for(let i=0;i<t.length;i++)h=(h*33)^t.charCodeAt(i);return (h>>>0).toString(36)+'.'+t.length}
@@ -978,7 +978,7 @@ if(CLD.wait){try{firebase.initializeApp({apiKey:"AIzaSyBUA_OYl9NCZsiR92Uvez1545x
 
 /* ---------- قراءة النتائج وفق «نموذج تقرير كمي وصفي لتحليل نتائج التقييم» (الدليل الإرشادي) ----------
    المعلمة لشعبها (تختار فقط) ← تنعكس عند المنسقة لكل مادة ومستوى ← تنعكس عند النائب الأكاديمي للمدرسة */
-TABS.push(['treading','قراءة نتائجي'],['creading','قراءة نتائج القسم'],['rfollow','متابعة القراءة']);
+TABS.push(['treading','قراءة نتائجي'],['creading','قراءة نتائج القسم'],['rfollow','متابعة القراءة'],['bfollow','متابعة الرصد السلوكي']);
 function shortName(n){n=String(n||'').replace(/^أ\.\s*/,'').trim();const w=n.split(/\s+/);if(w.length<=2)return n;const pre=['ابو','أبو','بن','بنت','آل','عبد','ام','أم'];const k=pre.includes(w[w.length-2])?2:1;return w[0]+' '+w.slice(-k).join(' ')}
 /* ================= متابعة قراءة النتائج (النائب الأكاديمي والمنسقة) ================= */
 const RF={docs:null,fbs:[],busy:false,open:null};
@@ -1036,6 +1036,39 @@ document.addEventListener('click',e=>{const t=e.target;
     try{navigator.clipboard.writeText(M.body)}catch(_){}
     if(st.email){location.href='mailto:'+encodeURIComponent(st.email)+'?subject='+encodeURIComponent(M.subj)+'&body='+encodeURIComponent(M.body);toast('فُتحت الرسالة في البريد، ونُسخ نصها أيضًا')}else toast('نُسخ نص الرسالة؛ الصقيه في تيمز أو البريد (لا يوجد بريد مسجل لهذه المعلمة)',5000)}});
 
+
+/* ================= متابعة رصد التقرير الأكاديمي السلوكي (النائب الأكاديمي والمنسقة لقسمها) ================= */
+const BF={docs:null,busy:false};
+async function bfLoad(){if(!CLD.db||BF.busy)return;BF.busy=true;try{
+  const q=(CLD.admin||CLD.pr)?[CLD.db.collection('beh').get()]:(CLD.dept.length?CLD.dept:['-']).map(d=>CLD.db.collection('beh').where('dept','==',d).get());
+  const docs=[];(await Promise.all(q)).forEach(x=>x.forEach(d=>docs.push(Object.assign({_id:d.id},d.data()))));BF.docs=docs}
+  catch(e){console.warn(e);BF.docs=BF.docs||[];toast('تعذّر تحميل الرصد: '+(e.message||e))}BF.busy=false;render()}
+function bfDocDone(d){const H=d.H||[];const ch=H[0];return (d.stu||[]).length>0&&(d.stu||[]).every(x=>{const v=x.v||{};return v[ch]==='لا'||H.slice(1).every(h=>v[h]!==''&&v[h]!=null)})}
+function bfStat(t){const secs=[...new Set((t.sections||[]).map(x=>secKey(x)).filter(Boolean))];if(!secs.length)return null;
+  const D=(BF.docs||[]).filter(d=>rfMatch(d.teacher||'',t.name));const done=secs.filter(sc=>D.some(d=>secKey(d.sec)===sc&&bfDocDone(d)));const part=secs.filter(sc=>!done.includes(sc)&&D.some(d=>secKey(d.sec)===sc));
+  return {n:secs.length,done:done.length,part:part.length,miss:secs.filter(sc=>!done.includes(sc))}}
+function bfMsg(kind,t){const first=String(t.name).split(' ')[0];const me=CLD.admin?'آسيا الذبياني':(CLD.nm||'');
+  const subj=kind==='t'?'شكر وتقدير — رصد التقرير الأكاديمي السلوكي':'تذكير — رصد التقرير الأكاديمي السلوكي';
+  const body=kind==='t'?'الأستاذة الفاضلة / '+first+' المحترمة\nالسلام عليكم ورحمة الله وبركاته،\n\nأتقدم بخالص الشكر والتقدير على إتمام رصد التقرير الأكاديمي السلوكي لجميع طالباتكِ؛ فهو يصل إلى ولي الأمر صورةً صادقة عن ابنته، وجهدكِ محل تقدير واعتزاز.\n\nمع خالص التحية،\n'+me
+    :'الأستاذة الفاضلة / '+first+' المحترمة\nالسلام عليكم ورحمة الله وبركاته،\n\nنذكّركِ بإتمام رصد التقرير الأكاديمي السلوكي لطالباتكِ من منصة سبع سنابل ← «رصد التقرير السلوكي»، حرصًا على وصول التقرير إلى أولياء الأمور في موعده. شاكرين تعاونكِ.\n\nمع خالص التحية،\n'+me;
+  return {subj,body}}
+function vBFollow(){if(BF.docs==null){bfLoad();return head('متابعة الرصد السلوكي','')+'<div class="box"><div class="empty">جارٍ تحميل الرصد…</div></div>'}
+  const st=rfStaff().filter(t=>(t.sections||[]).filter(x=>x&&x!=='-').length);const by={};const seen=new Set();st.forEach(t=>{const k=nkA(t.name);if(seen.has(k))return;seen.add(k);const d=t.dept||'أخرى';(by[d]=by[d]||[]).push(t)});
+  const isCo=t=>/منسق/.test(t.role||'');let tot=0,done=0,part=0;
+  const boxes=Object.keys(by).sort((a,b)=>a.localeCompare(b,'ar')).map(d=>{const L=by[d].slice().sort((a,b)=>isCo(b)-isCo(a));let k=0;
+    const rows=L.map(t=>{const S2=bfStat(Object.assign({},t,{sections:st.filter(x=>nkA(x.name)===nkA(t.name)).flatMap(x=>x.sections||[])}));if(!S2)return '';tot++;const ok=S2.done===S2.n;if(ok){done++;k++}else if(S2.done||S2.part)part++;
+      const cls=ok?'ok':'no';const sym=ok?'✓':(S2.done||S2.part)?'◐':'✗';
+      return '<div class="rfr'+(isCo(t)?' co':'')+'"><span class="rfs '+cls+'">'+sym+'</span><span class="rfn" title="'+esc(t.name)+'">'+esc(shortName(t.name))+(isCo(t)?' <small>(المنسقة)</small>':'')+' <small>'+(ok?'مرصود ('+S2.n+' '+(S2.n>2&&S2.n<11?'شعب':'شعبة')+')':S2.done+' من '+S2.n+' · لم يكتمل: '+S2.miss.join('، '))+'</small></span><span class="rfb"><button class="rfbt g" data-bfmsg="t" data-rfn="'+esc(t.name)+'"'+(ok?'':' disabled')+'>شكر</button><button class="rfbt r" data-bfmsg="r" data-rfn="'+esc(t.name)+'"'+(ok?' disabled':'')+'>تذكير</button></span></div>'}).join('');
+    const n=L.filter(t=>bfStat(t)).length;
+    return '<div class="rfd"><div class="rfh"><b>'+esc(d)+'</b><span class="rfp'+(n&&k===n?' full':'')+'">'+k+' / '+n+(n&&k===n?' ✓':'')+'</span></div>'+rows+'</div>'}).join('');
+  return head('متابعة رصد التقرير الأكاديمي السلوكي','✓ مرصود لجميع الطالبات في كل الشعب، ◐ بدأت ولم تكتمل، ✗ لم تبدأ. «شكر» لمن أتمّت الرصد، و«تذكير» لمن لم تُتمّه.')+
+    '<div class="rfsum"><div><b>'+done+' / '+tot+'</b>معلمة أتمّت الرصد</div><div><b>'+part+'</b>بدأت ولم تكتمل</div><div><b>'+(tot-done-part)+'</b>لم تبدأ</div><button class="btn" data-bfreload="1">تحديث</button></div>'+
+    (CLD.pr?'<style>.rfbt{display:none}</style>':'')+'<div class="rfg">'+boxes+'</div>'}
+document.addEventListener('click',e=>{const t=e.target;if(!t.closest)return;
+  if(t.closest('[data-bfreload]')){BF.docs=null;render();return}
+  const m=t.closest('[data-bfmsg]');if(m&&!m.disabled&&!CLD.pr){const st=rfStaff().find(x=>x.name===m.dataset.rfn)||{name:m.dataset.rfn};const M=bfMsg(m.dataset.bfmsg,st);
+    try{navigator.clipboard.writeText(M.body)}catch(_){}
+    if(st.email){location.href='mailto:'+encodeURIComponent(st.email)+'?subject='+encodeURIComponent(M.subj)+'&body='+encodeURIComponent(M.body);toast('فُتحت الرسالة في البريد، ونُسخ نصها أيضًا')}else toast('نُسخ نص الرسالة؛ الصقيه في تيمز أو البريد (لا يوجد بريد مسجل لهذه المعلمة)',5000)}});
 /* مستهدفات المدرسة لعمود «تحقيق المستهدف» — تُعدَّل من خطة المدرسة التشغيلية */
 const TGT={pass:95,ach:80,va:0,a70:75,a90:30};
 const RD_LOW={
