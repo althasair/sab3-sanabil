@@ -2427,7 +2427,7 @@ function behGroups(){const out=[];behMine().forEach(t=>(t.sections||[]).forEach(
   return out.sort((a,b)=>a.sec.localeCompare(b.sec,undefined,{numeric:true}))}
 function behStudents(sec){const seen=new Set();return (S.enroll||[]).filter(e=>secKey(e.section)===sec).map(e=>String(e.name).trim()).filter(n=>{const k=norm(n);if(seen.has(k))return false;seen.add(k);return true}).sort((a,b)=>a.localeCompare(b,'ar'))}
 async function behLoad(){if(AUTH.user&&BEH.mz!==AUTH.user.uid){BEH.mz=AUTH.user.uid;behMz()}if(BEH.loaded||!CLOUD.ok||!AUTH.user)return;BEH.loaded=true;
-  try{const q=await CLOUD.db.collection('beh').where('uid','==',AUTH.user.uid).get();q.forEach(d=>{BEH.docs[d.id]=d.data()})}catch(e){console.warn(e)}render()}
+  try{const q=await CLOUD.db.collection('beh').where('uid','==',AUTH.user.uid).get();q.forEach(d=>{if(!BEH.dirty[d.id])BEH.docs[d.id]=d.data()})}catch(e){console.warn(e)}render()}
 async function behMz(){try{const G=behGroups();if(!G.some(g=>!behStudents(g.sec).length))return;let tk='';try{tk=sessionStorage.getItem('mizan_token')||''}catch(_){}if(!tk)return;
   const r=await fetch(MIZAN_API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'myStudents',token:tk}),redirect:'follow'});const j=await r.json();if(!j.ok||!Array.isArray(j.students))return;
   const have=new Set((S.enroll||[]).map(e=>norm(e.name)+'|'+secKey(e.section)));const miss=new Set(G.filter(g=>!behStudents(g.sec).length).map(g=>g.sec));let n=0;
@@ -2469,7 +2469,7 @@ function behAfterSave(g){const miss=behMissing(g);const G=behGroups();const othe
   if(!other.length){cheer('beh');return}
   toast('تم حفظ رصد الشعبة '+g.sec+' كاملًا ✓ وبقي: '+other.map(o=>o.x.sec+' · '+o.x.subj).join('، '),6000)}
 document.addEventListener('change',e=>{const el=e.target;if(el&&el.dataset&&el.dataset.bh!==undefined&&UI.tab==='beh')behUpd(el)});
-document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-behsel]');if(b){BEH.sel=b.dataset.behsel;render();return}if(e.target.closest&&e.target.closest('#behSave'))behSave()});
+document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-behsel]');if(b){if(BEH.dirty[BEH.sel]&&b.dataset.behsel!==BEH.sel&&!confirm('لم تحفظي رصد هذه الشعبة بعد. اضغطي «إلغاء» ثم «حفظ الرصد»، أو «موافق» للانتقال (تبقى التعديلات حتى تُحدَّث الصفحة).'))return;BEH.sel=b.dataset.behsel;render();return}if(e.target.closest&&e.target.closest('#behSave'))behSave()});
 
 function behMapHead(h,F){const n=norm(h).replace(/[()]/g,' ');const ex=F.find(f=>norm(f[0])===norm(h));if(ex)return ex[0];
   const one=/(^|\s)(1|١|الاول|اول)(\s|$)/.test(n),two=/(^|\s)(2|٢|الثاني|ثاني)(\s|$)/.test(n);const pick=k=>(F.find(f=>f[0].startsWith(k))||[])[0];
@@ -2497,6 +2497,9 @@ function behSet(g,n,hd,val){const d=BEH.docs[g.id]||(BEH.docs[g.id]={uid:AUTH.us
 document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('#behTpl'))behTemplate()});
 document.addEventListener('change',e=>{if(e.target&&e.target.id==='behUp'&&e.target.files&&e.target.files[0]){behImport(e.target.files[0]);e.target.value=''}});
 TABS.splice(3,0,['beh','رصد التقرير السلوكي','ch']);
+/* حماية الرصد غير المحفوظ: تنبيه عند مغادرة الصفحة أو الانتقال إلى أيقونة أخرى */
+window.addEventListener('beforeunload',e=>{if(Object.keys(BEH.dirty||{}).length){e.preventDefault();e.returnValue=''}});
+document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-tab]');if(!t||UI.tab!=='beh'||t.dataset.tab==='beh'||!Object.keys(BEH.dirty||{}).length)return;if(!confirm('لديكِ رصد لم يُحفظ بعد. اضغطي «إلغاء» ثم «حفظ الرصد» حتى لا يضيع ما كتبتِه.')){e.stopPropagation();e.preventDefault()}},true);
 document.head.insertAdjacentHTML('beforeend','<style>.behT td,.behT th{padding:6px 6px}.behT input[type=number],.behT select{height:34px;padding:2px 6px;border-radius:9px;font-size:14px}.behT select{min-width:110px}</style>');
 
 /* ===================== رعاية المتوسطات والمتفوقات (اختيارية للمعلمة) =====================
