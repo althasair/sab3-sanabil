@@ -1596,6 +1596,10 @@ function sessAnalysis(tName){
 function bCats(){return [['s','الحصص الإثرائية',['حصة','حصتان','حصص']],['a','الأنشطة',['نشاط','نشاطان','أنشطة']],['i','المبادرات',['مبادرة','مبادرتان','مبادرات']],['v','الحصة التبادلية',['زيارة تبادلية','زيارتان تبادليتان','زيارات تبادلية']],['h','الإنجازات والمشاركات',['إنجاز','إنجازان','إنجازات']],['w','توظيف جوانب التميز',['مساهمة','مساهمتان','مساهمات']],['p','التطوير المهني',['برنامج','برنامجان','برامج']],['o','التواصل مع أولياء الأمور',['تواصل','تواصلان','تواصلات']],['r','مصادر التعلم والتقنية',['توظيف','توظيفان','توظيفات']],['m','رعاية المتوسطات والمتفوقات',['إجراء','إجراءان','إجراءات']]]}
 function cntTxt(n,w){return n===1?w[0]+(w[0].includes(' ')?'':' واحد'+(/ة$/.test(w[0])?'ة':'')):n===2?w[1]:n<=10?n+' '+w[2]:n+' '+w[0]}
 function isAdm(){try{return AUTH.role==='admin'||AUTH.role==='loading'||!AUTH.user}catch(_){return true}}
+/* أعمال الميزان بلا تكرار: العمل الواحد مرة واحدة (نسخة تقرير المنسقة ونسخة حساب المعلمة عمل واحد، والحصة المشاهدة حدث واحد مهما كان عدد الحاضرات، والبرنامج المهني مرة واحدة) */
+function mzTT(t){return norm(String(t||'').replace(/^(استضافة )?زيارة تبادلية\s*(—.*)?$/,'زيارة تبادلية')).replace(/[^\u0621-\u064Aa-z0-9 ]/g,'').split(' ').slice(0,4).join(' ')}
+function mzUniq(L){const seen=new Set();return (L||[]).filter(x=>{if(!x||!x.k)return false;const f=fuzzyStaff(x.n);const n=norm(f?f.name:x.n);const d=String(x.d||'').slice(0,10),g=x.k==='i'?'a':x.k,tt=mzTT(x.t);
+  const key=x.k==='w'?'w|'+n+'|'+(d||tt):x.k==='o'?null:(x.k==='p'||x.k==='h')&&tt?g+'|'+n+'|'+tt:g+'|'+n+'|'+d+'|'+tt;if(!key)return true;if(seen.has(key))return false;seen.add(key);return true})}
 function boardCompute(){
   const st=S.staff||[];const rows=new Map();const L=lastTestIdx(S);
   const row=(name,t)=>{const k=norm(name);if(!rows.has(k))rows.set(k,{n:t?t.name:String(name).trim(),d:t?(t.dept||t.subject||''):'',c:!!t&&!/فنون|بدني|اعمال|مهارات/.test(norm((t.subject||'')+' '+(t.dept||''))),co:!!t&&/منسق/.test(t.role||''),s:0,a:0,i:0,v:0,h:0,w:0,p:0,o:0,r:0,m:0,rs:false,q:false});return rows.get(k)};
@@ -1611,10 +1615,7 @@ function boardCompute(){
   S.actions.forEach(a=>{if(a.type!==3&&!(a.type===5&&a.src!=='mizan'))return;const r=who(a.teacher);if(!r)return;
     if(a.type===3){if(once('s|'+norm(r.n)+'|'+sessKey(a)))r.s++}else r.o++});
   S.actions.forEach(a=>{if(a.type!==3&&a.type!==5&&careHit(a)){const r=who(a.teacher);if(r&&once('m|'+norm(r.n)+'|'+String(a.date||'').slice(0,10)+'|'+a.type+'|'+secKey(a.section||'')))r.m++}});
-  const tt=t=>norm(String(t||'').replace(/^(استضافة )?زيارة تبادلية\s*(—.*)?$/,'زيارة تبادلية')).replace(/[^\u0621-\u064Aa-z0-9 ]/g,'').split(' ').slice(0,4).join(' ');
-  (S.tacts||[]).concat((S.mz&&S.mz.list)||[]).forEach(x=>{if(!x.k||!'aivhwpor'.includes(x.k))return;const r=who(x.n);if(!r)return;const d=String(x.d||'').slice(0,10),g=x.k==='i'?'a':x.k;
-    const key=x.k==='w'?'w|'+norm(r.n)+'|'+(d||tt(x.t)):x.k==='o'?null:(x.k==='p'||x.k==='h')&&tt(x.t)?g+'|'+norm(r.n)+'|'+tt(x.t):g+'|'+norm(r.n)+'|'+d+'|'+tt(x.t);
-    if(key&&!once(key))return;r[x.k]++});
+  mzUniq((S.tacts||[]).concat((S.mz&&S.mz.list)||[])).forEach(x=>{if(!x.k||!'aivhwpor'.includes(x.k))return;const r=who(x.n);if(r)r[x.k]++});
   const rd=S.rd||{};
   rows.forEach(r=>{r.rs=S.roster.some(x=>norm(x.teacher)===norm(r.n)&&x.scores[L]!=null);r.q=!!rd[norm(r.n)]});
   const R=[...rows.values()].filter(r=>r.c||bCats().some(([k])=>r[k]));const max={};bCats().forEach(([k])=>max[k]=Math.max(0,...R.map(r=>r[k])));
@@ -2648,7 +2649,7 @@ function vStats(){
     o+=stCard('🏆','الأكثر عطاءً','مجموع الحصص الإثرائية وأعمال الميزان لكل معلمة.',best.length?'<div class="st-podium">'+best.map((r,i)=>'<div class="st-pod"><span class="m">'+med[i]+'</span><span class="nm">'+esc(nm3(r.n))+'</span><span class="p">'+score(r)+'</span></div>').join('')+'</div>':'<div class="st-empty">لا توجد أعمال مسجلة بعد.</div>');
     o+=stCard('👥','مشاركة المعلمات',(ADM?'نسبة معلمات المواد الأساسية':'نسبة معلمات القسم')+' اللاتي سجّلن عملًا واحدًا على الأقل في كل بند ('+CR.length+' معلمة).','<div class="st-rings">'+[['v','الزيارة التبادلية'],['a','الأنشطة'],['p','التطوير المهني'],['w','تطوير الزميلات'],['o','التواصل مع أولياء الأمور'],['h','الإنجازات']].map(([k,l],i)=>stRing(stPct(CR.filter(r=>+r[k]>0).length,CR.length),l,CR.filter(r=>+r[k]>0).length+' معلمة',ST_PAL[i])).join('')+(ADM&&B.abs?stRing(stPct(B.abs.ok.length,CR.length),'بلا غياب ولا استئذان',B.abs.ok.length+' معلمة هذا الشهر','#2E8B57'):'')+'</div>',true);
     if(S.mz&&Array.isArray(S.mz.list)&&S.mz.list.length){const MK=[['a','الأنشطة','#B8903A'],['i','المبادرات','#8A4FB0'],['v','الزيارات التبادلية','#1F7A8C'],['w','تطوير الزميلات','#5B8E3E'],['p','التطوير المهني','#2F5DA8'],['h','الإنجازات','#D0703A'],['o','أولياء الأمور','#7A1838'],['r','مصادر التعلم','#4E7D96']];
-      o+=stCard('📅','نبض الميزان شهرًا بشهر','أعمال المعلمات الموثّقة في الميزان في كل شهر.',stMonthly(S.mz.list.map(x=>({m:String(x.d||'').slice(0,7),k:x.k})),MK),true)}
+      o+=stCard('📅','نبض الميزان شهرًا بشهر','أعمال المعلمات الموثّقة في الميزان في كل شهر.',stMonthly(mzUniq(S.mz.list).map(x=>({m:String(x.d||'').slice(0,7),k:x.k})),MK),true)}
     {const byDept={},cnt={};BR.forEach(r=>{const d=ADM?(r.d||'—'):nm3(r.n);byDept[d]=(byDept[d]||0)+score(r);cnt[d]=(cnt[d]||0)+1});
      o+=stCard('🏛️',ADM?'عطاء الأقسام':'عطاء معلمات القسم',ADM?'مجموع أعمال معلمات كل قسم في المنصتين، ومتوسطه لكل معلمة.':'مجموع أعمال كل معلمة في المنصتين.',stBars(Object.entries(byDept).filter(([d])=>d!=='—').map(([l,v])=>({l,v,t:ADM?v+' · '+(Math.round(v/cnt[l]*10)/10)+' للمعلمة':v})).sort((a,b)=>b.v-a.v)),true)}
     o+='</div>'}
@@ -2786,7 +2787,7 @@ function prCompute0(cat,per){
   const ps=T.map(t=>progOf(t.row)).filter(Boolean);
   const acts=S.actions.filter(a=>inR(a.date)&&(!scoped||(()=>{const f=fuzzyStaff(a.teacher||'');return f&&inD(f.dept)})()));
   /* أعمال الميزان: بالتاريخ من سجل الإدارة، أو تراكميًا من لوحة الصدارة لغيرها */
-  const ML=(S.mz&&Array.isArray(S.mz.list))?S.mz.list.filter(x=>inR(x.d)&&tN.has(norm(x.n))):null;
+  const ML=(S.mz&&Array.isArray(S.mz.list))?mzUniq(S.mz.list).filter(x=>inR(x.d)&&tN.has(norm(x.n))):null;
   const BR=((boardGet()||{}).rows||[]).filter(r=>tN.has(norm(r.n)));
   const cntK=k=>ML?ML.filter(x=>x.k===k).length:BR.reduce((a,r)=>a+(+r[k]||0),0);
   const mzHas=(ML&&ML.length)||BR.some(r=>['a','i','v','w','p','o','h'].some(k=>+r[k]>0));const covS=ks=>{const s=new Set();if(ML)ML.forEach(x=>{if(ks.includes(x.k))s.add(norm(x.n))});else BR.forEach(r=>{if(ks.some(k=>+r[k]>0))s.add(norm(r.n))});return s};const covK=ks=>{if(!tch.length||!mzHas)return null;return covS(ks).size/tch.length};const cT=ks=>covS(ks).size+' من '+tch.length+' معلمة';
