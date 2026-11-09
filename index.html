@@ -1417,6 +1417,9 @@ function typeOf(v){const n=norm(v);for(const k of MATCH_ORDER){if(KEYS[k-1].kw.s
 function nameMatch(a,b){const A=norm(a).split(' ').filter(Boolean),B=norm(b).split(' ').filter(Boolean);if(!A.length||!B.length)return false;if(A.join(' ')===B.join(' '))return true;if(A[0]!==B[0])return false;if(A.length===1)return false;return A.slice(1).every(w=>B.slice(1).includes(w))}
 const LVL=x=>{const n=norm(x);const o=[];if(n.includes('عاشر'))o.push('10');if(n.includes('حادي'))o.push('11');if(n.includes('ثاني عشر'))o.push('12');return o};
 function officialTeacher(typed,sec,sub){const t=staffFor(sec,sub);if(t)return t.name;const w=norm(typed).split(' ').filter(Boolean);if(!w.length)return '';const st=S.staff||[];const same=st.filter(x=>norm(x.name).split(' ')[0]===w[0]);let c=same.filter(x=>w.slice(1).length&&w.slice(1).every(t=>norm(x.name).split(' ').includes(t)));if(c.length!==1)c=same.filter(x=>subjKeys(x.subject).has(subjKey(sub)));if(c.length===1)return c[0].name;const fz=fuzzyStaff(typed);return fz?fz.name:String(typed||'').trim()}
+/* مفتاح الحصة الإثرائية: كل ردّ في نموذج Forms حصة واحدة (بوقت إرساله)، ولو قُسّم على مادتين أو مستويين */
+function sessKey(a){const f=a&&a.f||{};if((a.src==='group'||a.src==='indivf')&&f.at)return a.src+'|'+norm(a.teacher)+'|'+String(f.at);return actKey(a)}
+function uniqSess(L){const s=new Set();return L.filter(a=>{const k=sessKey(a);if(s.has(k))return false;s.add(k);return true})}
 function actKey(a){return [String(a.date||'').slice(0,10),norm(a.teacher),secKey(a.section),subjKey(a.subject),a.type,a.whole?'*':(a.students||[]).map(x=>norm(x).split(' ').slice(0,2).join(' ')).sort().join(','),(norm(a.detail).match(/الحصه (\S+)/)||[])[1]||'',a.src==='indivf'?norm(a.detail)+'#'+String(a.evidence||'').slice(-60):''].join('|')}
 function dedupeAll(){const seen=new Set();let n=0;S.actions=S.actions.filter(a=>{const k=actKey(a);if(seen.has(k)){n++;return false}seen.add(k);return true});return n}
 function mergeActs(out,sameKind){const replace=(S.settings.actMode||'append')==='replace';let base=replace?S.actions.filter(a=>!sameKind(a)):S.actions.slice();const removed=S.actions.length-base.length;
@@ -1599,14 +1602,14 @@ function boardCompute(){
   st.forEach(t=>{if((t.sections||[]).length||/منسق/.test(t.role||''))row(t.name,t)});
   const who=n=>{const f=fuzzyStaff(n);return f?row(f.name,f):(String(n||'').trim()?row(n,null):null)};
   /* العدّ الواقعي: العمل الواحد يُحتسب مرة واحدة مهما تكرر تسجيله
-     - الحصة الإثرائية = لقاء واحد للمعلمة في اليوم مع الشعبة نفسها في المادة نفسها (فردية أو جماعية)، مهما كان عدد الطالبات أو مصادر التسجيل
+     - الحصة الإثرائية = ردّ واحد في نموذج Forms حصة واحدة، ولو اختارت المعلمة فيه مادتين (الفيزياء والعلوم) أو مستويين، فلا تتضاعف
      - التواصل الوارد من الميزان يُحتسب من سجلات الميزان وحدها (لا يُكرَّر من نسخته في الإجراءات)
      - استضافة الزيارات التبادلية والحصص المشاهدة وتقديم الورش (توظيف جوانب التميز) = حدث واحد في اليوم، مهما كان عدد الحاضرات
      - التطوير المهني والإنجازات: البرنامج الواحد مرة واحدة ولو امتد على عدة لقاءات (مثل «الباقة الأولى للمعلمين»)
      - بقية البنود: العمل نفسه (المعلمة + البند + التاريخ + العنوان) مرة واحدة، ولو سُجّل في سبع سنابل والميزان معًا */
   const seen=new Set(),once=k=>{if(seen.has(k))return false;seen.add(k);return true};
   S.actions.forEach(a=>{if(a.type!==3&&!(a.type===5&&a.src!=='mizan'))return;const r=who(a.teacher);if(!r)return;
-    if(a.type===3){if(once('s|'+norm(r.n)+'|'+String(a.date||'').slice(0,10)+'|'+secKey(a.section||'')+'|'+subjKey(a.subject||'')+'|'+(a.whole?'g':'f')))r.s++}else r.o++});
+    if(a.type===3){if(once('s|'+norm(r.n)+'|'+sessKey(a)))r.s++}else r.o++});
   S.actions.forEach(a=>{if(a.type!==3&&a.type!==5&&careHit(a)){const r=who(a.teacher);if(r&&once('m|'+norm(r.n)+'|'+String(a.date||'').slice(0,10)+'|'+a.type+'|'+secKey(a.section||'')))r.m++}});
   const tt=t=>norm(String(t||'').replace(/^(استضافة )?زيارة تبادلية\s*(—.*)?$/,'زيارة تبادلية')).replace(/[^\u0621-\u064Aa-z0-9 ]/g,'').split(' ').slice(0,4).join(' ');
   (S.tacts||[]).concat((S.mz&&S.mz.list)||[]).forEach(x=>{if(!x.k||!'aivhwpor'.includes(x.k))return;const r=who(x.n);if(!r)return;const d=String(x.d||'').slice(0,10),g=x.k==='i'?'a':x.k;
@@ -2619,7 +2622,7 @@ function vStats(){
   {const byD={};T.forEach(t=>{const d=ADM?dOf(t.row.teacher):nm3(t.row.teacher||'—');(byD[d]=byD[d]||[]).push(t)});const dRows=Object.entries(byD).filter(([d])=>d!=='—').sort((a,b)=>b[1].length-a[1].length);
    o+=stCard('🗺️',ADM?'خريطة الأقسام والسنابل':'خريطة معلمات القسم والسنابل',(ADM?'نسبة حالات كل قسم':'نسبة حالات كل معلمة')+' التي امتلأت عندها السنبلة: الأخضر مكتمل، والذهبي في الطريق، والوردي يحتاج متابعة.',dRows.length?'<div class="tbl-wrap"><table class="st-heat"><thead><tr><th style="text-align:right">'+(ADM?'القسم':'المعلمة')+'</th><th>الحالات</th>'+KEYS.map(k=>'<th>'+esc(k.s)+'</th>').join('')+'</tr></thead><tbody>'+dRows.map(([d,a])=>'<tr><td class="d">'+esc(d)+'</td><td style="background:var(--gold-soft)">'+a.length+'</td>'+KEYS.map(k=>{const v=a.filter(t=>t.ears.has(k.k)).length/a.length;return '<td style="background:'+stHeatBg(v)+';color:'+stHeatFg(v)+'">'+Math.round(v*100)+'%</td>'}).join('')+'</tr>').join('')+'</tbody></table></div>':'<div class="st-empty">تظهر بعد تحديد المستهدفات.</div>',true)}
   o+=stCard('📈','نبض الإجراءات شهرًا بشهر','عدد إجراءات سبع سنابل في كل شهر، ملوّنة بحسب السنبلة.',stMonthly(S.actions.map(a=>({m:String(a.date||'').slice(0,7),k:a.type})),KEYS.map((k,j)=>[k.k,k.s,ST_PAL[j]])),true);
-  {const en=S.actions.filter(a=>a.type===3),ind=en.filter(a=>enrKind(a)==='فردية').length,grp=en.length-ind;let pres=0,abs=0;en.filter(a=>a.whole).forEach(a=>{const n=ENR.filter(x=>x.section===secKey(a.section)).length;const ab=(a.absent||[]).length;if(n){pres+=Math.max(0,n-ab);abs+=ab}});
+  {const en=uniqSess(S.actions.filter(a=>a.type===3)),ind=en.filter(a=>enrKind(a)==='فردية').length,grp=en.length-ind;let pres=0,abs=0;en.filter(a=>a.whole).forEach(a=>{const n=ENR.filter(x=>x.section===secKey(a.section)).length;const ab=(a.absent||[]).length;if(n){pres+=Math.max(0,n-ab);abs+=ab}});
    o+=stCard('📖','الحصص الإثرائية','الفردية والجماعية، ونسبة حضور الطالبات في الجماعية.','<div class="st-big"><span class="num" data-cu="'+en.length+'">0</span><span class="u">حصة وجلسة</span></div>'+stBars([{l:'فردية',v:ind,c:'#7A1838'},{l:'جماعية',v:grp,c:'#B8903A'}].concat(pres+abs?[{l:'نسبة الحضور',v:Math.max(ind,grp,1)*(pres/(pres+abs)),t:Math.round(pres/(pres+abs)*100)+'%',c:'#2E8B57'}]:[])))}
   {const fb=S.actions.filter(a=>a.type===4),ok=fb.filter(a=>a.src!=='teacher'||a.ok).length;
    o+=stCard('📝','التغذية الراجعة','ما سُجّل منها، وما اعتمدته المنسقات بعد الاطلاع على الأدلة.','<div class="st-big"><span class="num" data-cu="'+fb.length+'">0</span><span class="u">تغذية راجعة</span></div>'+(fb.length?'<div class="st-rings">'+stRing(stPct(ok,fb.length),'معتمدة',ok+' من '+fb.length,'#2E8B57')+stRing(fill(4),'امتلاء السنبلة',T.filter(t=>t.ears.has(4)).length+' حالة','#1F7A8C')+'</div>':''))}
@@ -2798,7 +2801,7 @@ function prCompute0(cat,per){
   if(acad){
     if(!nc){ind(0,'امتلاء السنابل الأساسية للمستهدفات',core,core!=null?Math.round(core*100)+'% · متوسط '+T.length+' حالة':null);ind(0,'تغطية المستهدفات بالحصص الإثرائية',fill(3),fT(3));ind(0,'التغذية الراجعة للمستهدفات',fill(4),fT(4));}
     if(ps.length&&!nc)ind(0,'بلوغ المستهدفات هدفها الفردي',ps.filter(p=>p.met).length/ps.length,ps.filter(p=>p.met).length+' من '+ps.length);
-    num(0,'طالبة مستهدفة',new Set(T.map(t=>norm(t.row.name))).size);num(0,'حصة إثرائية',acts.filter(a=>a.type===3).length);num(0,'تغذية راجعة',acts.filter(a=>a.type===4).length);num(0,'ورقة طالبة حُلّلت',(S.evals||[]).filter(e=>+e.type===9&&inR(e.date)).length);
+    num(0,'طالبة مستهدفة',new Set(T.map(t=>norm(t.row.name))).size);num(0,'حصة إثرائية',uniqSess(acts.filter(a=>a.type===3)).length);num(0,'تغذية راجعة',acts.filter(a=>a.type===4).length);num(0,'ورقة طالبة حُلّلت',(S.evals||[]).filter(e=>+e.type===9&&inR(e.date)).length);
     ind(1,'المعلمات المشاركات في التطوير المهني',covK(['p']),cT(['p']));ind(1,'المعلمات المنفّذات للزيارة التبادلية',covK(['v']),cT(['v']));ind(1,'تغطية الحضور الصفي للمعلمات',cvCov,cvCov!=null?new Set(CV.map(x=>norm(x.t)).filter(n=>tN.has(n))).size+' من '+tch.length+' معلمة':null);ind(1,'المعلمات المقدّمات لتطوير الزميلات',covK(['w']),cT(['w']));
     num(1,'حضور تطوير مهني',cntK('p'));num(1,'تطوير للزميلات',cntK('w'));num(1,'زيارة تبادلية',cntK('v'));num(1,'زيارة صفية',CV.length);
     ind(2,'المعلمات المنفّذات لأنشطة ومبادرات',covK(['a','i']),cT(['a','i']));ind(2,'تعزيز المستهدفات وتحفيزهن',fillN(6),fT(6));ind(2,'الأنشطة وتعلّم الأقران للمستهدفات',fillN(7),fT(7));
