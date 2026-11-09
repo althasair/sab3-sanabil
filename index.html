@@ -2077,8 +2077,9 @@ function importEnroll(rows){
       out.push({name,section:sec,id:cId>=0?String(r[cId]||'').trim():'',nat:cNat>=0?String(r[cNat]||'').trim():'',track:cTr>=0?String(r[cTr]||'').trim():etr})})});
   if(!out.length)throw new Error('لم يتم التعرف على سجل القيد. يلزم عمود «اسم الطالبة» وعمود «الصف» أو «الشعبة».');
   const old=S.enroll||[];const key=x=>(x.id&&x.id.length>5)?'id:'+x.id:'n:'+norm(x.name);const om=new Map(old.map(x=>[key(x),x]));const nm=new Map(out.map(x=>[key(x),x]));
-  const added=out.filter(x=>!om.has(key(x))).length,left=old.filter(x=>!nm.has(key(x))).length,moved=out.filter(x=>om.has(key(x))&&om.get(key(x)).section!==x.section).length;
-  S.enroll=out;let natFill=0;S.roster.forEach(r=>{if(!r.nat){const e=out.find(x=>norm(x.name)===norm(r.name));if(e&&e.nat){r.nat=e.nat;natFill++}}});
+  const lvs=new Set(out.map(x=>x.section.split('-')[0]));const added=out.filter(x=>!om.has(key(x))).length,left=old.filter(x=>lvs.has(String(x.section||'').split('-')[0])&&!nm.has(key(x))).length,moved=out.filter(x=>om.has(key(x))&&om.get(key(x)).section!==x.section).length;
+  /* ملف لمستوى واحد أو أكثر (مثل سجل قيد الثاني عشر وحده) يحدّث تلك المستويات فقط، ويُبقي طالبات المستويات الأخرى */
+  {const lv=new Set(out.map(x=>x.section.split('-')[0]));S.enroll=old.filter(x=>!lv.has(String(x.section||'').split('-')[0])).concat(out)}let natFill=0;S.roster.forEach(r=>{if(!r.nat){const e=out.find(x=>norm(x.name)===norm(r.name));if(e&&e.nat){r.nat=e.nat;natFill++}}});
   const tr={};out.forEach(x=>{if(x.track&&!/^10-/.test(x.section))tr[x.section]=/ادب/.test(norm(x.track))?'أدبي':/تكنو/.test(norm(x.track))?'تكنولوجي':/علم/.test(norm(x.track))?'علمي':x.track});if(Object.keys(tr).length)S.settings.tracks=Object.assign({},S.settings.tracks||{},tr);
   const by={};out.forEach(x=>{const g=x.section.split('-')[0];by[g]=(by[g]||0)+1});
   return 'تم تحديث سجل القيد: '+out.length+' طالبة ('+Object.keys(by).sort().map(g=>({10:'العاشر',11:'الحادي عشر',12:'الثاني عشر'}[g]||g)+' '+by[g]).join('، ')+').'+(old.length?' مقارنة بالسجل السابق: '+added+' جديدة، '+left+' خرجت، '+moved+' انتقلت شعبتها.':'')+(natFill?' وتمت إضافة الجنسية لـ '+natFill+' صف من الدرجات.':'');
@@ -2225,13 +2226,21 @@ async function adminLoad(){
   D=derive(S);render();
   CLOUD.unsub=CLOUD.db.collection('entries').onSnapshot(q=>{CLOUD.entries=new Map();q.forEach(d=>CLOUD.entries.set(d.id,d.data()));mergeEntries();D=derive(S);render();schedulePush();try{entDeptFix()}catch(_){}},e=>console.warn(e));
   if(!cloud)schedulePush(500);
-  loadReads();loadMizan();
+  loadReads();loadMizan();enrollFromMizan();
 }
 /* إحصاءات الميزان (أنشطة، مبادرات، زيارات تبادلية، إنجازات) تصل تلقائيًا في shared/mizan */
 async function loadMizanPA(){try{const d=await CLOUD.db.collection('adm').doc('mizanpa').get();if(!d.exists)return;const x=d.data();if(S.mzpaAt===x.at)return;const L=JSON.parse(x.t||'[]');
   const subOf=(n,sec)=>{const t=(S.staff||[]).find(y=>nameMatch(y.name||'',n)||nameMatch(n,y.name||''));return t?(typeof subjFor==='function'?subjFor(t,secKey(sec)):t.subject)||t.subject||'':''};
   const acts=L.map(r=>({date:String(r.d||'').slice(0,10),teacher:r.t,section:r.s,subject:subOf(r.t,r.s),students:r.st||[],whole:false,type:5,detail:'من الميزان — '+[r.c,r.tp,r.w].filter(Boolean).join(' — '),evidence:'',src:'mizan',mid:r.id}));
   S.actions=S.actions.filter(a=>a.src!=='mizan').concat(acts);S.mzpaAt=x.at;refresh();schedulePush()}catch(e){console.warn(e)}}
+
+/* حساب النائب: الشعب التي ليس لها أسماء في سجل القيد (مثل الثاني عشر) تُستكمل تلقائيًا من ورقة «الطالبات» في الميزان (الشعبة والاسم فقط) */
+async function enrollFromMizan(){try{if(AUTH.role!=='admin'||!AUTH.user)return;const have=new Set((S.enroll||[]).map(e=>secKey(e.section)));
+  const need=[...new Set((S.staff||[]).flatMap(t=>(t.sections||[]).map(secKey)).filter(x=>x&&!have.has(x)))];if(!need.length)return;
+  let tk='';try{tk=sessionStorage.getItem('mizan_token')||''}catch(_){}if(!tk)return;
+  const r=await fetch(MIZAN_API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'myStudents',token:tk}),redirect:'follow'});const j=await r.json();if(!j.ok||!Array.isArray(j.students))return;
+  const miss=new Set(need);const seen=new Set();let n=0;j.students.forEach(x=>{const sec=secKey(x.s);if(!miss.has(sec)||!x.n)return;const k=norm(x.n)+'|'+sec;if(seen.has(k))return;seen.add(k);(S.enroll=S.enroll||[]).push({name:String(x.n).trim(),section:sec,id:'',nat:'',track:''});n++});
+  if(n){refresh();schedulePush();toast('استُكملت أسماء '+n+' طالبة من الميزان للشعب: '+[...new Set(j.students.map(x=>secKey(x.s)).filter(x=>miss.has(x)))].join('، '),6000)}}catch(e){console.warn(e)}}
 async function loadMizan(){loadMizanPA();try{const d=await CLOUD.db.collection('shared').doc('mizan').get();if(!d.exists)return;const x=d.data();let abs=JSON.parse(x.abs||'[]');try{const a=await CLOUD.db.collection('adm').doc('mizanpa').get();if(a.exists&&a.data().abs)abs=JSON.parse(a.data().abs)}catch(_){}if(S.mz&&S.mz.at===x.at&&JSON.stringify(S.mz.abs)===JSON.stringify(abs)&&S.mz.cv)return;S.mz={at:x.at,list:JSON.parse(x.t||'[]'),abs,cv:JSON.parse(x.cv||'[]'),auto:1};refresh();schedulePush()}catch(e){console.warn(e)}}
 /* قراءات المعلمات في «تحليل النتائج» ← سنبلة القراءة */
 async function loadReads(){try{const q=await CLOUD.db.collection('reads').get();const rd={};q.forEach(d=>{const x=d.data();if(x.role!=='teacher'&&x.role!=='coord')return;const f=fuzzyStaff(x.name);if(f)rd[norm(f.name)]=Math.max(rd[norm(f.name)]||0,(+x.per||0)+1)});
