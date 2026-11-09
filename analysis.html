@@ -552,7 +552,7 @@ function build(){
   M={T,stu,secs,pers};
 }
 function teacherOf(sec,sub){return(M.T[sec+'|'+sub]||[]).join(' و')}
-function filtered(o={}){return M.stu.filter(x=>(!UI.lvl||x.l===UI.lvl)&&(!UI.sec||x.s===UI.sec)&&(!UI.nat||(UI.nat==='q'?isQ(x.nat):!isQ(x.nat)))&&(o.noCat||!UI.cat||(x.avg!=null&&catOf(x.avg).k===UI.cat))&&(o.noSub||!UI.sub||typeof x.g[UI.sub]==='number'))}
+function filtered(o={}){return M.stu.filter(x=>(!UI.lvl||x.l===UI.lvl)&&(!UI.sec||x.s===UI.sec)&&(!UI.nat||(UI.nat==='q'?isQ(x.nat):!isQ(x.nat)))&&(o.noCat||!UI.cat||(v=>typeof v==='number'&&catOf(v).k===UI.cat)(UI.sub?x.g[UI.sub]:x.avg))&&(o.noSub||!UI.sub||typeof x.g[UI.sub]==='number'))}
 function vals(list,sub){return list.map(x=>x.g[sub]).filter(v=>typeof v==='number')}
 function statOf(arr){if(!arr.length)return null;const c=CATS.map(k=>arr.filter(v=>catOf(v).k===k.k).length);return{n:arr.length,m:mean(arr),pass:arr.filter(v=>v>=50).length/arr.length*100,c}}
 function subjectsIn(list){const s=new Set();list.forEach(x=>Object.entries(x.g).forEach(([k,v])=>{if(typeof v==='number')s.add(k)}));return[...s].sort(subjSort)}
@@ -831,7 +831,7 @@ function sidebar(){const lv=[...new Set(M.stu.map(x=>x.l))].sort();const secs=Ob
   '<label>الشعبة</label><select data-f="sec">'+opt('','جميع الشعب',UI.sec)+secs.map(s=>opt(s,s,UI.sec)).join('')+'</select>'+
   '<label>المادة</label><select data-f="sub">'+opt('','جميع المواد',UI.sub)+subs.map(s=>opt(s,s,UI.sub)).join('')+'</select>'+
   '<label>الجنسية</label><select data-f="nat">'+opt('','الكل',UI.nat)+opt('q','القطريات',UI.nat)+opt('n','غير القطريات',UI.nat)+'</select>'+
-  '<label>الفئة (حسب النسبة العامة)</label><select data-f="cat">'+opt('','جميع الفئات',UI.cat)+CATS.map(c=>opt(c.k,c.t,UI.cat)).join('')+'</select>'+
+  '<label>الفئة (حسب درجة المادة المختارة، أو النسبة العامة)</label><select data-f="cat">'+opt('','جميع الفئات',UI.cat)+CATS.map(c=>opt(c.k,c.t,UI.cat)).join('')+'</select>'+
   '<button class="btn reset" data-reset="1">إلغاء التصفية</button>'+(M.stu.length&&!Object.keys(S.reg).length?'<p class="hint">ارفعي سجل القيد لتظهر الجنسيات.</p>':'')+'</div></details></aside>'}
 function render(){try{
   if(CLD.wait){$('#nav').innerHTML='<a class="backlink homebtn" href="./">الصفحة الرئيسية</a>';$('#view').innerHTML='<div class="box"><div class="empty">'+(CLD.msg||'جارٍ تحميل النتائج…')+'</div></div>';return}
