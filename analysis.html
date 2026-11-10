@@ -547,6 +547,7 @@ function build(){
   Object.keys(T).forEach(k=>{const[sec,sub]=k.split('|');if(secs[sec]&&!(sub in secs[sec].subs)&&sub!=='المهارات الحياتية والمهنية')secs[sec].subs[sub]=0});
   Object.entries(secs).forEach(([sec,o])=>{o.exp=Object.keys(o.subs).filter(s=>!ELECT.has(s)&&s!=='المهارات الحياتية والمهنية');
     o.status=Object.fromEntries(Object.entries(o.subs).map(([s,c])=>[s,ELECT.has(s)?(c?'ok':'none'):c>=o.n?'ok':c?'part':'none']));
+    /* التربية الإسلامية: نقصها عند بعض الطالبات إعفاء لا نقص رصد */if(o.status['التربية الإسلامية']==='part')o.status['التربية الإسلامية']='ok';
     o.complete=o.exp.every(s=>o.status[s]==='ok')});
   stu.forEach(x=>{const o=secs[x.s];x.missing=o.exp.filter(s=>!(s in x.g));/* المعفاة من التربية الإسلامية: تُحسب نسبتها على بقية موادها */if(x.missing.includes('التربية الإسلامية')){x.exempt=['التربية الإسلامية'];x.missing=x.missing.filter(s=>s!=='التربية الإسلامية')}x.complete=!x.missing.length&&x.ng>0;x.barred=Object.values(x.g).some(v=>/محروم/.test(v))});
   M={T,stu,secs,pers};
@@ -1409,7 +1410,7 @@ function reason(ctx,o){const rk='المركز '+MRK[o.r-1]+(o.rep?' مكرر':''
   switch(CS.mode){case'rp':return'لحصولها على <b>'+rk+'</b> '+sc+'، بنسبة <b><bdi dir="ltr">'+p+'</bdi></b>';case'r':return'لحصولها على <b>'+rk+'</b> '+sc;case'p':return'لتفوقها الدراسي وحصولها على نسبة <b><bdi dir="ltr">'+p+'</bdi></b>';case'top':return'لكونها من <b>الطالبات الأوائل</b> '+sc;default:return'تقديرًا لتفوقها الدراسي وتميّزها العلمي'}}
 function sigBox(role,name,img,on){return'<div class="cs"><span class="cr">'+role+'</span><span class="cnw"><b>'+name+'</b>'+(on&&img?'<img src="'+img+'" alt="">':'')+'</span></div>'}
 function certHTML(ctx,o,d){const D=DS[d],c=D[1],ttl=CS.title||TITLES[D[2]],v=VERSES[CS.verse]||VERSES[0];const x=o.x;
-  const tr=(+x.l>10&&typeof trackOf==='function'&&trackOf(x.s))?'المسار ال'+trackOf(x.s):'';
+  const trk=x.tr!=null?x.tr:(typeof trackOf==='function'?trackOf(x.s):'');const tr=(+x.l>10&&trk)?'المسار ال'+trk:'';
   const meta=['الشعبة <bdi dir="ltr">'+esc(x.s)+'</bdi>',tr,'المستوى '+(LVN[x.l]||x.l)].filter(Boolean).join(' <i>◆</i> ');
   const logo=(document.querySelector('.logo-c')||{}).src||'';
   const rkTxt=CS.mode==='rp'||CS.mode==='r'?(o.r<=10?String(o.r):''):'★';
@@ -1476,7 +1477,7 @@ function sigModal(){const k=myKey();if(!k)return;injectCss();const cur=SG[k];con
   el.querySelector('#csigIn').onchange=e=>{const f=e.target.files[0];if(!f)return;const fr=new FileReader();fr.onload=()=>cleanSig(fr.result,async png=>{el.querySelector('#csmsg').textContent='جارٍ الحفظ…';try{await CLD.db.collection('csig').doc(k).set({sig:png,uid:CLD.uid,at:new Date().toISOString()});SG[k]=png;el.remove();sigModal();toast('تم حفظ توقيعكِ ✓')}catch(err){console.warn(err);el.querySelector('#csmsg').textContent='تعذّر الحفظ. تأكدي من نشر قواعد قاعدة البيانات الجديدة.'}});fr.readAsDataURL(f)};
   el.addEventListener('click',async e=>{if(e.target===el||e.target.closest('[data-cclose]'))el.remove();if(e.target.closest('[data-csdel]')){if(!confirm('حذف توقيعكِ؟'))return;try{await CLD.db.collection('csig').doc(k).delete();SG[k]='';el.remove();sigModal();toast('تم حذف التوقيع')}catch(_){toast('تعذّر الحذف')}}})}
 window.meChip=async function(){const k=myKey();if(!k||document.getElementById('mechip'))return;injectCss();const host=document.querySelector('header.top .brand');if(!host)return;
-  host.insertAdjacentHTML('beforeend','<div class="mechip" id="mechip"><b>'+(k==='vp'?VPN:PRN)+'</b><span>'+(k==='vp'?'نائب المديرة للشؤون الأكاديمية':'مديرة المدرسة')+'</span><button type="button" data-mysig2="1">✍️ توقيعي</button></div>');loadSigs()};
+  host.insertAdjacentHTML('beforeend','<div class="mechip" id="mechip"><b>'+(k==='vp'?VPN:PRN)+'</b><span>'+(k==='vp'?'نائب المديرة للشؤون الأكاديمية':'مديرة المدرسة')+'</span><button type="button" data-mysig2="1">✍️ توقيعي</button><button type="button" data-creq="1" id="creqBtn" style="display:none"></button></div>');loadSigs();window.creqLoad&&creqLoad()};
 document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('[data-mysig2]'))sigModal()});
 function ctxNow(){return window.__topCtx||null}
 function selected(ctx){return ctx.R.filter((o,i)=>!CS.sel||CS.sel.has(i))}
@@ -1491,21 +1492,76 @@ async function certOpen(){const ctx=ctxNow();if(!ctx||!ctx.R.length){toast('لا
    '<div style="display:flex;flex-direction:column;gap:4px"><label class="ck"><input type="checkbox" id="c_sv"'+(CS.sigV?' checked':'')+'> توقيع النائب الأكاديمي'+(SG.vp?'':' <span class="warn">(لم يُرفع بعد)</span>')+'</label><label class="ck"><input type="checkbox" id="c_sp"'+(CS.sigP?' checked':'')+'> توقيع مديرة المدرسة'+(SG.pr?'':' <span class="warn">(لم يُرفع بعد — ترفعه المديرة من «✍️ توقيعي»)</span>')+'</label>'+(ctx.tN!=='all'?'<label class="ck"><input type="checkbox" id="c_nat"'+(CS.nat?' checked':'')+'> ذكر فئة الجنسية في نص الترتيب</label>':'')+'</div></div>'+
    '<div style="display:flex;gap:8px;align-items:center;margin:4px 0"><b style="font-size:13px;color:#62102A">الطالبات</b><button class="btn" data-csall="1">الكل</button><button class="btn" data-cs3="1">الثلاث الأوائل</button><button class="btn" data-csnone="1">إلغاء الكل</button><span class="sp"></span><span id="c_cnt" style="font-size:12.5px"></span></div>'+
    '<div class="cl">'+ctx.R.map((o,i)=>'<label><input type="checkbox" data-csi="'+i+'" checked> <em>'+MRK[o.r-1]+(o.rep?' مكرر':'')+'</em> '+esc(shortN(o.x.n))+' · <bdi dir="ltr">'+esc(o.x.s)+'</bdi> · '+f2(o.x.avgx)+'</label>').join('')+'</div>'+
-   '<div class="cbar"><button class="btn pri" data-cprint="1">🖨 طباعة الشهادات</button><button class="btn" data-cprev="1">👁 معاينة بالحجم الكامل</button><span class="sp"></span><button class="btn" data-cclose="1">إغلاق</button></div></div>';
+   '<div class="cbar">'+(CLD.role==='admin'&&!CLD.pr?'<button class="btn pri" data-csend="1" style="background:#1F3A5F">📤 إرسال للمديرة للتوقيع</button>':'')+'<button class="btn pri" data-cprint="1">🖨 طباعة الشهادات</button><button class="btn" data-cprev="1">👁 معاينة بالحجم الكامل</button><span class="sp"></span><button class="btn" data-cclose="1">إغلاق</button></div></div>';
   document.body.appendChild(el);const cnt=()=>{el.querySelector('#c_cnt').textContent=CS.sel.size+' شهادة'};drawThumbs(el,ctx);cnt();
   const syncBoxes=()=>el.querySelectorAll('[data-csi]').forEach(b=>b.checked=CS.sel.has(+b.dataset.csi));
   el.addEventListener('change',e=>{const t=e.target;if(t.dataset.csi!=null){t.checked?CS.sel.add(+t.dataset.csi):CS.sel.delete(+t.dataset.csi);cnt();return}
     if(t.id==='c_mode')CS.mode=t.value;if(t.id==='c_title')CS.title=t.value;if(t.id==='c_verse')CS.verse=+t.value;if(t.id==='c_sv')CS.sigV=t.checked;if(t.id==='c_sp')CS.sigP=t.checked;if(t.id==='c_nat')CS.nat=t.checked;drawThumbs(el,ctx)});
   el.addEventListener('click',e=>{const t=e.target;if(t===el||t.closest('[data-cclose]')){el.remove();return}const cd=t.closest('[data-cd]');if(cd){CS.d=+cd.dataset.cd;drawThumbs(el,ctx);return}
     if(t.closest('[data-csall]')){CS.sel=new Set(ctx.R.map((_,i)=>i));syncBoxes();cnt()}if(t.closest('[data-csnone]')){CS.sel=new Set();syncBoxes();cnt()}if(t.closest('[data-cs3]')){CS.sel=new Set(ctx.R.map((o,i)=>o.r<=3?i:-1).filter(i=>i>=0));syncBoxes();cnt()}
+    if(t.closest('[data-csend]')){const L=selected(ctx);if(!L.length){toast('اختاري طالبة واحدة على الأقل');return}window.certSend&&certSend(ctx,L).then(ok=>{if(ok)el.remove()});return}
     if(t.closest('[data-cprint]'))certPrint(ctx,true);if(t.closest('[data-cprev]'))certPrint(ctx,false)})}
-function certPrint(ctx,go){const L=selected(ctx);if(!L.length){toast('اختاري طالبة واحدة على الأقل');return}
+function certPrint(ctx,go){const L=selected(ctx);if(!L.length){toast('اختاري طالبة واحدة على الأقل');return}printL(ctx,L,go)}
+function printL(ctx,L,go){
   if(CS.sigV&&!SG.vp)toast('تنبيه: توقيع النائب الأكاديمي غير مرفوع، فستُطبع الشهادة بالاسم فقط');if(CS.sigP&&!SG.pr)toast('تنبيه: توقيع المديرة غير مرفوع، فستُطبع الشهادة بالاسم فقط');
   const w=window.open('','_blank');if(!w){toast('اسمحي بالنوافذ المنبثقة للطباعة');return}
   w.document.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>شهادات الأوائل — '+esc(LVN[ctx.l]||ctx.l)+'</title><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Amiri:wght@400;700&family=Aref+Ruqaa:wght@400;700&display=swap"><style>@page{size:A4 landscape;margin:0}html,body{margin:0;background:#EEE}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.cert{margin:0 auto 6mm;box-shadow:0 2px 10px rgba(0,0,0,.15);break-after:page}@media print{body{background:#fff}.cert{margin:0;box-shadow:none}.cert:last-child{break-after:auto}}'+CSS+'</style></head><body>'+L.map(o=>certHTML(ctx,o,CS.d)).join('')+
    (go?'<script>(document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve()).then(function(){setTimeout(function(){print()},500)})<\/script>':'')+'</body></html>');w.document.close()}
 document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('[data-cert]'))certOpen()});
-window.__certHTML=certHTML;window.__CS=CS;window.__SG=SG;
+window.__certHTML=certHTML;window.__CS=CS;window.__SG=SG;window.__printL=printL;window.__loadSigs=loadSigs;window.__sigModal=sigModal;window.__selected=selected;window.__injectCss=injectCss;
+})();
+</script>
+<script>
+/* ===================== إرسال شهادات الأوائل للمديرة للتوقيع ===================== */
+(function(){
+const LVN={10:'العاشر',11:'الحادي عشر',12:'الثاني عشر'};
+const RQ={list:[]};
+const isPr=()=>!!CLD.pr,isVP=()=>CLD.role==='admin'&&!CLD.pr;
+function ctxTitle(c){return'المستوى '+(LVN[c.l]||c.l)+(c.tT&&c.tT!=='غير محدد'?' – المسار ال'+c.tT:'')+(c.tN==='q'?' – القطريات':c.tN==='n'?' – غير القطريات':'')}
+window.certSend=async function(ctx,L){const CS=window.__CS,SG=window.__SG;
+  if(CS.sigV&&!SG.vp){toast('ارفعي توقيعكِ أولًا من «✍️ توقيعي»، أو ألغي خيار توقيع النائب');return false}
+  const rec={at:new Date().toISOString(),by:CLD.uid,status:'pending',per:PERIODS[UI.per]||'',ctx:{l:ctx.l,tT:ctx.tT||'',tN:ctx.tN||'all'},
+    opt:{d:CS.d,mode:CS.mode,title:CS.title,verse:CS.verse,nat:CS.nat,sigV:CS.sigV},vpSig:CS.sigV?SG.vp:'',
+    stu:L.map(o=>({n:o.x.n,s:o.x.s,l:o.x.l,avgx:o.x.avgx,tr:typeof trackOf==='function'?trackOf(o.x.s):'',r:o.r,rep:!!o.rep}))};
+  if(!confirm('إرسال '+L.length+' شهادة ('+ctxTitle(rec.ctx)+') إلى مديرة المدرسة للتوقيع؟'))return false;
+  try{await CLD.db.collection('certreq').add(rec);toast('تم إرسال الشهادات للمديرة ✓ وسيظهر لها تنبيه بطلب التوقيع');creqLoad();return true}
+  catch(e){console.warn(e);toast('تعذّر الإرسال. تأكدي من نشر قواعد قاعدة البيانات الجديدة.');return false}};
+window.creqLoad=async function(){if(!(isPr()||isVP())||!CLD.db)return;
+  try{const q=await CLD.db.collection('certreq').get();RQ.list=[];q.forEach(d=>RQ.list.push(Object.assign({_id:d.id},d.data())));RQ.list.sort((a,b)=>String(b.at).localeCompare(String(a.at)))}catch(e){console.warn(e);return}
+  const pend=RQ.list.filter(r=>r.status==='pending'),signedNew=RQ.list.filter(r=>r.status==='signed'&&!r.seen);
+  const b=document.getElementById('creqBtn');
+  if(b){const n=isPr()?pend.length:signedNew.length;b.style.display=RQ.list.length?'':'none';b.textContent=isPr()?(n?'🔔 شهادات بانتظار توقيعكِ ('+n+')':'🏅 الشهادات'):(n?'✅ وقّعت المديرة ('+n+')':'🏅 الشهادات المرسلة')}
+  banner(isPr()?pend.length:0)};
+function banner(n){let el=document.getElementById('creqBan');if(!n){if(el)el.remove();return}
+  if(!el){el=document.createElement('div');el.id='creqBan';el.style.cssText='position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:8500;background:#62102A;color:#fff;border:2px solid #E0BE73;border-radius:16px;padding:12px 18px;box-shadow:0 14px 34px rgba(0,0,0,.35);display:flex;gap:12px;align-items:center;font-weight:700;max-width:92vw';document.body.appendChild(el)}
+  el.innerHTML='<span style="font-size:22px">🔔</span><span>يرجى توقيع الشهادات: '+n+' '+(n===1?'طلب':'طلبات')+' من النائب الأكاديمي بانتظار توقيعكِ</span><button class="btn" data-creq="1" style="background:#E0BE73;color:#4A0B20;border:0">عرض وتوقيع</button><button data-creqx="1" style="background:none;border:0;color:#fff;font-size:18px;cursor:pointer" aria-label="إخفاء">×</button>'}
+function asCtx(r){return{l:r.ctx.l,tT:r.ctx.tT,tN:r.ctx.tN,R:r.stu.map(x=>({x:{n:x.n,s:x.s,l:x.l,avgx:x.avgx,tr:x.tr||''},r:x.r,rep:x.rep}))}}
+function withOpt(r,fn){const CS=window.__CS,SG=window.__SG;const bak=Object.assign({},CS);const prSig=SG.pr;
+  Object.assign(CS,{d:r.opt.d,mode:r.opt.mode,title:r.opt.title,verse:r.opt.verse,nat:r.opt.nat,sigV:r.opt.sigV,sigP:r.status==='signed'});
+  const vpS=SG.vp;if(r.vpSig)SG.vp=r.vpSig;if(r.status==='signed'&&r.prSig)SG.pr=r.prSig;
+  try{return fn()}finally{Object.assign(CS,bak);SG.pr=prSig;SG.vp=vpS}}
+function prev(r,go){const c=asCtx(r);withOpt(r,()=>window.__printL(c,c.R,go))}
+async function inbox(){await window.__loadSigs();window.__injectCss();await creqLoad();
+  const el=document.createElement('div');el.className='cmod';const L=RQ.list;
+  el.innerHTML='<div class="cbx" style="max-width:860px"><h3>🏅 شهادات الأوائل '+(isPr()?'المرسلة إليكِ للتوقيع':'المرسلة للمديرة')+'</h3>'+
+   (isPr()?'<p style="font-size:13px;color:#6B5C61;margin:0 0 10px">اضغطي «👁 معاينة» للاطلاع على الشهادات، ثم «✍️ توقيع واعتماد» ليُضاف توقيعكِ على شهادات الطلب. '+(window.__SG.pr?'':'<b style="color:#9A3B1E">لم ترفعي توقيعكِ بعد: اضغطي «✍️ توقيعي» أولًا.</b>')+'</p>':'<p style="font-size:13px;color:#6B5C61;margin:0 0 10px">بعد توقيع المديرة تُطبع الشهادات بتوقيعكِ وتوقيعها.</p>')+
+   (L.length?'<div style="display:flex;flex-direction:column;gap:8px">'+L.map(r=>'<div style="border:1px solid #EADBB8;border-radius:12px;padding:10px 12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:'+(r.status==='signed'?'#F3FAF4':'#FFFBF2')+'"><div style="flex:1;min-width:220px"><b style="color:#62102A">'+esc(ctxTitle(r.ctx))+'</b> · '+r.stu.length+' شهادة<div style="font-size:12px;color:#6B5C61">'+esc(r.per)+' · أُرسلت '+String(r.at).slice(0,10)+' · '+(r.status==='signed'?'<b style="color:#1F6B44">✓ وقّعتها المديرة '+String(r.signedAt||'').slice(0,10)+'</b>':'<b style="color:#8A5A12">⏳ بانتظار توقيع المديرة</b>')+'</div></div>'+
+     '<button class="btn" data-cqprev="'+r._id+'">👁 معاينة</button>'+
+     (isPr()&&r.status!=='signed'?'<button class="btn pri" data-cqsign="'+r._id+'">✍️ توقيع واعتماد</button>':'')+
+     (r.status==='signed'?'<button class="btn pri" data-cqprint="'+r._id+'">🖨 طباعة</button>':'')+
+     (isVP()?'<button class="btn" data-cqdel="'+r._id+'" title="حذف الطلب">🗑</button>':'')+'</div>').join('')+'</div>':'<p class="stl">لا توجد طلبات.</p>')+
+   '<div class="cbar"><span class="sp"></span><button class="btn" data-cclose="1">إغلاق</button></div></div>';
+  document.body.appendChild(el);
+  if(isVP()){const seen=L.filter(r=>r.status==='signed'&&!r.seen);seen.forEach(r=>CLD.db.collection('certreq').doc(r._id).update({seen:true}).catch(()=>{}));if(seen.length)setTimeout(creqLoad,800)}
+  el.addEventListener('click',async e=>{const t=e.target;const find=id=>L.find(r=>r._id===id);
+    if(t===el||t.closest('[data-cclose]')){el.remove();return}
+    let b=t.closest('[data-cqprev]');if(b){prev(find(b.dataset.cqprev),false);return}
+    b=t.closest('[data-cqprint]');if(b){prev(find(b.dataset.cqprint),true);return}
+    b=t.closest('[data-cqsign]');if(b){if(!window.__SG.pr){toast('ارفعي توقيعكِ أولًا');window.__sigModal();return}const r=find(b.dataset.cqsign);
+      if(!confirm('اعتماد '+r.stu.length+' شهادة بتوقيعكِ؟'))return;
+      try{await CLD.db.collection('certreq').doc(r._id).update({status:'signed',signedAt:new Date().toISOString(),signedBy:CLD.uid,prSig:window.__SG.pr,seen:false});toast('تم التوقيع والاعتماد ✓ ووصل للنائب الأكاديمي');el.remove();inbox()}catch(err){console.warn(err);toast('تعذّر التوقيع')}return}
+    b=t.closest('[data-cqdel]');if(b){if(!confirm('حذف هذا الطلب؟'))return;try{await CLD.db.collection('certreq').doc(b.dataset.cqdel).delete();el.remove();inbox()}catch(_){toast('تعذّر الحذف')}}})}
+document.addEventListener('click',e=>{if(!e.target.closest)return;if(e.target.closest('[data-creq]')){const bn=document.getElementById('creqBan');if(bn)bn.remove();inbox()}if(e.target.closest('[data-creqx]')){const bn=document.getElementById('creqBan');if(bn)bn.remove()}});
 })();
 </script>
 </body></html>
