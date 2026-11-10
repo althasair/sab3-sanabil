@@ -709,9 +709,9 @@ function vTop(){if(!M.stu.length)return noData();const L=filtered({noCat:true});
     if(!G.some(g=>g[0]===(UI.tT||'')))UI.tT=G[0][0];const P1=(G.find(g=>g[0]===UI.tT)||G[0])[1];
     const NT={all:'الجميع',q:'القطريات',n:'غير القطريات'};const tN=UI.tN||'all';const P=tN==='q'?P1.filter(x=>isQ(x.nat)):tN==='n'?P1.filter(x=>!isQ(x.nat)):P1;
     const seg=(attr,cur,opts)=>'<div class="tseg">'+opts.map(([v,t,n])=>'<button type="button" class="tsg" '+attr+'="'+v+'" aria-pressed="'+(String(cur)===String(v))+'">'+t+(n!=null?'<small>'+n+'</small>':'')+'</button>').join('')+'</div>';
-    const R=topRanks(P);const pod=R.filter(o=>o.r<=3),rest=R.filter(o=>o.r>3);
+    const R=topRanks(P);const pod=R.filter(o=>o.r<=3),rest=R.filter(o=>o.r>3);window.__topCtx={R,l,tT:UI.tT||'',tN};
     const tTitle=(UI.tT&&UI.tT!=='غير محدد'?'المسار ال'+UI.tT:UI.tT==='غير محدد'?'مسار غير محدد':'المستوى العام');
-    h+='<div class="box tbox"><div class="ttop"><div><h3>أوائل المستوى '+(LN[l]||l)+'</h3><p class="tsub">'+tTitle+' · '+NT[tN]+' · '+P.length+' طالبة</p></div><div class="tact">'+(done?'<span class="pill ok">الرصد مكتمل</span>':'<span class="pill warn">الرصد غير مكتمل — ترتيب مبدئي</span>')+'<button class="btn" data-export="top10">تصدير Excel</button></div></div>'+
+    h+='<div class="box tbox"><div class="ttop"><div><h3>أوائل المستوى '+(LN[l]||l)+'</h3><p class="tsub">'+tTitle+' · '+NT[tN]+' · '+P.length+' طالبة</p></div><div class="tact">'+(done?'<span class="pill ok">الرصد مكتمل</span>':'<span class="pill warn">الرصد غير مكتمل — ترتيب مبدئي</span>')+(bxOK()?'<button class="btn pri" data-cert="1">🏅 شهادات الأوائل</button>':'')+'<button class="btn" data-export="top10">تصدير Excel</button></div></div>'+
       '<div class="tfil">'+(lvls.length>1?'<div class="tfl"><span>المستوى</span>'+seg('data-tl',l,lvls.map(v=>[v,LN[v]||v]))+'</div>':'')+
       (G.length>1||G[0][0]?'<div class="tfl"><span>المسار</span>'+seg('data-tt',UI.tT,G.map(([t,Q])=>[t,t==='غير محدد'?'غير محدد':t,Q.length]))+'</div>':'')+
       '<div class="tfl"><span>الجنسية</span>'+seg('data-tn',tN,[['all','الجميع',P1.length],['q','القطريات',P1.filter(x=>isQ(x.nat)).length],['n','غير القطريات',P1.filter(x=>!isQ(x.nat)).length]])+'</div></div>'+
@@ -976,7 +976,7 @@ async function anaBoot(u){
   if(!u){CLD.wait=false;if(!Object.keys(S.cur).length){CLD.wait=true;CLD.msg='ادخلي أولًا من منصة سبع سنابل برقمكِ السري، ثم افتحي «تحليل النتائج».'}build();render();return}
   let cl={};try{cl=(await u.getIdTokenResult()).claims||{}}catch(_){}
   CLD.uid=u.uid;CLD.nm=cl.nm||'';CLD.dept=Array.isArray(cl.dept)?cl.dept:[];
-  const isVP=String(u.email||'').toLowerCase()==='althasair@gmail.com';let role=isVP?'admin':(cl.role||'');if(role==='admin'&&!isVP&&cl.mz&&cl.mz!=='admin'){role='principal';CLD.pr=true}CLD.role=role;
+  const isVP=String(u.email||'').toLowerCase()==='althasair@gmail.com';let role=isVP?'admin':(cl.role||'');if(role==='admin'&&!isVP&&cl.mz&&cl.mz!=='admin'){role='principal';CLD.pr=true}CLD.role=role;setTimeout(()=>window.meChip&&meChip(),0);
   if(role==='admin'){CLD.admin=true;CLD.wait=false;
     if(!Object.keys(S.cur||{}).length){try{const m=await CLD.db.collection('ana').doc('meta').get();if(m.exists){const md=m.data();const parts=await Promise.all([...Array(md.n||0).keys()].map(i=>CLD.db.collection('ana').doc('s'+i).get()));const d=JSON.parse(parts.map(x=>x.exists?x.data().t:'').join(''));if(d&&d.cur&&Object.keys(d.cur).length){Object.assign(S,d);CLD.cloudAdmin=true;UI.per=null}}}catch(e){console.warn(e)}}
     build();render();anaPushSoon();anaInbox();return}
@@ -1373,5 +1373,139 @@ document.head.insertAdjacentHTML('beforeend','<style>'+
  '@media (max-width:700px){.rqk8{grid-template-columns:repeat(2,minmax(0,1fr))}.rqbars div{grid-template-columns:1fr 60px;}.rqbars i{display:none}}</style>');
 build();render();
 
+</script>
+<script>
+/* ===================== شهادات الأوائل ===================== */
+(function(){
+const VPN='آسيا الذبياني',PRN='شيخة الرميحي';
+const MRK=['الأول','الثاني','الثالث','الرابع','الخامس','السادس','السابع','الثامن','التاسع','العاشر'];
+const LVN={10:'العاشر',11:'الحادي عشر',12:'الثاني عشر'};
+const VERSES=[
+ ['يَرْفَعِ اللَّهُ الَّذِينَ آمَنُوا مِنكُمْ وَالَّذِينَ أُوتُوا الْعِلْمَ دَرَجَاتٍ','المجادلة: 11'],
+ ['وَقُل رَّبِّ زِدْنِي عِلْمًا','طه: 114'],
+ ['وَفِي ذَٰلِكَ فَلْيَتَنَافَسِ الْمُتَنَافِسُونَ','المطففين: 26'],
+ ['إِنَّا لَا نُضِيعُ أَجْرَ مَنْ أَحْسَنَ عَمَلًا','الكهف: 30'],
+ ['قُلْ هَلْ يَسْتَوِي الَّذِينَ يَعْلَمُونَ وَالَّذِينَ لَا يَعْلَمُونَ','الزمر: 9'],
+ ['وَقُلِ اعْمَلُوا فَسَيَرَى اللَّهُ عَمَلَكُمْ وَرَسُولُهُ وَالْمُؤْمِنُونَ','التوبة: 105'],
+ ['هَلْ جَزَاءُ الْإِحْسَانِ إِلَّا الْإِحْسَانُ','الرحمن: 60'],
+ ['فَاسْتَبِقُوا الْخَيْرَاتِ','البقرة: 148']];
+const TITLES=['شهادة تفوّق وتميّز','شهادة فخر واعتزاز','وسام التميّز','شهادة إشادة وتقدير','وسام سنبلة العطاء','شهادة امتنان'];
+const MODES=[['rp','الترتيب والنسبة'],['r','الترتيب فقط'],['p','النسبة فقط'],['top','«من الأوائل» بلا ترتيب ولا نسبة'],['ex','التفوق فقط']];
+/* التصاميم العشرة: [الاسم، اللون، العنوان الافتراضي] */
+const DS=[['الوسام الذهبي','#62102A',0],['الإطار الملكي','#62102A',1],['السنابل','#4F6B2E',4],['النقش الإسلامي','#1F3A5F',2],['المحراب','#62102A',0],['الشريط الجانبي','#7A1838',3],['النجمة الثمانية','#1E5D5A',0],['البساطة الفاخرة','#3A3A3A',1],['الختم','#62102A',2],['الأرابيسك','#1F3A5F',3]];
+const CS={d:0,mode:'rp',title:'',verse:0,sigV:true,sigP:true,nat:false,sel:null};
+const SG={vp:'',pr:''};
+const G='#B8903A';
+function star8(cx,cy,r,st){return'<g transform="translate('+cx+' '+cy+')" '+st+'><rect x="'+(-r*.7)+'" y="'+(-r*.7)+'" width="'+(r*1.4)+'" height="'+(r*1.4)+'"/><rect x="'+(-r*.7)+'" y="'+(-r*.7)+'" width="'+(r*1.4)+'" height="'+(r*1.4)+'" transform="rotate(45)"/></g>'}
+function corner(c){return'<svg viewBox="0 0 120 120" class="cn"><g fill="none" stroke="'+c+'" stroke-width="1.6"><path d="M6 96V6h90"/><path d="M16 70V16h54"/><path d="M6 46q40 0 40-40"/><path d="M16 40q24 0 24-24" opacity=".7"/><circle cx="16" cy="16" r="4" fill="'+G+'" stroke="none"/><path d="M26 26q14 4 18 18M26 26q4 14 18 18" opacity=".6"/></g></svg>'}
+function ear(c,flip){let s='<svg viewBox="0 0 40 200" class="ear'+(flip?' fl':'')+'"><path d="M20 196V20" stroke="'+c+'" stroke-width="1.6" fill="none"/>';for(let i=0;i<8;i++){const y=30+i*20;s+='<ellipse cx="13" cy="'+y+'" rx="5" ry="10" transform="rotate(-28 13 '+y+')" fill="none" stroke="'+G+'" stroke-width="1.3"/><ellipse cx="27" cy="'+y+'" rx="5" ry="10" transform="rotate(28 27 '+y+')" fill="none" stroke="'+G+'" stroke-width="1.3"/>'}return s+'<ellipse cx="20" cy="16" rx="4.5" ry="10" fill="none" stroke="'+G+'" stroke-width="1.3"/></svg>'}
+function band(c){let s='<svg viewBox="0 0 1000 40" preserveAspectRatio="none" class="band"><g fill="none" stroke="'+c+'" stroke-width="1.1" opacity=".55">';for(let i=0;i<25;i++)s+=star8(20+i*40,20,13,'');return s+'</g><line x1="0" y1="2" x2="1000" y2="2" stroke="'+G+'"/><line x1="0" y1="38" x2="1000" y2="38" stroke="'+G+'"/></svg>'}
+function medal(c,txt){return'<svg viewBox="0 0 120 150" class="medal"><path d="M40 92l-14 52 22-12 12 18 8-52M80 92l14 52-22-12-12 18-8-52" fill="none" stroke="'+c+'" stroke-width="1.6"/><circle cx="60" cy="60" r="46" fill="#fff" stroke="'+G+'" stroke-width="2.4"/><circle cx="60" cy="60" r="38" fill="none" stroke="'+c+'" stroke-width="1" stroke-dasharray="2 3"/><text x="60" y="'+(txt.length>3?66:72)+'" text-anchor="middle" font-family="Aref Ruqaa,Amiri,serif" font-size="'+(txt.length>3?20:34)+'" fill="'+c+'" font-weight="700">'+txt+'</text></svg>'}
+function rosette(c){let p='';for(let i=0;i<24;i++)p+='<ellipse cx="60" cy="14" rx="6" ry="13" transform="rotate('+(i*15)+' 60 60)"/>';return'<svg viewBox="0 0 120 120" class="ros"><g fill="none" stroke="'+G+'" stroke-width="1">'+p+'</g><circle cx="60" cy="60" r="36" fill="#fff" stroke="'+c+'" stroke-width="1.8"/><circle cx="60" cy="60" r="30" fill="none" stroke="'+G+'" stroke-width=".8"/><text x="60" y="58" text-anchor="middle" font-family="Aref Ruqaa,Amiri,serif" font-size="15" fill="'+c+'">الأوائل</text><text x="60" y="76" text-anchor="middle" font-family="Amiri,serif" font-size="10" fill="'+c+'">2026–2027</text></svg>'}
+function shortN(n){return typeof sN==='function'?sN(n):n}
+function pctT(v){return f2(v).replace(/\.00$/,'')+'%'}
+function scopeT(ctx,o){const tr=(+ctx.l>10&&ctx.tT&&ctx.tT!=='غير محدد')?' – المسار ال'+ctx.tT:'';const nt=CS.nat&&ctx.tN==='q'?'الطالبات القطريات في ':CS.nat&&ctx.tN==='n'?'الطالبات غير القطريات في ':'طالبات ';return'على '+nt+'المستوى '+(LVN[ctx.l]||ctx.l)+tr}
+function reason(ctx,o){const rk='المركز '+MRK[o.r-1]+(o.rep?' مكرر':''),sc=scopeT(ctx,o),p=pctT(o.x.avgx);
+  switch(CS.mode){case'rp':return'لحصولها على <b>'+rk+'</b> '+sc+'، بنسبة <b><bdi dir="ltr">'+p+'</bdi></b>';case'r':return'لحصولها على <b>'+rk+'</b> '+sc;case'p':return'لتفوقها الدراسي وحصولها على نسبة <b><bdi dir="ltr">'+p+'</bdi></b>';case'top':return'لكونها من <b>الطالبات الأوائل</b> '+sc;default:return'تقديرًا لتفوقها الدراسي وتميّزها العلمي'}}
+function sigBox(role,name,img,on){return'<div class="cs"><span class="cr">'+role+'</span><span class="cnw"><b>'+name+'</b>'+(on&&img?'<img src="'+img+'" alt="">':'')+'</span></div>'}
+function certHTML(ctx,o,d){const D=DS[d],c=D[1],ttl=CS.title||TITLES[D[2]],v=VERSES[CS.verse]||VERSES[0];const x=o.x;
+  const tr=(+x.l>10&&typeof trackOf==='function'&&trackOf(x.s))?'المسار ال'+trackOf(x.s):'';
+  const meta=['الشعبة <bdi dir="ltr">'+esc(x.s)+'</bdi>',tr,'المستوى '+(LVN[x.l]||x.l)].filter(Boolean).join(' <i>◆</i> ');
+  const logo=(document.querySelector('.logo-c')||{}).src||'';
+  const rkTxt=CS.mode==='rp'||CS.mode==='r'?(o.r<=10?String(o.r):''):'★';
+  let deco='';
+  if(d===0)deco='<div class="fr f2"></div>'+['tr','tl','br','bl'].map(k=>'<div class="cnr '+k+'">'+corner(c)+'</div>').join('');
+  if(d===1)deco='<div class="fr f3"></div>';
+  if(d===2)deco='<div class="fr f1"></div><div class="ears r">'+ear(c)+'</div><div class="ears l">'+ear(c,1)+'</div>';
+  if(d===3)deco='<div class="fr f1"></div><div class="bd t">'+band(c)+'</div><div class="bd b">'+band(c)+'</div>';
+  if(d===4)deco='<svg class="arch" viewBox="0 0 1000 700" preserveAspectRatio="none"><path d="M60 690V230Q60 30 500 22Q940 30 940 230V690Z" fill="none" stroke="'+c+'" stroke-width="2.2"/><path d="M80 680V236Q80 50 500 42Q920 50 920 236V680Z" fill="none" stroke="'+G+'" stroke-width="1.2"/></svg>';
+  if(d===5)deco='<div class="fr f1"></div><div class="side"><div class="sdl"></div>'+medal(c,rkTxt||'★')+'<div class="sdl"></div></div>';
+  if(d===6)deco='<div class="fr f2"></div><svg class="wm" viewBox="-60 -60 120 120"><g fill="none" stroke="'+c+'" stroke-width=".7">'+star8(0,0,50,'')+star8(0,0,36,'')+'</g></svg>';
+  if(d===7)deco='<div class="ml t"></div><div class="ml b"></div>';
+  if(d===8)deco='<div class="fr f2"></div>';
+  if(d===9)deco='<div class="fr f3"></div>'+['tr','tl','br','bl'].map(k=>'<div class="cnr big '+k+'">'+corner(c)+corner(G)+'</div>').join('');
+  const top=(d===0||d===4)&&rkTxt?'<div class="md">'+medal(c,rkTxt)+'</div>':'';
+  return'<div class="cert d'+d+'" style="--c:'+c+'">'+deco+'<div class="ci">'+
+   '<div class="ch">'+(logo?'<img class="lg" src="'+logo+'" alt="">':'')+'<div class="vs">﴿'+v[0]+'﴾ <small>['+v[1]+']</small></div></div>'+top+
+   '<div class="cb"><h1>'+esc(ttl)+'</h1>'+
+   '<p class="ld">تتقدّم إدارة مدرسة الشيماء الثانوية للبنات بخالص التهنئة والتقدير إلى الطالبة</p>'+
+   '<div class="nm">'+esc(shortN(x.n))+'</div><div class="mt">'+meta+'</div>'+
+   '<p class="rs">'+reason(ctx,o)+' في نتائج '+esc(PERIODS[UI.per]||'')+' للعام الأكاديمي 2026–2027،<br>سائلين الله لها دوام التوفيق والسداد، وأن تبقى منارةً للعلم والتميّز.</p>'+'</div>'+
+   '<div class="sgs">'+sigBox('نائب المديرة للشؤون الأكاديمية',VPN,SG.vp,CS.sigV)+(d===8?'<div class="rsw">'+rosette(c)+'</div>':'<div></div>')+sigBox('مديرة المدرسة',PRN,SG.pr,CS.sigP)+'</div>'+
+   '</div></div>'}
+const CSS='.cert{position:relative;width:297mm;height:210mm;box-sizing:border-box;background:#fff;color:#2A1820;overflow:hidden;font-family:Amiri,"Traditional Arabic",serif;direction:rtl}'+
+ '.cert .ci{position:absolute;inset:16mm 22mm 13mm;display:flex;flex-direction:column;align-items:center;text-align:center;z-index:2}'+
+ '.cert .ch{display:flex;flex-direction:column;align-items:center;gap:1.5mm}.cert .lg{height:19mm;object-fit:contain}.cert .vs{font-family:"Amiri Quran",Amiri,serif;font-size:15pt;color:var(--c);line-height:1.6}.cert .vs small{font-family:Amiri,serif;font-size:9.5pt;color:#8A7A6A}'+
+ '.cert h1{font-family:"Aref Ruqaa",Amiri,serif;font-weight:700;font-size:38pt;color:var(--c);margin:2mm 0 1mm;line-height:1.3}'+
+ '.cert .ld{font-size:15pt;margin:0;color:#4A3A40}.cert .nm{font-family:"Aref Ruqaa",Amiri,serif;font-size:34pt;font-weight:700;color:#2A1820;margin:2mm 0 0;white-space:nowrap;line-height:1.35;padding:0 10mm;border-bottom:1.2px solid '+G+'}'+
+ '.cert .mt{font-size:13pt;color:#5A4A50;margin:2mm 0}.cert .mt i{font-style:normal;color:'+G+';font-size:8pt;margin:0 2mm;vertical-align:middle}'+
+ '.cert .cb{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%}'+'.cert .rs{font-size:15pt;line-height:1.85;margin:1mm 0 0;max-width:225mm}.cert .rs b{color:var(--c)}'+
+ '.cert .sgs{margin-top:auto;width:100%;padding-bottom:7mm;display:grid;grid-template-columns:1fr 40mm 1fr;align-items:end}.cert .cs{display:flex;flex-direction:column;align-items:center;gap:1mm}.cert .cr{font-size:12pt;color:#6B5C61}'+
+ '.cert .cnw{position:relative;display:inline-block;padding:4mm 6mm}.cert .cnw b{position:relative;font-size:15pt;color:var(--c);z-index:1}.cert .cnw img{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);height:26mm;max-width:66mm;object-fit:contain;opacity:.62;mix-blend-mode:multiply;z-index:2;pointer-events:none}'+
+ '.cert .fr{position:absolute;pointer-events:none}.cert .f1{inset:8mm;border:1.4px solid var(--c)}.cert .f1::after{content:"";position:absolute;inset:2mm;border:.8px solid '+G+'}'+
+ '.cert .f2{inset:8mm;border:1px solid '+G+'}.cert .f2::after{content:"";position:absolute;inset:1.6mm;border:2px solid '+G+'}'+
+ '.cert .f3{inset:7mm;border:3px double var(--c)}.cert .f3::after{content:"";position:absolute;inset:3mm;border:.8px solid '+G+'}'+
+ '.cert .cnr{position:absolute;width:26mm;height:26mm;z-index:1}.cert .cnr svg{width:100%;height:100%;display:block}.cert .cnr.tr{top:10mm;right:10mm;transform:scaleX(-1)}.cert .cnr.tl{top:10mm;left:10mm}.cert .cnr.br{bottom:10mm;right:10mm;transform:scale(-1,-1)}.cert .cnr.bl{bottom:10mm;left:10mm;transform:scaleY(-1)}'+
+ '.cert .cnr.big{width:34mm;height:34mm}.cert .cnr.big svg+svg{position:absolute;inset:5mm;width:calc(100% - 10mm);height:calc(100% - 10mm);opacity:.8}'+
+ '.cert .ears{position:absolute;top:28mm;bottom:28mm;width:13mm}.cert .ears.r{right:15mm}.cert .ears.l{left:15mm}.cert .ears svg{width:100%;height:100%}'+
+ '.cert .bd{position:absolute;left:12mm;right:12mm;height:9mm}.cert .bd.t{top:12mm}.cert .bd.b{bottom:12mm}.cert .bd svg{width:100%;height:100%;display:block}.cert.d3 .ci{inset:23mm 24mm 22mm}'+
+ '.cert .arch{position:absolute;inset:7mm 9mm 7mm;width:calc(100% - 18mm);height:calc(100% - 14mm)}.cert.d4 .ci{inset:22mm 30mm 13mm}'+
+ '.cert.d5 .ci{right:66mm;left:20mm}.cert .side{position:absolute;top:10mm;bottom:10mm;right:10mm;width:48mm;background:#FBF6EC;border-left:1px solid '+G+';display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6mm}.cert .side .medal{width:36mm}.cert .sdl{width:.8px;flex:1;max-height:40mm;background:'+G+'}'+
+ '.cert .wm{position:absolute;left:50%;top:52%;width:150mm;height:150mm;transform:translate(-50%,-50%);opacity:.09;z-index:0}'+
+ '.cert .ml{position:absolute;left:40mm;right:40mm;height:0;border-top:1px solid '+G+'}.cert .ml.t{top:12mm}.cert .ml.b{bottom:12mm}.cert .ml::before,.cert .ml::after{content:"";position:absolute;top:-2.2mm;width:4mm;height:4mm;background:'+G+';transform:rotate(45deg)}.cert .ml::before{right:-2mm}.cert .ml::after{left:-2mm}.cert.d7 h1{font-size:34pt;letter-spacing:.5mm}'+
+ '.cert .md{margin:-1mm 0 -3mm}.cert .md .medal{width:19mm;height:24mm}.cert.d0 h1,.cert.d4 h1{margin-top:0}.cert.d0 .ld,.cert.d4 .ld{font-size:14pt}'+
+ '.cert .rsw{display:flex;justify-content:center}.cert .ros{width:31mm;height:31mm}';
+function injectCss(){if(!document.getElementById('certcss'))document.head.insertAdjacentHTML('beforeend','<style id="certcss">'+CSS+
+ '.cmod{position:fixed;inset:0;z-index:9000;background:rgba(30,10,18,.55);display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:24px 12px}.cmod .cbx{background:#fff;border-radius:18px;max-width:1180px;width:100%;padding:18px 20px;box-shadow:0 20px 60px rgba(0,0,0,.35)}'+
+ '.cmod h3{margin:0 0 6px;color:#62102A}.cmod .cg{display:grid;grid-template-columns:repeat(auto-fill,minmax(205px,1fr));gap:10px;margin:8px 0 12px}.cmod .ct{border:2px solid #EADBB8;border-radius:12px;padding:6px;cursor:pointer;background:#FBF8F2;text-align:center;font-size:12.5px;font-weight:700;color:#62102A}.cmod .ct[aria-pressed=true]{border-color:#B8903A;box-shadow:0 0 0 3px rgba(184,144,58,.25);background:#fff}'+
+ '.cmod .th{width:193px;height:136px;overflow:hidden;margin:0 auto 4px;position:relative;border:1px solid #eee}.cmod .th .cert{transform:scale(.1724);transform-origin:top right;position:absolute;top:0;right:0}'+
+ '.cmod .co{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px 18px;margin-bottom:10px}.cmod .co label{display:flex;flex-direction:column;gap:3px;font-size:13px;font-weight:700;color:#5A4A50}.cmod .co select{padding:6px;border:1px solid #E0D3BA;border-radius:9px;font:inherit;font-weight:400}.cmod .ck{flex-direction:row!important;align-items:center;gap:6px!important;font-weight:500!important}'+
+ '.cmod .cl{max-height:220px;overflow:auto;border:1px solid #EFE4CF;border-radius:10px;padding:6px 10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:2px 14px}.cmod .cl label{font-size:13px;display:flex;gap:6px;align-items:center;white-space:nowrap}.cmod .cl em{color:#8A6A2E;font-style:normal;font-size:12px}'+
+ '.cmod .cbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}.cmod .sp{flex:1}.cmod .warn{color:#9A3B1E;font-size:12.5px}'+
+ '.mechip{display:flex;flex-direction:column;align-items:flex-start;gap:3px;margin-inline-start:12px;font-size:12.5px;color:#fff}.mechip b{font-size:14px}.mechip button{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(243,221,160,.6);border-radius:99px;padding:2px 12px;font:600 12px inherit;cursor:pointer}'+
+ '</style>')}
+function myKey(){return CLD.pr?'pr':(CLD.role==='admin'?'vp':'')}
+async function loadSigs(){try{const [a,b]=await Promise.all([CLD.db.collection('csig').doc('vp').get().catch(()=>null),CLD.db.collection('csig').doc('pr').get().catch(()=>null)]);SG.vp=a&&a.exists?a.data().sig||'':'';SG.pr=b&&b.exists?b.data().sig||'':''}catch(e){console.warn(e)}
+  if(!SG.vp&&CLD.role==='admin'&&typeof vpSig==='function')SG.vp=vpSig();
+  if(!SG.vp){try{const s=await CLD.db.collection('shared').doc('sig').get();if(s.exists)SG.vp=s.data().sig||''}catch(_){}}}
+function cleanSig(src,cb){const im=new Image();im.onload=()=>{const c=document.createElement('canvas');const sc=Math.min(1,600/im.width);c.width=Math.round(im.width*sc);c.height=Math.round(im.height*sc);const x=c.getContext('2d');x.drawImage(im,0,0,c.width,c.height);const D=x.getImageData(0,0,c.width,c.height),a=D.data;for(let i=0;i<a.length;i+=4){const l=(a[i]+a[i+1]+a[i+2])/3;if(l>200)a[i+3]=0;else if(l>140)a[i+3]=Math.round(a[i+3]*(200-l)/60)}x.putImageData(D,0,0);cb(c.toDataURL('image/png'))};im.src=src}
+function sigModal(){const k=myKey();if(!k)return;injectCss();const cur=SG[k];const el=document.createElement('div');el.className='cmod';el.innerHTML='<div class="cbx" style="max-width:520px"><h3>✍️ توقيعي</h3><p style="font-size:13px;color:#6B5C61;line-height:1.8;margin:0 0 10px">توقيعكِ خاص بكِ: أنتِ وحدكِ تضيفينه وتغيّرينه وتحذفينه. ويظهر على شهادات الأوائل عند اختيار «'+(k==='vp'?'توقيع النائب الأكاديمي':'توقيع مديرة المدرسة')+'» في خيارات الطباعة. صوّري توقيعكِ على ورقة بيضاء بقلم أزرق أو أسود، وتُزال الخلفية تلقائيًا.</p>'+
+  '<div style="border:1px dashed #D9C8A3;border-radius:12px;min-height:90px;display:flex;align-items:center;justify-content:center;background:#FBF8F2">'+(cur?'<img src="'+cur+'" style="max-height:90px;max-width:100%">':'<span style="color:#999;font-size:13px">لم يُضف توقيع بعد</span>')+'</div>'+
+  '<div class="cbar"><label class="btn pri" style="cursor:pointer">'+(cur?'تغيير التوقيع':'رفع صورة التوقيع')+'<input type="file" accept="image/*" id="csigIn" style="display:none"></label>'+(cur?'<button class="btn" data-csdel="1">حذف التوقيع</button>':'')+'<span class="sp"></span><span id="csmsg" style="font-size:12px;color:#6B5C61"></span><button class="btn" data-cclose="1">إغلاق</button></div></div>';
+  document.body.appendChild(el);
+  el.querySelector('#csigIn').onchange=e=>{const f=e.target.files[0];if(!f)return;const fr=new FileReader();fr.onload=()=>cleanSig(fr.result,async png=>{el.querySelector('#csmsg').textContent='جارٍ الحفظ…';try{await CLD.db.collection('csig').doc(k).set({sig:png,uid:CLD.uid,at:new Date().toISOString()});SG[k]=png;el.remove();sigModal();toast('تم حفظ توقيعكِ ✓')}catch(err){console.warn(err);el.querySelector('#csmsg').textContent='تعذّر الحفظ. تأكدي من نشر قواعد قاعدة البيانات الجديدة.'}});fr.readAsDataURL(f)};
+  el.addEventListener('click',async e=>{if(e.target===el||e.target.closest('[data-cclose]'))el.remove();if(e.target.closest('[data-csdel]')){if(!confirm('حذف توقيعكِ؟'))return;try{await CLD.db.collection('csig').doc(k).delete();SG[k]='';el.remove();sigModal();toast('تم حذف التوقيع')}catch(_){toast('تعذّر الحذف')}}})}
+window.meChip=async function(){const k=myKey();if(!k||document.getElementById('mechip'))return;injectCss();const host=document.querySelector('header.top .brand');if(!host)return;
+  host.insertAdjacentHTML('beforeend','<div class="mechip" id="mechip"><b>'+(k==='vp'?VPN:PRN)+'</b><span>'+(k==='vp'?'نائب المديرة للشؤون الأكاديمية':'مديرة المدرسة')+'</span><button type="button" data-mysig2="1">✍️ توقيعي</button></div>');loadSigs()};
+document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('[data-mysig2]'))sigModal()});
+function ctxNow(){return window.__topCtx||null}
+function selected(ctx){return ctx.R.filter((o,i)=>!CS.sel||CS.sel.has(i))}
+function drawThumbs(el,ctx){const o=selected(ctx)[0]||ctx.R[0];el.querySelector('.cg').innerHTML=DS.map((D,i)=>'<div class="ct" data-cd="'+i+'" aria-pressed="'+(CS.d===i)+'"><div class="th">'+certHTML(ctx,o,i)+'</div>'+(i+1)+'. '+D[0]+'</div>').join('')}
+async function certOpen(){const ctx=ctxNow();if(!ctx||!ctx.R.length){toast('لا توجد طالبات في القائمة الحالية');return}injectCss();await loadSigs();CS.sel=new Set(ctx.R.map((_,i)=>i));
+  const el=document.createElement('div');el.className='cmod';const tl=(LVN[ctx.l]||ctx.l)+(ctx.tT&&ctx.tT!=='غير محدد'?' – المسار ال'+ctx.tT:'')+(ctx.tN==='q'?' – القطريات':ctx.tN==='n'?' – غير القطريات':'');
+  el.innerHTML='<div class="cbx"><h3>🏅 شهادات الأوائل — المستوى '+esc(tl)+'</h3><p style="margin:0;font-size:12.5px;color:#6B5C61">اختاري التصميم والخيارات ثم اضغطي «طباعة». تُطبع كل شهادة في صفحة A4 أفقية مستقلة، بألوان هادئة قليلة الحبر.</p>'+
+   '<div class="cg"></div><div class="co">'+
+   '<label>ما يُذكر في الشهادة<select id="c_mode">'+MODES.map(([k,t])=>'<option value="'+k+'"'+(CS.mode===k?' selected':'')+'>'+t+'</option>').join('')+'</select></label>'+
+   '<label>عنوان الشهادة<select id="c_title"><option value="">عنوان التصميم الافتراضي</option>'+TITLES.map(t=>'<option'+(CS.title===t?' selected':'')+'>'+t+'</option>').join('')+'</select></label>'+
+   '<label>الآية الكريمة<select id="c_verse">'+VERSES.map((v,i)=>'<option value="'+i+'"'+(CS.verse===i?' selected':'')+'>'+v[0]+' ('+v[1]+')</option>').join('')+'</select></label>'+
+   '<div style="display:flex;flex-direction:column;gap:4px"><label class="ck"><input type="checkbox" id="c_sv"'+(CS.sigV?' checked':'')+'> توقيع النائب الأكاديمي'+(SG.vp?'':' <span class="warn">(لم يُرفع بعد)</span>')+'</label><label class="ck"><input type="checkbox" id="c_sp"'+(CS.sigP?' checked':'')+'> توقيع مديرة المدرسة'+(SG.pr?'':' <span class="warn">(لم يُرفع بعد — ترفعه المديرة من «✍️ توقيعي»)</span>')+'</label>'+(ctx.tN!=='all'?'<label class="ck"><input type="checkbox" id="c_nat"'+(CS.nat?' checked':'')+'> ذكر فئة الجنسية في نص الترتيب</label>':'')+'</div></div>'+
+   '<div style="display:flex;gap:8px;align-items:center;margin:4px 0"><b style="font-size:13px;color:#62102A">الطالبات</b><button class="btn" data-csall="1">الكل</button><button class="btn" data-cs3="1">الثلاث الأوائل</button><button class="btn" data-csnone="1">إلغاء الكل</button><span class="sp"></span><span id="c_cnt" style="font-size:12.5px"></span></div>'+
+   '<div class="cl">'+ctx.R.map((o,i)=>'<label><input type="checkbox" data-csi="'+i+'" checked> <em>'+MRK[o.r-1]+(o.rep?' مكرر':'')+'</em> '+esc(shortN(o.x.n))+' · <bdi dir="ltr">'+esc(o.x.s)+'</bdi> · '+f2(o.x.avgx)+'</label>').join('')+'</div>'+
+   '<div class="cbar"><button class="btn pri" data-cprint="1">🖨 طباعة الشهادات</button><button class="btn" data-cprev="1">👁 معاينة بالحجم الكامل</button><span class="sp"></span><button class="btn" data-cclose="1">إغلاق</button></div></div>';
+  document.body.appendChild(el);const cnt=()=>{el.querySelector('#c_cnt').textContent=CS.sel.size+' شهادة'};drawThumbs(el,ctx);cnt();
+  const syncBoxes=()=>el.querySelectorAll('[data-csi]').forEach(b=>b.checked=CS.sel.has(+b.dataset.csi));
+  el.addEventListener('change',e=>{const t=e.target;if(t.dataset.csi!=null){t.checked?CS.sel.add(+t.dataset.csi):CS.sel.delete(+t.dataset.csi);cnt();return}
+    if(t.id==='c_mode')CS.mode=t.value;if(t.id==='c_title')CS.title=t.value;if(t.id==='c_verse')CS.verse=+t.value;if(t.id==='c_sv')CS.sigV=t.checked;if(t.id==='c_sp')CS.sigP=t.checked;if(t.id==='c_nat')CS.nat=t.checked;drawThumbs(el,ctx)});
+  el.addEventListener('click',e=>{const t=e.target;if(t===el||t.closest('[data-cclose]')){el.remove();return}const cd=t.closest('[data-cd]');if(cd){CS.d=+cd.dataset.cd;drawThumbs(el,ctx);return}
+    if(t.closest('[data-csall]')){CS.sel=new Set(ctx.R.map((_,i)=>i));syncBoxes();cnt()}if(t.closest('[data-csnone]')){CS.sel=new Set();syncBoxes();cnt()}if(t.closest('[data-cs3]')){CS.sel=new Set(ctx.R.map((o,i)=>o.r<=3?i:-1).filter(i=>i>=0));syncBoxes();cnt()}
+    if(t.closest('[data-cprint]'))certPrint(ctx,true);if(t.closest('[data-cprev]'))certPrint(ctx,false)})}
+function certPrint(ctx,go){const L=selected(ctx);if(!L.length){toast('اختاري طالبة واحدة على الأقل');return}
+  if(CS.sigV&&!SG.vp)toast('تنبيه: توقيع النائب الأكاديمي غير مرفوع، فستُطبع الشهادة بالاسم فقط');if(CS.sigP&&!SG.pr)toast('تنبيه: توقيع المديرة غير مرفوع، فستُطبع الشهادة بالاسم فقط');
+  const w=window.open('','_blank');if(!w){toast('اسمحي بالنوافذ المنبثقة للطباعة');return}
+  w.document.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>شهادات الأوائل — '+esc(LVN[ctx.l]||ctx.l)+'</title><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Amiri:wght@400;700&family=Aref+Ruqaa:wght@400;700&display=swap"><style>@page{size:A4 landscape;margin:0}html,body{margin:0;background:#EEE}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.cert{margin:0 auto 6mm;box-shadow:0 2px 10px rgba(0,0,0,.15);break-after:page}@media print{body{background:#fff}.cert{margin:0;box-shadow:none}.cert:last-child{break-after:auto}}'+CSS+'</style></head><body>'+L.map(o=>certHTML(ctx,o,CS.d)).join('')+
+   (go?'<script>(document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve()).then(function(){setTimeout(function(){print()},500)})<\/script>':'')+'</body></html>');w.document.close()}
+document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('[data-cert]'))certOpen()});
+window.__certHTML=certHTML;window.__CS=CS;window.__SG=SG;
+})();
 </script>
 </body></html>
