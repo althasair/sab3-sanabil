@@ -597,7 +597,7 @@ const ICON={
  data:'<ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3"/>'
 };
 const TABS=[['home','الرئيسية','home'],['entry','إدخال الإجراءات','add'],['students','الطالبات المستهدفات','stu'],['teachers','المعلمات','tch'],['rank','تصنيف أداء المعلمات','cup'],['seven','السنابل السبع','seven'],['impact','الأثر','imp'],['track','تتبع الطالبات','imp'],['charter','ميثاق الشراكة','ch'],['data','البيانات والنماذج','data']];
-function renderNav(){$('#nav').innerHTML=TABS.filter(([id])=>(id!=='track'||AUTH.role==='admin'||AUTH.role==='viewer')&&(!['stats','prio'].includes(id)||['admin','coord','viewer'].includes(AUTH.role))).map(([id,l,ic])=>(l=id==='rank'&&AUTH.role==='teacher'?'إنجازاتي':l,'<button type="button" data-tab="'+id+'"'+(UI.tab===id?' aria-current="page"':'')+'><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'+ICON[ic]+'</svg>'+l+'</button>')).join('')+'<span class="navsep"></span>'+EXTRA_NAV}
+function renderNav(){$('#nav').innerHTML=TABS.filter(([id])=>(id!=='track'||AUTH.role==='admin'||AUTH.role==='viewer')&&(!['stats','prio','surv'].includes(id)||['admin','coord','viewer'].includes(AUTH.role))).map(([id,l,ic])=>(l=id==='rank'&&AUTH.role==='teacher'?'إنجازاتي':l,'<button type="button" data-tab="'+id+'"'+(UI.tab===id?' aria-current="page"':'')+'><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'+ICON[ic]+'</svg>'+l+'</button>')).join('')+'<span class="navsep"></span>'+EXTRA_NAV}
 const EXTRA_NAV='<a href="analysis.html" style="display:flex;align-items:center;gap:8px;padding:9px 18px;border-radius:14px;color:#fff;background:#16233F;font-weight:800;font-size:15px;white-space:nowrap;flex:none;text-decoration:none"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16M7 16v-4M12 16V8M17 16V5"/></svg>تحليل النتائج</a><a href="report.html" style="display:flex;align-items:center;gap:8px;padding:9px 18px;border-radius:14px;color:#fff;background:#0A8F8B;font-weight:800;font-size:15px;white-space:nowrap;flex:none;text-decoration:none"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7M9 16h5"/></svg>التقرير الأكاديمي السلوكي</a><a href="initiatives.html" style="display:flex;align-items:center;gap:8px;padding:9px 18px;border-radius:14px;color:#fff;background:#B8903A;font-weight:800;font-size:15px;white-space:nowrap;flex:none;text-decoration:none"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.6 5.5 6 .8-4.4 4.2 1.1 6L12 16.8 6.7 19.5l1.1-6L3.4 9.3l6-.8z"/></svg>المبادرات والأنشطة</a>';
 
 $('#nav').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(!b)return;UI.tab=b.dataset.tab;try{history.replaceState(null,'','#'+UI.tab)}catch(_){}render();window.scrollTo({top:0})});
@@ -1150,7 +1150,7 @@ function renderChrome(){
   const done=D.teachers.filter(x=>x.ratio>=1).length;
   $('#marq').textContent='منصة سبع سنابل · تم رصد '+S.actions.length+' إجراء لرفع التحصيل · '+new Set(T.map(t=>t.row.name)).size+' طالبة مستهدفة في '+T.length+' حالة · '+S.charters.length+' ميثاق شراكة مكتمل · '+done+' معلمة أكملت السنابل السبع · «كل إجراء يترك أثرًا»'+(S.demo?' · (بيانات تجريبية)':'');
 }
-function render(){try{renderNav();renderChrome();const v={home:vHome,entry:vEntry,analysis:vAnalysis,students:vStudents,teachers:vTeachers,rank:()=>AUTH.role==='teacher'?crown('سنابلي وإنجازاتي','إنجازاتي','إِنَّا لَا نُضِيعُ أَجْرَ مَنْ أَحْسَنَ عَمَلًا','الكهف: 30','')+myCardPanel()+myAchPanel():crown('تصنيف أداء المعلمات','المتميزات في العطاء','وَفِي ذَٰلِكَ فَلْيَتَنَافَسِ الْمُتَنَافِسُونَ','المطففين: 26','ترتيب المعلمات في كل بند من سبع سنابل والميزان، وكأس للمتصدرة في كل بند، ونجوم حتى سبع.')+boardPanel()+myAchPanel(),seven:vSeven,impact:vImpact,charter:vCharter,data:vData,track:vTrack,beh:()=>window.vBeh?window.vBeh():'',care:()=>window.vCare?window.vCare():'',stats:vStats,prio:vPrio}[UI.tab]||vHome;$('#view').innerHTML=(BOOT_ERR?recoverBar():'')+v()}catch(e){console.error(e);$('#view').innerHTML=recoverBar(e)}}
+function render(){try{renderNav();renderChrome();const v={home:vHome,entry:vEntry,analysis:vAnalysis,students:vStudents,teachers:vTeachers,rank:()=>AUTH.role==='teacher'?crown('سنابلي وإنجازاتي','إنجازاتي','إِنَّا لَا نُضِيعُ أَجْرَ مَنْ أَحْسَنَ عَمَلًا','الكهف: 30','')+myCardPanel()+myAchPanel():crown('تصنيف أداء المعلمات','المتميزات في العطاء','وَفِي ذَٰلِكَ فَلْيَتَنَافَسِ الْمُتَنَافِسُونَ','المطففين: 26','ترتيب المعلمات في كل بند من سبع سنابل والميزان، وكأس للمتصدرة في كل بند، ونجوم حتى سبع.')+boardPanel()+myAchPanel(),seven:vSeven,impact:vImpact,charter:vCharter,data:vData,track:vTrack,beh:()=>window.vBeh?window.vBeh():'',care:()=>window.vCare?window.vCare():'',surv:()=>window.vSurv?window.vSurv():'',stats:vStats,prio:vPrio}[UI.tab]||vHome;$('#view').innerHTML=(BOOT_ERR?recoverBar():'')+v()}catch(e){console.error(e);$('#view').innerHTML=recoverBar(e)}}
 function recoverBar(e){return '<section class="panel" style="border-color:#C8343F"><h3>تعذّر فتح البيانات المحفوظة كما هي</h3><p class="small">تم فتح المنصة بأمان. بياناتك السابقة لم تُحذف؛ يمكنك تنزيل نسخة منها وإرسالها لإصلاحها، أو البدء من جديد.</p><p class="small muted" dir="ltr">'+esc(String((e||BOOT_ERR)&&((e||BOOT_ERR).message||e||BOOT_ERR)))+'</p><div class="row"><button class="btn sm gold" id="dlRaw">تنزيل نسخة البيانات السابقة</button><button class="btn sm" id="wipeYes">البدء من جديد</button></div></section>'}
 
 /* ---------- student modal ---------- */
@@ -2753,6 +2753,81 @@ const ST_Q0=[['الربع الأول','2026-08-23','2026-10-11'],['الربع ا
 ICON.prio='<path d="M12 2l2.9 6.1 6.6.8-4.9 4.5 1.3 6.6L12 16.8 6.1 20l1.3-6.6L2.5 8.9l6.6-.8z"/>';
 TABS.splice(TABS.findIndex(t=>t[0]==='stats')+1,0,['prio','تحقيق الأولويات','prio']);
 ROLE_TABS.coord.push('prio');ROLE_TABS.viewer.push('prio');
+/* ===================== تحليل الاستطلاعات والاستبانات، والإجراءات بالأرقام =====================
+   الاستطلاع: ملف Excel أو CSV من Microsoft Forms يرفعه النائب، فيُحلَّل كل سؤال تلقائيًا (اختيار، اختيار متعدد، مقياس تقدير، نص)،
+   ويُحفظ الملخص فقط (لا يُحفظ اسم المستجيبة ولا بريدها) في shared/surveys لتطّلع عليه الإدارة والمنسقات. */
+TABS.splice(TABS.findIndex(t=>t[0]==='stats')+1,0,['surv','تحليل الاستطلاعات','stats']);
+ROLE_TABS.coord.push('surv');ROLE_TABS.viewer.push('surv');
+UI.svSel='';const SV={list:null};
+const SV_SKIP=/^(id|المعرف|المعرّف|start time|وقت البدء|completion time|وقت الإكمال|وقت الانتهاء|email|البريد الإلكتروني|البريد الالكتروني|name|الاسم|last modified time|وقت آخر تعديل|total points|إجمالي النقاط|quiz feedback|ملاحظات الاختبار)$/i;
+const SV_LIK=[['موافق بشدة','موافقة بشدة','راض جدا','راضية جدا','ممتاز','دائما','بدرجة كبيرة جدا','مرتفع جدا'],['موافق','موافقة','راض','راضية','جيد جدا','غالبا','بدرجة كبيرة','مرتفع'],['محايد','محايدة','إلى حد ما','الى حد ما','متوسط','جيد','أحيانا','احيانا','بدرجة متوسطة'],['غير موافق','غير موافقة','غير راض','غير راضية','مقبول','نادرا','بدرجة قليلة','منخفض'],['غير موافق بشدة','غير موافقة بشدة','غير راض إطلاقا','غير راضية إطلاقا','ضعيف','أبدا','ابدا','لا أوافق بشدة']];
+function svLik(v){const n=norm(v).replace(/[ًٌٍ]/g,'');for(let i=0;i<SV_LIK.length;i++)if(SV_LIK[i].some(x=>norm(x)===n))return 5-i;return null}
+function svParse(rows,title){rows=(rows||[]).filter(r=>r&&r.some(c=>String(c).trim()!==''));if(rows.length<2)throw new Error('الملف لا يحتوي ردودًا.');
+  const H=rows[0].map(x=>String(x||'').trim());const B=rows.slice(1);const qs=[];
+  H.forEach((h,ci)=>{if(!h||SV_SKIP.test(h)||/^(points|feedback|النقاط|ملاحظات)\s*[-–]/i.test(h))return;
+    const V=B.map(r=>String(r[ci]==null?'':r[ci]).trim()).filter(x=>x!=='');if(!V.length)return;
+    const nums=V.map(x=>Number(x.replace(',','.')));const allNum=nums.every(x=>isFinite(x));const dist=new Set(V);const multi=V.some(x=>/;\s*\S/.test(x)||/;$/.test(x)&&x.split(';').filter(Boolean).length>1);
+    const cnt=L=>{const m=new Map();L.forEach(x=>m.set(x,(m.get(x)||0)+1));return [...m.entries()]};
+    if(allNum&&Math.min(...nums)>=0&&Math.max(...nums)<=10&&dist.size<=11){const o=cnt(V.map(x=>String(Number(x)))).sort((a,b)=>+b[0]-+a[0]);qs.push({q:h,type:'rate',n:V.length,max:Math.max(...nums)<=5?5:10,mean:nums.reduce((a,b)=>a+b,0)/nums.length,opts:o});return}
+    if(multi){const parts=V.flatMap(x=>x.split(';').map(s=>s.trim()).filter(Boolean));qs.push({q:h,type:'multi',n:V.length,opts:cnt(parts).sort((a,b)=>b[1]-a[1])});return}
+    if(dist.size<=15||dist.size<=V.length*.25){const lk=V.map(svLik);const isL=lk.filter(x=>x!=null).length>=V.length*.8;let o=cnt(V);
+      if(isL){o.sort((a,b)=>(svLik(b[0])||0)-(svLik(a[0])||0));const xs=lk.filter(x=>x!=null);qs.push({q:h,type:'likert',n:V.length,mean:xs.reduce((a,b)=>a+b,0)/xs.length,agree:xs.filter(x=>x>=4).length/xs.length,opts:o});return}
+      qs.push({q:h,type:'choice',n:V.length,opts:o.sort((a,b)=>b[1]-a[1])});return}
+    qs.push({q:h,type:'text',n:V.length,texts:V.slice(-200).map(x=>x.slice(0,300))})});
+  if(!qs.length)throw new Error('لم يُتعرَّف على أسئلة في الملف.');
+  return {id:'sv'+Date.now().toString(36),title:String(title||'استطلاع').replace(/\.(xlsx|xls|csv)$/i,'').replace(/[_]+/g,' ').trim(),at:new Date().toISOString(),n:B.length,qs}}
+async function svLoad(){if(SV.list!=null)return;SV.list=[];if(AUTH.role==='admin'&&S.surveys){SV.list=S.surveys;return}
+  if(!CLOUD.ok)return;try{const d=await CLOUD.db.collection('shared').doc('surveys').get();if(d.exists)SV.list=JSON.parse(d.data().t||'[]')}catch(e){console.warn(e)}render()}
+function svSave(){S.surveys=SV.list;save();if(CLOUD.ok&&AUTH.role==='admin')CLOUD.db.collection('shared').doc('surveys').set({t:JSON.stringify(SV.list),at:new Date().toISOString()}).catch(e=>toast('تعذّر حفظ الاستطلاع في السحابة: '+(e.message||e)));render()}
+const SV_C=['#7A1434','#B8903A','#1F7A8C','#2E8B57','#8A4FB0','#D0703A','#2F5DA8','#C2456B','#5E7D2E','#6B5B95'];
+function svQ(x,i){const pct=c=>Math.round(c/x.n*100)+'%';let body='';
+  if(x.type==='text')body='<p class="cap">'+x.n+' إجابة مكتوبة</p><div style="max-height:230px;overflow:auto;text-align:right;font-size:13.5px;line-height:1.9">'+x.texts.slice(-40).reverse().map(t=>'<div style="border-bottom:1px dashed var(--line);padding:4px 2px">'+esc(t)+'</div>').join('')+'</div>';
+  else{const head=x.type==='likert'?stTiles([{n:Math.round(x.agree*100),l:'نسبة الموافقة والرضا',s:'الدرجتان العلييان',c:'#2E8B57'},{n:Math.round(x.mean/5*100),l:'المتوسط من 5: '+x.mean.toFixed(2),s:'كنسبة مئوية',c:'#B8903A'}]).replace(/data-cu="(\d+)"/g,'data-cu="$1" data-suf="%"')
+     :x.type==='rate'?stTiles([{n:Math.round(x.mean/x.max*100),l:'المتوسط '+x.mean.toFixed(2)+' من '+x.max,s:'كنسبة مئوية',c:'#B8903A'}]).replace(/data-cu="(\d+)"/g,'data-cu="$1" data-suf="%"'):'';
+   body=head+stBars(x.opts.map(([l,c],j)=>({l:x.type==='rate'?'الدرجة '+l:l,v:c,t:c+' · '+pct(c),c:SV_C[j%SV_C.length]})))+(x.type==='multi'?'<p class="cap">اختيار متعدد: النسبة من عدد المستجيبات ('+x.n+')</p>':'')}
+  return stCard(['📊','🗳️','⭐','📝','✅'][['choice','multi','rate','text','likert'].indexOf(x.type)]||'📊',(i+1)+'. '+esc(x.q),x.type==='text'?'':(x.n+' إجابة'),body,x.type==='text')}
+function svActs(){/* الإجراءات بالأرقام من سبع سنابل */
+  const ADM=stAll();const myD=((AUTH.prof&&AUTH.prof.depts)||[]);const allD=ADM||!myD.length;const dOf=n=>{const f=fuzzyStaff(n);return f?(f.dept||f.subject||'—'):'—'};
+  const A=S.actions.filter(a=>allD||myD.includes(norm(dOf(a.teacher))));const lv=a=>String(secKey(a.section||'')).split('-')[0];const mo=a=>String(a.date||'').slice(0,7);
+  const byCnt=(L,f)=>{const m={};L.forEach(a=>{const k=f(a);if(k)m[k]=(m[k]||0)+1});return Object.entries(m).sort((x,y)=>y[1]-x[1]).map(([l,v],i)=>({l,v,c:SV_C[i%SV_C.length]}))};
+  const stuN=L=>new Set(L.flatMap(a=>(a.students||[]).map(n=>norm(n)+'|'+secKey(a.section)))).size;const tchN=L=>new Set(L.map(a=>norm(a.teacher))).size;
+  const EN=uniqSess(A.filter(a=>a.type===3)),ind=EN.filter(a=>!a.whole),grp=EN.filter(a=>a.whole);
+  const RE=A.filter(a=>a.type===6),FB=A.filter(a=>a.type===4),PA=A.filter(a=>a.type===5),AC=A.filter(a=>a.type===7);
+  const lvl=L=>[['10','الصف العاشر','#1F7A8C'],['11','الصف الحادي عشر','#B8903A'],['12','الصف الثاني عشر','#7A1838']].map(([k,l,c])=>({l,c,v:L.filter(a=>lv(a)===k).length}));
+  const kind=a=>{const d=String(a.detail||'').split(' — ')[0].trim();return /شهادة/.test(d)?'شهادات تكريم':d||'أخرى'};
+  let o=stSec(2,'الحصص الإثرائية بالأرقام')+'<div class="st-grid">';
+  o+=stCard('📚','الحصص الإثرائية','كل ردّ أو تسجيل حصة واحدة (لا تتضاعف بتعدد المواد).',stTiles([{n:EN.length,l:'حصة إثرائية',c:'#7A1434'},{n:ind.length,l:'فردية',c:'#B8903A'},{n:grp.length,l:'جماعية',c:'#1F7A8C'},{n:stuN(ind),l:'طالبة في الحصص الفردية',c:'#2E8B57'},{n:tchN(EN),l:'معلمة نفّذت',c:'#8A4FB0'}]));
+  o+=stCard('🏫','حسب القسم','عدد الحصص الإثرائية لكل قسم.',stBars(byCnt(EN,a=>dOf(a.teacher))));
+  o+=stCard('🎓','حسب المستوى','',stBars(lvl(EN)));
+  o+=stCard('📅','الحصص شهريًا','الفردية والجماعية.',stMonthly(EN.map(a=>({m:mo(a),k:a.whole?'g':'f'})),[['f','فردية','#B8903A'],['g','جماعية','#1F7A8C']]),true);
+  o+='</div>'+stSec(3,'التعزيز والتحفيز بالأرقام')+'<div class="st-grid">';
+  o+=stCard('🏅','التعزيز والتحفيز','',stTiles([{n:RE.length,l:'إجراء تعزيز',c:'#B8903A'},{n:stuN(RE),l:'طالبة عُزّزت',c:'#2E8B57'},{n:RE.filter(a=>/شهادة/.test(a.detail||'')).length,l:'شهادة تكريم',c:'#7A1434'},{n:tchN(RE),l:'معلمة عزّزت',c:'#8A4FB0'}]));
+  o+=stCard('🎁','أنواع التعزيز','رسالة شكر، تعزيز في الحصة، تكريم على منصة قطر للتعليم، شهادات…',stBars(byCnt(RE,kind)));
+  o+=stCard('🏫','التعزيز حسب القسم','',stBars(byCnt(RE,a=>dOf(a.teacher))));
+  o+=stCard('📅','التعزيز شهريًا','',stMonthly(RE.map(a=>({m:mo(a),k:'r'})),[['r','تعزيز','#B8903A']]),true);
+  o+='</div>'+stSec(4,'الإجراءات الأخرى بالأرقام')+'<div class="st-grid">';
+  o+=stCard('✍️','التغذية الراجعة','',stTiles([{n:FB.length,l:'تغذية راجعة',c:'#1F7A8C'},{n:FB.filter(a=>a.ok).length,l:'معتمدة من المنسقة',c:'#2E8B57'},{n:FB.filter(a=>a.src==='teacher'&&!a.ok).length,l:'بانتظار الاعتماد',c:'#D0703A'},{n:stuN(FB),l:'طالبة',c:'#8A4FB0'}]));
+  o+=stCard('📞','التواصل مع أولياء الأمور','',stTiles([{n:PA.length,l:'تواصل',c:'#7A1434'},{n:stuN(PA),l:'طالبة',c:'#2E8B57'},{n:tchN(PA),l:'معلمة',c:'#8A4FB0'}]));
+  o+=stCard('🧩','الأنشطة وتعلّم الأقران','',stTiles([{n:AC.length,l:'نشاط',c:'#2E8B57'},{n:stuN(AC),l:'طالبة',c:'#B8903A'}]));
+  o+=stCard('📊','جميع الإجراءات حسب النوع','',stBars(KEYS.map((k,i)=>({l:k.name,v:k.k===3?EN.length:A.filter(a=>a.type===k.k).length,c:SV_C[i]})).filter(r=>r.v)));
+  return o+'</div>'}
+window.vSurv=function(){if(SV.list==null){svLoad();if(SV.list==null)SV.list=[]}const L=SV.list||[];if(UI.svSel&&!L.some(x=>x.id===UI.svSel))UI.svSel='';const cur=L.find(x=>x.id===UI.svSel)||L[L.length-1];
+  let h='<div class="st-hero"><h2>تحليل الاستطلاعات والأرقام</h2><p class="vs">﴿وَأَحْصَىٰ كُلَّ شَيْءٍ عَدَدًا﴾ <small>(الجن: 28)</small></p></div>';
+  h+=stSec(1,'الاستطلاعات والاستبانات');
+  h+='<section class="panel noprint"><div class="row" style="gap:8px;flex-wrap:wrap;align-items:center">'+(L.length?L.map(x=>'<button type="button" class="btn sm'+(cur&&x.id===cur.id?' pri':'')+'" data-svsel="'+x.id+'">'+esc(x.title)+' <small>('+x.n+')</small></button>').join(''):'<span class="small muted">لا توجد استطلاعات بعد.</span>')+'<span class="sp"></span>'+
+    (AUTH.role==='admin'?'<button type="button" class="btn sm gold" data-svup="1">＋ رفع استطلاع (Excel من Forms)</button>'+(cur?'<button type="button" class="btn sm ghost" data-svdel="'+cur.id+'">حذف هذا الاستطلاع</button>':''):'')+'<button type="button" class="btn sm ghost" onclick="window.print()">🖨 طباعة</button></div>'+
+    (AUTH.role==='admin'?'<p class="small muted" style="margin:8px 0 0">من Microsoft Forms: الردود ← «فتح في Excel»، ثم ارفعي الملف هنا. يُحلَّل كل سؤال تلقائيًا، ولا تُحفظ أسماء المستجيبات ولا بريدهن، ويظهر التحليل للمديرة والمنسقات.</p>':'')+'</section>';
+  if(cur){const lk=cur.qs.filter(q=>q.type==='likert'),rt=cur.qs.filter(q=>q.type==='rate');const sat=lk.length?lk.reduce((a,q)=>a+q.agree,0)/lk.length:null;
+    h+='<div class="st-grid">'+stCard('🗂️',esc(cur.title),'رُفع في '+String(cur.at).slice(0,10),stTiles([{n:cur.n,l:'مستجيبة',c:'#7A1434'},{n:cur.qs.length,l:'سؤالًا',c:'#1F7A8C'}].concat(sat!=null?[{n:Math.round(sat*100),l:'متوسط الرضا والموافقة',s:'في أسئلة المقياس',c:'#2E8B57'}]:[])).replace(/(data-cu="\d+")(>0<\/b><span>متوسط)/,'$1 data-suf="%"$2'),true)+cur.qs.map(svQ).join('')+'</div>'}
+  h+=svActs();setTimeout(stCount,40);return '<div class="st-wrap">'+h+'</div>'};
+/* حقل الملف ثابت خارج الصفحة حتى لا يضيع اختيار الملف إذا أُعيد رسم الصفحة أثناء فتح نافذة الاختيار */
+function svInput(){let i=document.getElementById('svFile');if(!i){i=document.createElement('input');i.type='file';i.id='svFile';i.accept='.xlsx,.xls,.csv';i.hidden=true;document.body.appendChild(i)}return i}
+document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('[data-svup]'))svInput().click()});
+document.addEventListener('change',async e=>{if(!e.target||e.target.id!=='svFile'||!e.target.files[0])return;const f=e.target.files[0];
+  try{if(typeof XLSX==='undefined')throw new Error('تعذّر تحميل قارئ Excel');const rows=await readSheet(f);const sv=svParse(rows,f.name);SV.list=(SV.list||[]).concat(sv);UI.svSel=sv.id;svSave();toast('تم تحليل «'+sv.title+'»: '+sv.n+' ردًا و'+sv.qs.length+' سؤالًا')}catch(err){toast('تعذّر تحليل الملف: '+(err.message||err),6000)}e.target.value=''});
+document.addEventListener('click',e=>{const s=e.target.closest&&e.target.closest('[data-svsel]');if(s){UI.svSel=s.dataset.svsel;render();return}
+  const d=e.target.closest&&e.target.closest('[data-svdel]');if(d){const x=(SV.list||[]).find(y=>y.id===d.dataset.svdel);if(x&&confirm('حذف تحليل «'+x.title+'»؟')){SV.list=SV.list.filter(y=>y!==x);UI.svSel='';svSave()}}});
+
 const PRI=[
  {n:1,s:'رفع مستوى التحصيل الأكاديمي',t:'رفع مستوى التحصيل الأكاديمي من خلال التدخلات النوعية المبنية على البيانات وقياس أثر التعلّم.',c:'#7A1838'},
  {n:2,s:'أثر التدريب المهني والتقنيات',t:'تعزيز أثر الممارسات التعليمية من خلال توظيف التدريب المهني والتقنيات التعليمية.',c:'#1F7A8C'},
