@@ -688,7 +688,7 @@ function vLast(){if(!M.stu.length)return noData();const lv=['11','12','10'].filt
       '<p class="stl">مواد تغيّر اسمها هذا العام قورنت بمقابلها: «الاجتماعية» ← الدراسات الاجتماعية، «الحوسبة» ← الحوسبة وتكنولوجيا المعلومات، «العلوم المتكاملة» ← العلوم. ومادة «المهارات» مستبعدة لعدم رصدها هذا العام.</p></div>'});return h}
 const ORD=['الأولى','الثانية','الثالثة','الرابعة','الخامسة','السادسة','السابعة','الثامنة','التاسعة','العاشرة'];
 /* الأوائل: الترتيب بالنسبة الدقيقة (منزلتان عشريتان)، ولا تدخل الترتيب إلا من اكتملت درجاتها في كل مواد شعبتها ولم تُحرم */
-const f2=v=>v==null?'—':(Math.round(v*100)/100).toFixed(2);const topOK=x=>x.avgx!=null&&!x.barred&&x.complete;
+const f2=v=>v==null?'—':(Math.round(v*100)/100).toFixed(2);const TOP_MIN=90;/* الأوائل من 90% فأعلى فقط */const topOK=x=>x.avgx!=null&&!x.barred&&x.complete&&x.avgx>=TOP_MIN;
 function topRanks(P){const A=P.filter(topOK).sort((a,b)=>b.avgx-a.avgx);const out=[];let r=0,last=null;
   for(const x of A){const k=f2(x.avgx);let rep=false;if(k!==last){r++;last=k}else rep=true;if(r>10)break;out.push({x,r,rep})}return out}
 const TRK_ORD=['علمي','أدبي','تكنولوجي'];let __TRK=null;
@@ -712,7 +712,7 @@ function vTop(){if(!M.stu.length)return noData();const L=filtered({noCat:true});
     const R=topRanks(P);const pod=R.filter(o=>o.r<=3),rest=R.filter(o=>o.r>3);window.__topCtx={R,l,tT:UI.tT||'',tN};
     const tTitle=(UI.tT&&UI.tT!=='غير محدد'?'المسار ال'+UI.tT:UI.tT==='غير محدد'?'مسار غير محدد':'المستوى العام');
     h+='<div class="box tbox"><div class="ttop"><div><h3>أوائل المستوى '+(LN[l]||l)+'</h3><p class="tsub">'+tTitle+' · '+NT[tN]+' · '+P.length+' طالبة</p></div><div class="tact">'+(done?'<span class="pill ok">الرصد مكتمل</span>':'<span class="pill warn">الرصد غير مكتمل — ترتيب مبدئي</span>')+(bxOK()?'<button class="btn pri" data-cert="1">🏅 شهادات الأوائل</button>':'')+'<button class="btn" data-export="top10">تصدير Excel</button></div></div>'+
-      '<div class="tfil">'+(lvls.length>1?'<div class="tfl"><span>المستوى</span>'+seg('data-tl',l,lvls.map(v=>[v,LN[v]||v]))+'</div>':'')+
+      '<p class="stl" style="margin:4px 0">يدخل الترتيب من حصلت على '+TOP_MIN+'% فأعلى فقط'+(R.length&&R[R.length-1].r<10?'، لذا عدد الأوائل هنا '+R.length+' (البقية دون '+TOP_MIN+'%)':'')+'.</p>'+'<div class="tfil">'+(lvls.length>1?'<div class="tfl"><span>المستوى</span>'+seg('data-tl',l,lvls.map(v=>[v,LN[v]||v]))+'</div>':'')+
       (G.length>1||G[0][0]?'<div class="tfl"><span>المسار</span>'+seg('data-tt',UI.tT,G.map(([t,Q])=>[t,t==='غير محدد'?'غير محدد':t,Q.length]))+'</div>':'')+
       '<div class="tfl"><span>الجنسية</span>'+seg('data-tn',tN,[['all','الجميع',P1.length],['q','القطريات',P1.filter(x=>isQ(x.nat)).length],['n','غير القطريات',P1.filter(x=>!isQ(x.nat)).length]])+'</div></div>'+
       (R.length?'<div class="tpod">'+pod.map(o=>'<div class="tpc r'+o.r+'"><div class="tmed">'+o.r+'</div><div class="tnm">'+esc(sN(o.x.n))+'</div><div class="tmt">'+ORD[o.r-1]+(o.rep?' مكرر':'')+' · <bdi dir="ltr">'+o.x.s+'</bdi> · '+esc(natShort(o.x.nat))+'</div><div class="tpv">'+f2(o.x.avgx)+'<small>%</small></div></div>').join('')+'</div>'+
