@@ -548,7 +548,7 @@ function build(){
   Object.entries(secs).forEach(([sec,o])=>{o.exp=Object.keys(o.subs).filter(s=>!ELECT.has(s)&&s!=='المهارات الحياتية والمهنية');
     o.status=Object.fromEntries(Object.entries(o.subs).map(([s,c])=>[s,ELECT.has(s)?(c?'ok':'none'):c>=o.n?'ok':c?'part':'none']));
     o.complete=o.exp.every(s=>o.status[s]==='ok')});
-  stu.forEach(x=>{const o=secs[x.s];x.missing=o.exp.filter(s=>!(s in x.g));x.complete=!x.missing.length&&x.ng>0;x.barred=Object.values(x.g).some(v=>/محروم/.test(v))});
+  stu.forEach(x=>{const o=secs[x.s];x.missing=o.exp.filter(s=>!(s in x.g));/* المعفاة من التربية الإسلامية: تُحسب نسبتها على بقية موادها */if(x.missing.includes('التربية الإسلامية')){x.exempt=['التربية الإسلامية'];x.missing=x.missing.filter(s=>s!=='التربية الإسلامية')}x.complete=!x.missing.length&&x.ng>0;x.barred=Object.values(x.g).some(v=>/محروم/.test(v))});
   M={T,stu,secs,pers};
 }
 function teacherOf(sec,sub){return(M.T[sec+'|'+sub]||[]).join(' و')}
