@@ -2786,6 +2786,7 @@ function svParse(rows,title){rows=(rows||[]).filter(r=>r&&r.some(c=>String(c).tr
   const H=rows[0].map(x=>String(x||'').trim());const B=rows.slice(1);const qs=[];const gi=H.findIndex(h=>/^(الشعب[ةه]|الصف\s*\/\s*الشعب[ةه])$/.test(h));const gOf=r=>gi<0?'':String(r[gi]==null?'':r[gi]).trim();
   H.forEach((h,ci)=>{if(!h||ci===gi||SV_SKIP.test(h)||/^(points|feedback|النقاط|ملاحظات)\s*[-–]/i.test(h))return;
     const V=B.map(r=>String(r[ci]==null?'':r[ci]).trim()).filter(x=>x!=='');if(!V.length)return;
+    if(/^ملخص/.test(h)){qs.push({q:h,type:'text',n:V.length,texts:V.map(x=>x.slice(0,300))});return}
     const nums=V.map(x=>Number(x.replace(',','.')));const allNum=nums.every(x=>isFinite(x));const dist=new Set(V);const multi=V.some(x=>/;\s*\S/.test(x)||/;$/.test(x)&&x.split(';').filter(Boolean).length>1);
     const cnt=L=>{const m=new Map();L.forEach(x=>m.set(x,(m.get(x)||0)+1));return [...m.entries()]};
     if(allNum&&Math.min(...nums)>=0&&Math.max(...nums)<=10&&dist.size<=11){const o=cnt(V.map(x=>String(Number(x)))).sort((a,b)=>+b[0]-+a[0]);qs.push({q:h,type:'rate',n:V.length,max:Math.max(...nums)<=5?5:10,mean:nums.reduce((a,b)=>a+b,0)/nums.length,opts:o});return}
@@ -2809,11 +2810,12 @@ function svSum(cur){const L=cur.qs.filter(q=>q.type==='likert');if(!L.length)ret
     stCard('🌟','أبرز نقاط القوة','أعلى البنود موافقةً.','<ol style="text-align:right;margin:0;padding-inline-start:20px">'+srt.slice(0,4).map(li).join('')+'</ol>')+
     stCard('🛠️','بنود تحتاج إلى تحسين','أقل البنود موافقةً؛ أولوية في خطة التطوير.','<ol style="text-align:right;margin:0;padding-inline-start:20px">'+srt.slice(-5).reverse().map(li).join('')+'</ol>')}
 function svQ(x,i){const pct=c=>Math.round(c/x.n*100)+'%';let body='';
-  if(x.type==='text')body='<p class="cap">'+x.n+' إجابة مكتوبة</p><div style="max-height:230px;overflow:auto;text-align:right;font-size:13.5px;line-height:1.9">'+x.texts.slice(-40).reverse().map(t=>'<div style="border-bottom:1px dashed var(--line);padding:4px 2px">'+esc(t)+'</div>').join('')+'</div>';
+  if(x.type==='text'&&/^ملخص/.test(x.q))body='<ul style="text-align:right;margin:0;padding-inline-start:20px;line-height:2;font-size:14px">'+x.texts.map(t=>'<li>'+esc(t)+'</li>').join('')+'</ul>';
+  else if(x.type==='text')body='<p class="cap">'+x.n+' إجابة مكتوبة</p><div style="max-height:230px;overflow:auto;text-align:right;font-size:13.5px;line-height:1.9">'+x.texts.slice(-40).reverse().map(t=>'<div style="border-bottom:1px dashed var(--line);padding:4px 2px">'+esc(t)+'</div>').join('')+'</div>';
   else{const head=x.type==='likert'?svStat(x.agree)+stTiles([{n:Math.round(x.agree*100),l:'موافقة ورضا',c:'#2E8B57'},{n:Math.round((1-x.agree-(x.dis||0))*100),l:'محايد',c:'#B8903A'},{n:Math.round((x.dis||0)*100),l:'عدم موافقة',c:'#B3263A'}]).replace(/data-cu="(\d+)"/g,'data-cu="$1" data-suf="%"')
      :x.type==='rate'?stTiles([{n:Math.round(x.mean/x.max*100),l:'المتوسط '+x.mean.toFixed(2)+' من '+x.max,s:'كنسبة مئوية',c:'#B8903A'}]).replace(/data-cu="(\d+)"/g,'data-cu="$1" data-suf="%"'):'';
    body=head+stBars(x.opts.map(([l,c],j)=>({l:x.type==='rate'?'الدرجة '+l:l,v:c,t:c+' · '+pct(c),c:SV_C[j%SV_C.length]})))+(x.type==='multi'?'<p class="cap">اختيار متعدد: النسبة من عدد المستجيبات ('+x.n+')</p>':'')+(x.by&&Object.keys(x.by).length>1?'<p class="cap" style="margin-top:8px"><b>نسبة الموافقة حسب الشعبة</b></p>'+stBars(Object.entries(x.by).sort((a,b)=>a[0].localeCompare(b[0],undefined,{numeric:true})).map(([g,[a,n]],j)=>({l:g,v:Math.round(a/n*100),t:Math.round(a/n*100)+'% ('+n+')',c:SV_C[j%SV_C.length]}))):'')}
-  return stCard(['📊','🗳️','⭐','📝','✅'][['choice','multi','rate','text','likert'].indexOf(x.type)]||'📊',(i+1)+'. '+esc(x.q),x.type==='text'?'':(x.n+' إجابة'),body,x.type==='text')}
+  return stCard(['📊','🗳️','⭐','📝','✅'][['choice','multi','rate','text','likert'].indexOf(x.type)]||'📊',(/^ملخص/.test(x.q)?'':(i+1)+'. ')+esc(x.q),x.type==='text'?'':(x.n+' إجابة'),body,x.type==='text')}
 function svActs(){/* الإجراءات بالأرقام من سبع سنابل */
   const ADM=stAll();const myD=((AUTH.prof&&AUTH.prof.depts)||[]);const allD=ADM||!myD.length;const dOf=n=>{const f=fuzzyStaff(n);return f?(f.dept||f.subject||'—'):'—'};
   const A=S.actions.filter(a=>allD||myD.includes(norm(dOf(a.teacher))));const lv=a=>String(secKey(a.section||'')).split('-')[0];const mo=a=>String(a.date||'').slice(0,7);
