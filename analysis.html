@@ -1311,6 +1311,13 @@ function vReadingBody(){
   const coR=(RD.all||[]).filter(r=>r.role==='coord'&&String(r.per)===String(UI.per)),teR=(RD.all||[]).filter(r=>r.role==='teacher'&&String(r.per)===String(UI.per));
   RD.doc=RD.doc||{};const fbs=RD.doc.fbs=RD.doc.fbs||{};const k0='_vp';const it0=rdItem(k0);
   let h=head('قراءة النتائج — النائب الأكاديمي','التحليل الوصفي والكمي العام لنتائج الطلبة: لوحة شاملة، ثم كل مادة بقراءة منسقتها وأثر برامجها، ثم تغذيتكِ الراجعة ورأيكِ ومقترحاتكِ للفترة القادمة.')+rdSaveBar('v');
+  window.__RQX=()=>{const cl=o=>{const r={};Object.entries(o||{}).forEach(([k,v])=>{if(k!=='stu')r[k]=v});return r};
+    return{per:PERIODS[UI.per],at:new Date().toISOString(),school:{pass,ach:S0&&S0.m,a70,a90,fail,actions:ss.n?sanText(ss):'',n:ss.n},
+      subjects:subs.map(sub=>{const c=cols.find(x=>x.hp===sub);const lv=[...new Set(M.stu.filter(x=>typeof x.g[sub]==='number').map(x=>x.l))].sort();const As=A.filter(a=>subEq(a.sub,sub));const s2=sanSum(As);
+        return{sub,st:c&&c.st,levels:lv.map(l=>({l:lvlName(l),st:colStat(M.stu.filter(x=>x.l===l),sub)})),actions:s2.n?sanText(s2):'',impact:impact(M.stu,sub,As)}}),
+      coords:coR.map(r=>({uid:r.uid,name:r.name,dept:r.dept,depts:r.depts,at:r.at,items:cl(r.items),curFb:fbs[r.uid]||null})),
+      teachers:teR.map(r=>({uid:r.uid,name:r.name,dept:r.dept,at:r.at,items:cl(r.items)})),vp:{op:it0.op,opt:it0.opt,so:it0.so,ins:it0.ins,exp:it0.exp}}};
+  h+='<div class="chips noprint" style="margin:6px 0 10px"><button class="btn" data-rqexp="1">📥 تصدير القراءات للمراجعة</button><button class="btn" data-rqimp="1">📤 استيراد التغذية الراجعة</button><span class="stl">التصدير ملف تُرسلينه لمراجعة القراءات وصياغة التغذية الراجعة، والاستيراد يضعها في خاناتها لتراجعيها ثم تحفظي.</span></div>';
   h+='<div class="kpis rqk8">'+tile('نسبة النجاح',pc(pass),'في جميع المواد','var(--tiff-d)')+tile('نسبة التحصيل',pc(S0&&S0.m),'متوسط الدرجات')+tile('70% فأعلى',pc(a70),'نسبة الدرجات')+tile('90% فأعلى',pc(a90),'نسبة الدرجات','var(--c90)')+
     tile('طالبات لديهن رسوب',fail,'في مادة أو أكثر','var(--bad)')+tile('الحصص الإثرائية',(ss.by[3]||{n:0}).n,'مسجلة في سبع سنابل')+tile('الإجراءات الفردية',ss.ind,ss.stu+' طالبة مستفيدة')+tile('التواصل مع أولياء الأمور',(ss.by[5]||{n:0}).n,'مسجل في سبع سنابل')+'</div>';
   h+='<p class="stl">قراءات محفوظة: '+coR.length+' منسقة و'+teR.length+' معلمة لهذه الفترة.</p>';
@@ -1345,6 +1352,13 @@ async function rqApprove(on){if(!on){RD.doc=Object.assign(RD.doc||{},{approved:f
   const sig=vpSig();if(!sig){const i=document.createElement('input');i.type='file';i.accept='image/*';i.onchange=()=>{const f=i.files[0];if(!f)return;const fr=new FileReader();fr.onload=()=>{const im=new Image();im.onload=()=>{const c=document.createElement('canvas');const sc=Math.min(1,400/im.width);c.width=im.width*sc;c.height=im.height*sc;c.getContext('2d').drawImage(im,0,0,c.width,c.height);try{localStorage.setItem('sab3_vp_sig',c.toDataURL('image/png'))}catch(_){}rqApprove(true)};im.src=fr.result};fr.readAsDataURL(f)};toast('اختاري صورة توقيعكِ مرة واحدة، وتُحفظ لاعتماد القراءات القادمة');i.click();return}
   RD.doc=Object.assign(RD.doc||{},{approved:true,appAt:new Date().toISOString(),sig});await rdSave();toast('تم اعتماد القراءة بتوقيعكِ، وأصبحت ظاهرة لمديرة المدرسة ✓')}
 document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-rqapp]');if(b)rqApprove(b.dataset.rqapp==='1')});
+document.addEventListener('click',async e=>{if(!e.target.closest)return;
+  if(e.target.closest('[data-rqexp]')){if(!window.__RQX)return;const D=window.__RQX();try{const q=await CLD.db.collection('fb').get();D.fb=[];q.forEach(d=>{const v=d.data();if(String(v.per)===String(UI.per))D.fb.push({to:v.to,by:v.by,byName:v.byName,role:v.role,dept:v.dept,sel:v.sel,txt:v.txt})})}catch(_){}
+    const bl=new Blob([JSON.stringify(D,null,1)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(bl);a.download='قراءات الأقسام '+(PERIODS[UI.per]||'')+'.json';document.body.appendChild(a);a.click();a.remove();toast('تم تصدير القراءات ✓');return}
+  if(e.target.closest('[data-rqimp]')){const i=document.createElement('input');i.type='file';i.accept='.json,application/json';i.onchange=()=>{const f=i.files[0];if(!f)return;const fr=new FileReader();fr.onload=()=>{try{const J=JSON.parse(fr.result);RD.doc=RD.doc||{};const fbs=RD.doc.fbs=RD.doc.fbs||{};let n=0;
+      Object.entries(J.fb||{}).forEach(([uid,t])=>{const o=fbs[uid]=fbs[uid]||{sel:[],txt:'',dept:''};if(typeof t==='string'){o.txt=t}else{if(t.txt!=null)o.txt=t.txt;if(t.sel)o.sel=t.sel;if(t.dept)o.dept=t.dept}n++});
+      const it=rdItem('_vp');['opt','ins','exp'].forEach(k=>{if(J[k]!=null)it[k]=J[k]});['op','so'].forEach(k=>{if(Array.isArray(J[k]))it[k]=J[k]});
+      render();toast('تم وضع التغذية الراجعة لـ'+n+' منسقة ورأيكِ في خاناتها. راجعيها ثم اضغطي حفظ.')}catch(err){toast('الملف غير صالح')}};fr.readAsText(f)};i.click()}});
 /* المديرة: ترى قراءة النائب الأكاديمي بعد اعتمادها فقط */
 async function prLoad(){if(RD.prDone||!CLD.db)return;RD.prDone=true;try{const q=await CLD.db.collection('reads').where('role','==','admin').get();RD.prDocs=[];q.forEach(d=>{const v=d.data();if(v.approved)RD.prDocs.push(v)})}catch(e){console.warn(e);RD.prDocs=[]}render()}
 /* ---- الأحداث ---- */
