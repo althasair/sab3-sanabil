@@ -433,7 +433,7 @@ const secSort=(a,b)=>{const[x1,y1]=a.split('-').map(Number),[x2,y2]=b.split('-')
 const subjSort=(a,b)=>{const i=SUBJ_ORDER.indexOf(a),j=SUBJ_ORDER.indexOf(b);return (i<0?99:i)-(j<0?99:j)||a.localeCompare(b,'ar')};
 const catOf=p=>CATS.find(c=>p>=c.min);
 const isQ=n=>norm(n)==='قطر';
-function sN(n){n=String(n||'').replace(/^أ\.\s*/,'').replace(/\s+/g,' ').trim();const w=n.split(' ');if(w.length<=3)return n;const pre=['ابو','أبو','بن','بنت','آل','عبد','ام','أم','ال'];const k=pre.includes(w[w.length-2])?2:1;return w[0]+' '+w[1]+' '+w.slice(-k).join(' ')}
+function sN(n){n=String(n||'').replace(/^أ\.\s*/,'').replace(/\s+/g,' ').trim();const w=n.split(' ');if(w.length<=3)return n;const pre=['ابو','أبو','بن','بنت','آل','عبد','ام','أم','ال'];const k=(pre.includes(w[w.length-2])||/^ال(له|دين|رحمن|رحيم)$/.test(w[w.length-1]))?2:1;return w[0]+' '+w[1]+' '+w.slice(-k).join(' ')}
 function canon(s){const n=norm(s);if(!n)return'';
   if(/اجتماعي/.test(n))return'الدراسات الاجتماعية';
   if(/حوسب/.test(n))return'الحوسبة وتكنولوجيا المعلومات';
@@ -1012,7 +1012,7 @@ if(CLD.wait){try{firebase.initializeApp({apiKey:"AIzaSyBUA_OYl9NCZsiR92Uvez1545x
 /* ---------- قراءة النتائج وفق «نموذج تقرير كمي وصفي لتحليل نتائج التقييم» (الدليل الإرشادي) ----------
    المعلمة لشعبها (تختار فقط) ← تنعكس عند المنسقة لكل مادة ومستوى ← تنعكس عند النائب الأكاديمي للمدرسة */
 TABS.push(['treading','قراءة نتائجي'],['creading','قراءة نتائج القسم'],['rfollow','متابعة القراءة'],['bfollow','متابعة الرصد السلوكي']);
-function shortName(n){n=String(n||'').replace(/^أ\.\s*/,'').trim();const w=n.split(/\s+/);if(w.length<=2)return n;const pre=['ابو','أبو','بن','بنت','آل','عبد','ام','أم'];const k=pre.includes(w[w.length-2])?2:1;return w[0]+' '+w.slice(-k).join(' ')}
+function shortName(n){n=String(n||'').replace(/^أ\.\s*/,'').trim();const w=n.split(/\s+/);if(w.length<=2)return n;const pre=['ابو','أبو','بن','بنت','آل','عبد','ام','أم'];const k=(pre.includes(w[w.length-2])||/^ال(له|دين|رحمن|رحيم)$/.test(w[w.length-1]))?2:1;return w[0]+' '+w.slice(-k).join(' ')}
 /* ================= متابعة قراءة النتائج (النائب الأكاديمي والمنسقة) ================= */
 const RF={docs:null,fbs:[],busy:false,open:null};
 const RD_OPN=['خالص الشكر والتقدير على قراءتكِ','الأسباب كافية وشاملة','القراءة بحاجة إلى إعادة تأمل','ما زالت الأسباب تحتاج إلى دراسة','يرجى تحديد الأسباب بدقة','يرجى ربط الحلول بالأسباب','الحلول مناسبة وقابلة للتطبيق'];
@@ -1223,7 +1223,7 @@ function tPairs(){const P=[];(CLD.me||[]).forEach(t=>(t.sections||[]).forEach(sc
 function lowStu(sec,sub){const pp=prevPer();return M.stu.filter(x=>x.s===sec&&typeof x.g[sub]==='number').map(x=>{const v=x.g[sub];const oth=Object.entries(x.g).filter(([k,n])=>k!==sub&&typeof n==='number').map(e=>e[1]);const om=oth.length?mean(oth):null;const pv=pp!=null?gAt(pp,x.pid,sub):null;
   const f=[];if(v<70)f.push('دون 70%');if(om!=null&&om-v>=10)f.push('أقل من معدلها في بقية المواد بـ'+r1(om-v));if(pv!=null&&pv-v>=5)f.push('تراجعت '+r1(pv-v)+' عن '+PERIODS[pp]);return{x,v,om,pv,f}}).filter(o=>o.f.length).sort((a,b)=>a.v-b.v)}
 function topStu(sec,sub){return M.stu.filter(x=>x.s===sec&&typeof x.g[sub]==='number'&&x.g[sub]>=90).sort((a,b)=>b.g[sub]-a.g[sub])}
-function short(n){const w=String(n||'').trim().split(/\s+/);return w.length>3?[w[0],w[1],w[w.length-1]].join(' '):w.join(' ')}
+function short(n){const w=String(n||'').trim().split(/\s+/);const k=w.length>3&&/^ال(له|دين|رحمن|رحيم)$/.test(w[w.length-1])?2:1;return w.length>2+k?[w[0],w[1]].concat(w.slice(-k)).join(' '):w.join(' ')}
 function tInterp(sub,secs){const S2=secs.map(sec=>({sec,st:colStat(M.stu.filter(x=>x.s===sec),sub)})).filter(o=>o.st);if(!S2.length)return '';
   const all=colStat(M.stu.filter(x=>secs.includes(x.s)),sub);const st=rdStu();let p=[];
   p.push('بعد قراءة نتائج طالبات الشعب التي أقوم بتدريسها في مادة '+sub+' في '+PERIODS[UI.per]+'، بلغت نسبة النجاح '+pc(all.pass)+'، ونسبة التحصيل الأكاديمي '+pc(all.ach)+'، وأحرزت '+all.n70+' طالبة ('+pc(all.a70)+') 70% فأعلى، منهن '+all.n90+' طالبة ('+pc(all.a90)+') 90% فأعلى'+(all.va!=null?'، وكانت القيمة المضافة '+(all.va>0?'+':'')+r1(all.va)+' درجة عن التقييم السابق':'')+'.');
