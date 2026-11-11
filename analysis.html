@@ -1018,7 +1018,7 @@ const RF={docs:null,fbs:[],busy:false,open:null};
 const RD_OPN=['خالص الشكر والتقدير على قراءتكِ','الأسباب كافية وشاملة','القراءة بحاجة إلى إعادة تأمل','ما زالت الأسباب تحتاج إلى دراسة','يرجى تحديد الأسباب بدقة','يرجى ربط الحلول بالأسباب','الحلول مناسبة وقابلة للتطبيق'];
 function rfTok(n){return nkA(n).replace(/\s+ه(?=\s|$)/g,'ه').split(' ').filter(Boolean)}
 function rfSk(w){return w.replace(/[اأإآءئؤيى]/g,'').replace(/[هك]$/,'ه')}
-function rfMatch(a,b){const A=rfTok(a).map(rfSk),B=rfTok(b).map(rfSk);if(!A.length||!B.length||A[0]!==B[0])return false;const[s,l]=A.length<=B.length?[A,B]:[B,A];return s.slice(1).every(t=>l.includes(t))}
+function rfMatch(a,b){const A=rfTok(a).map(rfSk),B=rfTok(b).map(rfSk);if(!A.length||!B.length||A[0]!==B[0])return false;const[s,l]=A.length<=B.length?[A,B]:[B,A];const lj=l.join('');return s.slice(1).every(t=>l.includes(t)||(t.length>1&&lj.includes(t)))}
 async function rfLoad(){if(!CLD.db||RF.busy)return;RF.busy=true;try{
   let q=[];if(CLD.admin||CLD.pr)q=[CLD.db.collection('reads').get()];else q=(CLD.dept.length?CLD.dept:['-']).map(d=>CLD.db.collection('reads').where('dept','==',d).get());
   const docs=[];(await Promise.all(q)).forEach(s=>s.forEach(d=>docs.push(Object.assign({_id:d.id},d.data()))));RF.docs=docs;
