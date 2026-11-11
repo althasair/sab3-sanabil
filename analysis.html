@@ -1143,8 +1143,10 @@ function prevPer(){const ps=Object.keys(S.cur).map(Number).filter(p=>p<UI.per&&O
 function gAt(per,pid,sub){const o=(S.cur[per]||{})[pid];const v=o&&o.g[sub];return typeof v==='number'?v:null}
 function colStat(list,sub){const v=list.map(x=>x.g[sub]).filter(n=>typeof n==='number');if(!v.length)return null;const pp=prevPer();let va=null,pm=null;
   if(pp!=null){const pr=list.map(x=>[x.g[sub],gAt(pp,x.pid,sub)]).filter(([a,b])=>typeof a==='number'&&b!=null);if(pr.length){pm=mean(pr.map(p=>p[1]));va=mean(pr.map(p=>p[0]))-pm}}
+  /* المحرومة تُحسب ضمن عدد الطالبات وتُعدّ غير ناجحة، كما في نموذج الوزارة؛ والتحصيل متوسط الدرجات المرصودة */
+  const nb=list.filter(x=>/محروم/.test(String(x.g[sub]==null?'':x.g[sub]))).length,N=v.length+nb;
   const n70=v.filter(n=>n>=70).length,n90=v.filter(n=>n>=90).length;
-  return{n:v.length,pass:v.filter(n=>n>=50).length/v.length*100,ach:mean(v),va,pm,a70:n70/v.length*100,a90:n90/v.length*100,n70,n90,nf:v.filter(n=>n<50).length,c:statOf(v).c}}
+  return{n:N,nb,pass:v.filter(n=>n>=50).length/N*100,ach:mean(v),va,pm,a70:n70/N*100,a90:n90/N*100,n70,n90,nf:v.filter(n=>n<50).length+nb,c:statOf(v).c}}
 function trStat(list,sub,tr){return colStat(list.filter(x=>trackOf(x.s)===tr),sub)}
 /* ---- أرصدة سبع سنابل: الإجراءات المسجلة لكل شعبة ومادة ---- */
 async function sanLoad(){if(RD.san||!CLD.db)return;RD.san=[];const add=(e,src)=>{const sec=secKey(e.section);if(!sec)return;const t=+e.type||3;const pend=src==='e'?(t===4&&e.ok!==true):!!e.pending;if(pend)return;RD.san.push({sec,sub:e.subject||'',t:e.teacher||'',type:t,stu:Array.isArray(e.students)?e.students:[],whole:!!e.whole,detail:String(e.detail||''),date:String(e.date||'')})};
