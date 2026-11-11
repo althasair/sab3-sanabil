@@ -2873,8 +2873,7 @@ function svReport(cur){const Q=cur.qs,L=Q.filter(q=>q.type==='likert'),C=Q.filte
   const sec=(t,b)=>'<h4 style="margin:14px 0 6px;color:var(--maroon)">'+t+'</h4>'+b;
   const k='svx:'+cur.id;
   return stCard('📑','الخلاصة العامة للاستطلاع','قراءة كمية ووصفية شاملة لنتائج «'+esc(cur.title)+'»، ويليها تحليل كل محور على حدة.',
-    '<div style="text-align:justify;line-height:2.05;font-size:14.5px">'+sec('أولًا: التحليل الكمي',svQuant(cur)||'<p style="margin:0">'+P.join(' ')+'</p>')+(D.length?sec('ثانيًا: التحليل الوصفي',D.map(x=>'<p style="margin:0 0 8px">'+x+'</p>').join('')):'')+(rec.length?sec(D.length?'ثالثًا: التوصيات المقترحة':'ثانيًا: التوصيات المقترحة','<ol style="margin:0;padding-inline-start:22px">'+rec.map(r=>'<li>'+r+'</li>').join('')+'</ol>'):'')+'</div>'+
-    prNoteHtml(((S.settings.prNotes||{})[k])||prPNote(k),'data-prnote-p="'+esc(k)+'"','على الاستطلاع')+prCmHtml(k),true)}
+    '<div style="text-align:justify;line-height:2.05;font-size:14.5px">'+sec('أولًا: التحليل الكمي',svQuant(cur)||'<p style="margin:0">'+P.join(' ')+'</p>')+(D.length?sec('ثانيًا: التحليل الوصفي',D.map(x=>'<p style="margin:0 0 8px">'+x+'</p>').join('')):'')+(rec.length?sec(D.length?'ثالثًا: التوصيات المقترحة':'ثانيًا: التوصيات المقترحة','<ol style="margin:0;padding-inline-start:22px">'+rec.map(r=>'<li>'+r+'</li>').join('')+'</ol>'):'')+'</div>',true)}
 /* عرض البنود مجمّعة حسب المحور: صف لكل بند، وجدول الشعب بخلفيات فاتحة */
 const SV_LF=v=>v>=.8?'#DDF0DF':v>=.65?'#E3EDF8':v>=.5?'#F8EBD3':'#F8DEDF';
 function svChip(a){const t=svLvl(a);const [c,bg]=t==='مرتفع'?['#1F5A35','#E5F4E4']:t==='جيد'?['#2F5DA8','#E7F1FB']:t==='متوسط'?['#8A5A00','#F9EEDA']:['#9B1C2C','#FBEBEB'];return '<span class="svchip" style="background:'+bg+';color:'+c+'">'+t+'</span>'}
