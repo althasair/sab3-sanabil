@@ -1285,7 +1285,7 @@ function vCRead(){if(!M.stu.length)return noData();rdLoad();rdTeamLoad();rdFbLoa
   let h=head('قراءة نتائج القسم','نموذج التقرير الكمي الوصفي لكل مادة ومستوى. تنعكس فيه قراءات المعلمات وإجراءاتهن المسجلة في سبع سنابل تلقائيًا؛ اختاري ما تؤيدينه، واكتبي مشروع القسم وتغذيتكِ الراجعة لكل معلمة. تصل قراءتكِ إلى النائب الأكاديمي.')+rdSaveBar('c')+(vfb.length?'<div class="box rqfb"><h3>التغذية الراجعة من النائب الأكاديمي</h3>'+fbHTML(vfb)+'</div>':'');
   G.forEach(g=>{const k=g.sub+'|'+g.l;const ag=teamAgg(g.secs,g.sub);const it=cMerge(k,ag);
     const cols=g.secs.map(sec=>({h:'<bdi dir="ltr">'+sec+'</bdi>',hp:sec,s:short(teacherOf(sec,g.sub)),t:teacherOf(sec,g.sub),st:colStat(M.stu.filter(x=>x.s===sec),g.sub),tr:trackOf(sec)}));
-    const tot={h:'إجمالي المستوى',st:totStat(M.stu.filter(x=>x.l===g.l),g.sub)};
+    const lvSecs=[...new Set(M.stu.filter(x=>x.l===g.l&&(typeof x.g[g.sub]==='number'||/محروم/.test(String(x.g[g.sub]||'')))).map(x=>x.s))];const allLv=lvSecs.every(sc=>g.secs.includes(sc));const tot={h:allLv?'إجمالي المستوى':'إجمالي شعب القسم',st:totStat(M.stu.filter(x=>g.secs.includes(x.s)),g.sub)};
     const tchs=[...new Map(ag.T.map(x=>[x.r.uid,x.r])).values()];RD.doc=RD.doc||{};const fbs=RD.doc.fbs=RD.doc.fbs||{};
     h+='<section class="rqsec"><h2 class="rqtitle">'+esc(g.sub)+' — المستوى '+lvlName(g.l)+'</h2>'+
       rqForm({title:'نموذج تقرير كمي ووصفي لنتائج الطلبة: '+esc(PERIODS[UI.per])+' لمادة '+esc(g.sub)+' — المستوى '+lvlName(g.l)+' للعام الأكاديمي 2026–2027',cols,tot,interp:cInterp(g,cols,tot,ag,it),fbLabel:'التغذية الراجعة من النائب الأكاديمي',fb:vfb.length?fbHTML(vfb):'',sign:['اسم المنسق وتوقيعه','نائب المدير للشؤون الأكاديمية',meSig(),'<b>أ. آسيا الذبياني</b>']})+rqCharts(cols)+
