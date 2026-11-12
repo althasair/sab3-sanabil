@@ -2448,12 +2448,15 @@ function behGroups(){const out=[];behMine().forEach(t=>(t.sections||[]).forEach(
 function behStudents(sec){const seen=new Set();return (S.enroll||[]).filter(e=>secKey(e.section)===sec).map(e=>String(e.name).trim()).filter(n=>{const k=norm(n);if(seen.has(k))return false;seen.add(k);return true}).sort((a,b)=>a.localeCompare(b,'ar'))}
 async function behLoad(){if(AUTH.user&&BEH.mz!==AUTH.user.uid){BEH.mz=AUTH.user.uid;behMz()}if(BEH.loaded||!CLOUD.ok||!AUTH.user)return;BEH.loaded=true;
   try{const q=await CLOUD.db.collection('beh').where('uid','==',AUTH.user.uid).get();q.forEach(d=>{if(!BEH.dirty[d.id])BEH.docs[d.id]=d.data()})}catch(e){console.warn(e)}render()}
-async function behMz(){try{const G=behGroups();if(!G.some(g=>!behStudents(g.sec).length))return;let tk='';try{tk=sessionStorage.getItem('mizan_token')||''}catch(_){}if(!tk)return;
+async function behMz(pinTk){try{const G=behGroups();if(!G.some(g=>!behStudents(g.sec).length))return;let tk=pinTk||'';try{tk=tk||sessionStorage.getItem('mizan_token')||''}catch(_){}if(!tk)return;
   const r=await fetch(MIZAN_API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'myStudents',token:tk}),redirect:'follow'});const j=await r.json();if(!j.ok||!Array.isArray(j.students))return;
   const have=new Set((S.enroll||[]).map(e=>norm(e.name)+'|'+secKey(e.section)));const miss=new Set(G.filter(g=>!behStudents(g.sec).length).map(g=>g.sec));let n=0;
   j.students.forEach(x=>{const sec=secKey(x.s);if(!miss.has(sec)||!x.n)return;const k=norm(x.n)+'|'+sec;if(have.has(k))return;have.add(k);(S.enroll=S.enroll||[]).push({name:String(x.n).trim(),section:sec});n++});if(n)render()}catch(e){console.warn(e)}}
 function behGet(g){const d=BEH.docs[g.id];const m={};((d&&d.stu)||[]).forEach(s=>m[norm(s.n)]=s.v||{});return m}
 function behCount(g){const F=behFields(g.subj,g.sec);const m=behGet(g);const st=behStudents(g.sec);let done=0;st.forEach(n=>{const v=m[norm(n)]||{};if(v[B_CHOOSE]==='لا'||F.every(([h])=>v[h]!==undefined&&v[h]!==''))done++});return{done,total:st.length}}
+document.addEventListener('click',async e=>{const b=e.target.closest&&e.target.closest('[data-behmz]');if(!b)return;const pin=prompt('اكتبي رقمكِ السري في الميزان:');if(!pin)return;
+  try{toast('جارٍ جلب الأسماء من الميزان…');const r=await fetch(MIZAN_API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'login',pin:pin.trim(),app:'mizan'}),redirect:'follow'});const j=await r.json();if(!j.ok)throw new Error(j.error||'الرقم السري غير صحيح');
+    try{sessionStorage.setItem('mizan_token',j.token||'')}catch(_){}const before=(S.enroll||[]).length;await behMz(j.token);toast((S.enroll||[]).length>before?'تم جلب أسماء طالباتكِ ✓':'لم تُعثر على أسماء لهذه الشعب في الميزان. تواصلي مع النائب الأكاديمي.',5000)}catch(err){toast(err.message||'تعذّر الجلب')}});
 window.vBeh=function(){
   if(AUTH.role==='admin')return crown('التقرير الأكاديمي السلوكي','رصد المعلمات','وَقُلِ اعْمَلُوا فَسَيَرَى اللَّهُ عَمَلَكُمْ','التوبة: 105','ترصد كل معلمة طالبات شعبها من حسابها، ويصل الرصد تلقائيًا إلى صفحة «التقرير الأكاديمي السلوكي» عندكِ.')+'<section class="panel"><p>افتحي صفحة «التقرير الأكاديمي السلوكي» لمتابعة حالة الرصد، وسيُجلب رصد المعلمات من قاعدة البيانات تلقائيًا.</p><a class="btn" href="report.html">فتح صفحة التقرير</a></section>';
   behLoad();const G=behGroups();
@@ -2462,7 +2465,7 @@ window.vBeh=function(){
   if(!G.find(g=>g.id===BEH.sel))BEH.sel=G[0].id;const g=G.find(x=>x.id===BEH.sel);
   h+='<div class="row" style="gap:8px;flex-wrap:wrap;margin:6px 0 14px">'+G.map(x=>{const c=behCount(x);const full=c.total&&c.done===c.total;return '<button type="button" class="btn sm'+(x.id===BEH.sel?' gold':'')+'" data-behsel="'+esc(x.id)+'"><bdi dir="ltr">'+esc(x.sec)+'</bdi> · '+esc(x.subj)+' <small style="opacity:.8">('+c.done+'/'+c.total+')'+(full?' ✓':'')+'</small></button>'}).join('')+'</div>';
   const F=behFields(g.subj,g.sec);const st=behStudents(g.sec);const m=behGet(g);
-  if(!st.length)return h+'<section class="panel"><p>لا توجد أسماء طالبات لهذه الشعبة في المنصة بعد. تواصلي مع النائب الأكاديمي.</p></section>';
+  if(!st.length)return h+'<section class="panel"><p>أسماء طالبات هذه الشعبة غير محمّلة بعد. اضغطي الزر، واكتبي رقمكِ السري في الميزان، فتُجلب أسماء طالبات شعبكِ مباشرة.</p><button type="button" class="btn pri" data-behmz="1">جلب أسماء طالباتي من الميزان</button></section>';
   const cell=(i,f,v)=>{const[hd,t,o]=f;const val=v[hd]==null?'':v[hd];if(t==='num')return '<input type="number" inputmode="decimal" min="0" max="'+o+'" step="0.5" data-bi="'+i+'" data-bh="'+esc(hd)+'" value="'+esc(val)+'" style="width:64px;text-align:center">';
     return '<select data-bi="'+i+'" data-bh="'+esc(hd)+'"><option value=""></option>'+o.map(x=>'<option'+(x===val?' selected':'')+'>'+x+'</option>').join('')+'</select>'};
   const c=behCount(g);
