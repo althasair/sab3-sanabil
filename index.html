@@ -2364,7 +2364,14 @@ async function adminLoad(){
   loadReads();loadMizan();enrollFromMizan();
 }
 /* إحصاءات الميزان (أنشطة، مبادرات، زيارات تبادلية، إنجازات) تصل تلقائيًا في shared/mizan */
-async function loadMizanPA(){try{const d=await CLOUD.db.collection('adm').doc('mizanpa').get();if(!d.exists)return;const x=d.data();if(S.mzpaAt===x.at)return;const L=JSON.parse(x.t||'[]');
+/* حصر الاستئذانات المباشر من «إذنٌ مُيسَّر» في الميزان: يتحدّث تلقائيًا عند كل طلب أو اعتماد، فلا حاجة إلى رفع ملف (حساب النائب فقط يكتبه، ويطّلع عليه الجميع كبقية الحصر) */
+function svLivePrq(x){try{if(AUTH.role!=='admin'||!x||!x.prq)return;const P=JSON.parse(x.prq||'{}');const recs=(P.recs||[]).filter(r=>r&&r.d&&r.dp);if(!recs.length)return;
+  if(SV.list==null)SV.list=S.surveys||[];const L=SV.list;const ID='mzprq';const old=L.find(v=>v.id===ID);
+  const sig=(()=>{const t=JSON.stringify([recs,P.size||{}]);let h=7;for(let i=0;i<t.length;i++)h=(h*31+t.charCodeAt(i))%2147483647;return recs.length+'-'+h})();if(old&&old.sig===sig)return;
+  const it=Object.assign(old||{id:ID,notes:{}},{kind:'حصر',title:'حصر استئذانات الموظفات — إذنٌ مُيسَّر',n:recs.length,at:new Date().toISOString(),qs:[],recs,size:P.size||{},live:1,sig});
+  if(!old)L.push(it);svSave()}catch(e){console.warn(e)}}
+window.svLivePrq=svLivePrq;
+async function loadMizanPA(){try{const d=await CLOUD.db.collection('adm').doc('mizanpa').get();if(!d.exists)return;const x=d.data();svLivePrq(x);if(S.mzpaAt===x.at)return;const L=JSON.parse(x.t||'[]');
   const subOf=(n,sec)=>{const t=(S.staff||[]).find(y=>nameMatch(y.name||'',n)||nameMatch(n,y.name||''));return t?(typeof subjFor==='function'?subjFor(t,secKey(sec)):t.subject)||t.subject||'':''};
   const acts=L.map(r=>({date:String(r.d||'').slice(0,10),teacher:r.t,section:r.s,subject:subOf(r.t,r.s),students:r.st||[],whole:false,type:5,detail:'من الميزان — '+[r.c,r.tp,r.w].filter(Boolean).join(' — '),evidence:'',src:'mizan',mid:r.id}));
   S.actions=S.actions.filter(a=>a.src!=='mizan').concat(acts);S.mzpaAt=x.at;refresh();schedulePush()}catch(e){console.warn(e)}}
@@ -3107,7 +3114,7 @@ function svActs(){/* الإجراءات بالأرقام من سبع سنابل 
   o+=stCard('🧩','الأنشطة وتعلّم الأقران','',stTiles([{n:AC.length,l:'نشاط',c:'#2E8B57'},{n:stuN(AC),l:'طالبة',c:'#B8903A'}]));
   o+=stCard('📊','جميع الإجراءات حسب النوع','',stBars(KEYS.map((k,i)=>({l:k.name,v:k.k===3?EN.length:A.filter(a=>a.type===k.k).length,c:SV_C[i]})).filter(r=>r.v)));
   return o+'</div>'}
-window.vSurv=function(){if(SV.list==null){svLoad();if(SV.list==null)SV.list=[]}const L=SV.list||[];if(UI.svSel&&!L.some(x=>x.id===UI.svSel))UI.svSel='';const cur=L.find(x=>x.id===UI.svSel)||L[L.length-1];
+window.vSurv=function(){if(SV.list==null){svLoad();if(SV.list==null)SV.list=[]}if(AUTH.role==='admin'&&CLOUD.ok&&Date.now()-(window.__prqAt||0)>60000){window.__prqAt=Date.now();loadMizanPA()}const L=SV.list||[];if(UI.svSel&&!L.some(x=>x.id===UI.svSel))UI.svSel='';const cur=L.find(x=>x.id===UI.svSel)||L[L.length-1];
   let h='<div class="st-hero"><h2>الاستطلاعات والحصر</h2><p class="vs">﴿وَأَحْصَىٰ كُلَّ شَيْءٍ عَدَدًا﴾ <small>(الجن: 28)</small></p></div>';
   h+=stSec(1,'الاستطلاعات والاستبانات والأنشطة والجلسات النقاشية');
   h+='<section class="panel noprint"><div class="svpk">'+(L.length?SV_KINDS.filter(([k])=>L.some(x=>(x.kind||'استطلاع')===k)).map(([k,ic,lb])=>{const I=L.filter(x=>(x.kind||'استطلاع')===k).slice().reverse();const on=cur&&(cur.kind||'استطلاع')===k;return '<label class="svpkk'+(on?' on':'')+'"><span>'+ic+' '+lb+' <small>('+I.length+')</small></span><select data-svpick="1">'+(on?'':'<option value="">اختاري…</option>')+I.map(x=>'<option value="'+x.id+'"'+(cur&&x.id===cur.id?' selected':'')+'>'+esc(x.title)+' — '+esc(svWhen(x).t)+'</option>').join('')+'</select></label>'}).join(''):'<span class="small muted">لا توجد استطلاعات بعد.</span>')+'</div><div class="row" style="gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px"><span class="sp"></span>'+
@@ -3128,6 +3135,7 @@ const SV_LH_P='data:image/webp;base64,UklGRoJyAABXRUJQVlA4IHZyAACwHgWdASqGBdAHPm
 function svPrint(){const cur=(SV.list||[]).find(x=>x.id===UI.svSel)||(SV.list||[])[(SV.list||[]).length-1];const el=document.getElementById('svCur');if(!cur||!el)return;
   const w=window.open('','_blank');if(!w){alert('اسمحي بالنوافذ المنبثقة للطباعة');return}
   const css=[...document.querySelectorAll('style,link[rel="stylesheet"]')].map(x=>x.outerHTML).join('');const c=el.cloneNode(true);c.querySelectorAll('.bxtools,button,.noprint,input,select').forEach(x=>x.remove());
+  c.querySelectorAll('[data-cu]').forEach(x=>{const to=+x.dataset.cu;if(isFinite(to))x.textContent=Math.round(to).toLocaleString('en-US')+(x.dataset.suf||'')});/* الأرقام بقيمتها النهائية حتى لو طُبع قبل انتهاء العدّ المتحرك */
   /* العنوان وشهر التنفيذ يظهران مرة واحدة في أعلى التقرير، والأسماء في أسفله فقط، ولا تُطبع البطاقات الفارغة */
   const c1=c.querySelector('.st-card');if(c1){c1.querySelectorAll(':scope>h4,:scope>p.cap').forEach(x=>x.remove())}
   c.querySelectorAll('.nh span').forEach(x=>{x.textContent=x.textContent.replace(/\s*\/\s*(أ\.\s*)?[\u0600-\u06FF]+\s+[\u0600-\u06FF]+/,'')});
@@ -3186,15 +3194,15 @@ function hsrView(cur){const R=cur.recs||[];const ok=x=>/معتمد/.test(x.st);c
     (byCnt[0]?'<p>أكثر الأقسام عددًا: <b>'+esc(byCnt[0])+'</b> ('+tot(byCnt[0])+')'+(byCnt[1]?'، ثم <b>'+esc(byCnt[1])+'</b> ('+tot(byCnt[1])+')':'')+'.'+(most.length?' وأعلاها نسبةً إلى عدد المعلمات: <b>'+most.map(esc).join('، ')+'</b> ('+mx.toFixed(2)+(byH?' ساعة':' طلب')+' لكل معلمة). <b>الدلالة:</b> العدد الكبير قد يعكس كِبر القسم، أما النسبة لكل معلمة فهي المؤشر العادل للمقارنة.':'')+'</p>':'')+
     (least.length?'<p>👑 أقل الأقسام استئذانًا: <b>'+least.map(esc).join('، ')+'</b> ('+mn.toFixed(2)+(byH?' ساعة':' طلب')+' لكل معلمة). <b>الدلالة:</b> انضباط عالٍ في الدوام يستحق الإشادة والتعزيز.</p>':'')+
     (nn?'<p>قُدِّم <b>'+nn+'</b> طلبًا ('+Math.round(nn/R.length*100)+'%) دون ذكر السبب. <b>الدلالة:</b> الحاجة إلى توجيه الموظفات لكتابة السبب ووقت الخروج والعودة، لضبط الرصيد وعدالة الاعتماد.</p>':'')+
-    (M.filter(m=>!R.some(x=>x.d.slice(0,7)===m)).length?'<p>لا تتوفر بيانات لشهر <b>'+M.filter(m=>!R.some(x=>x.d.slice(0,7)===m)).map(m=>HSR_MN[m.slice(5)]).join('، ')+'</b> في الملف المرفوع، فلا تُقارَن الأشهر قبل استكماله.</p>':'')+'</div>';
-  return '<div class="st-grid">'+stCard('🧮',esc(cur.title),'المؤشرات العامة · '+(svWhen(cur).ok?'نُفّذ في ':'رُفع في ')+svWhen(cur).t,tiles,true)+stCard('🗓️','الحصر بالأشهر والأقسام','المواد التكميلية والاختيارية: المهارات الحياتية والمهنية، وإدارة الأعمال، والفنون البصرية',tbl,true)+stCard('📝','أسباب الخروج','',whyH,false)+stCard('🔎','التحليل الوصفي ودلالاته','',desc,true)+hsrSug(R,{nn,nPend,most,least,mx,mn,M,ok,byH})+svVP(cur)+'</div>'}
+    (M.filter(m=>!R.some(x=>x.d.slice(0,7)===m)).length?'<p>لا تتوفر بيانات لشهر <b>'+M.filter(m=>!R.some(x=>x.d.slice(0,7)===m)).map(m=>HSR_MN[m.slice(5)]).join('، ')+'</b>'+(cur.live?'.':' في الملف المرفوع، فلا تُقارَن الأشهر قبل استكماله.')+'</p>':'')+'</div>';
+  return '<div class="st-grid">'+stCard('🧮',esc(cur.title),'المؤشرات العامة · '+(svWhen(cur).ok?'نُفّذ في ':'رُفع في ')+svWhen(cur).t,tiles,true)+stCard('🗓️','الحصر بالأشهر والأقسام','المواد التكميلية والاختيارية: المهارات الحياتية والمهنية، وإدارة الأعمال، والفنون البصرية',tbl,true)+stCard('📝','أسباب الخروج','',whyH,false)+stCard('🔎','التحليل الوصفي ودلالاته','',desc,true)+hsrSug(R,{nn,nPend,most,least,mx,mn,M,ok,byH,live:cur.live})+svVP(cur)+'</div>'}
 /* مقترحات الحصر: كل مقترح بسنده من الأرقام */
 function hsrSug(R,o){const L=[];const pc=x=>Math.round(x/R.length*100)+'%';
-  if(o.nn/R.length>=.2)L.push(['جعل خانتي «سبب الخروج» و«وقت الخروج والعودة» إلزاميتين في نموذج الطلب على Approvals.','قُدِّم '+o.nn+' طلبًا ('+pc(o.nn)+') دون سبب، فتعذّر تصنيفها واحتُسبت مدد بعضها تقديريًا.']);
+  if(o.nn/R.length>=.2)L.push([o.live?'التأكيد على اختيار سبب الإذن ووقته في «إذنٌ مُيسَّر».':'جعل خانتي «سبب الخروج» و«وقت الخروج والعودة» إلزاميتين في نموذج الطلب على Approvals.','قُدِّم '+o.nn+' طلبًا ('+pc(o.nn)+') دون سبب، فتعذّر تصنيفها واحتُسبت مدد بعضها تقديريًا.']);
   if(o.nPend)L.push(['البتّ في الطلبات خلال يوم العمل نفسه، وتعيين معتمِدة بديلة عند غياب المعتمِدة الأصلية.','بقي '+o.nPend+' طلبًا ('+pc(o.nPend)+') دون بتّ، والطلب المعلّق لا يدخل في الرصيد ولا في الحصر.']);
   if(o.most.length)L.push(['مراجعة أثر الاستئذان على حصص '+o.most.join('، ')+' مع منسقة القسم، والتحقق من تغطية الحصص بالاحتياط.','أعلى متوسط لكل معلمة ('+o.mx.toFixed(2)+(o.byH?' ساعة':' طلب')+')، والهدف ضمان عدم تأثر تعلم الطالبات، لا تقليل حق الاستئذان.']);
   if(o.least.length)L.push(['الإشادة بقسم '+o.least.join('، ')+' في اجتماع المنسقات.','أقل متوسط لكل معلمة ('+o.mn.toFixed(2)+(o.byH?' ساعة':' طلب')+')، والإشادة المعلنة تعزز الانضباط.']);
-  const miss=o.M.filter(m=>!R.some(x=>x.d.slice(0,7)===m));if(miss.length)L.push(['استكمال بيانات '+miss.map(m=>HSR_MN[m.slice(5)]).join('، ')+' من Approvals قبل اعتماد المقارنة بين الأشهر.','الملف المرفوع لا يتضمن طلبات '+(miss.length>1?'هذه الأشهر':'هذا الشهر')+'، فأي مقارنة الآن غير دقيقة.']);
+  const miss=o.M.filter(m=>!R.some(x=>x.d.slice(0,7)===m));if(miss.length&&!o.live)L.push(['استكمال بيانات '+miss.map(m=>HSR_MN[m.slice(5)]).join('، ')+' من Approvals قبل اعتماد المقارنة بين الأشهر.','الملف المرفوع لا يتضمن طلبات '+(miss.length>1?'هذه الأشهر':'هذا الشهر')+'، فأي مقارنة الآن غير دقيقة.']);
   if(!L.length)return '';return stCard('💡','المقترحات','كل مقترح بسنده من نتائج الحصر','<ol style="margin:0;padding-inline-start:20px;line-height:2;text-align:justify">'+L.map(([a,b])=>'<li><b>'+esc(a)+'</b><br><span class="small muted">السند: '+esc(b)+'</span></li>').join('')+'</ol>',true)}
 /* حقل الملف ثابت خارج الصفحة حتى لا يضيع اختيار الملف إذا أُعيد رسم الصفحة أثناء فتح نافذة الاختيار */
 function svInput(){let i=document.getElementById('svFile');if(!i){i=document.createElement('input');i.type='file';i.id='svFile';i.accept='.xlsx,.xls,.csv';i.hidden=true;document.body.appendChild(i)}return i}
