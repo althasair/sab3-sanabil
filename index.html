@@ -2376,11 +2376,16 @@ async function loadMizanPA(){try{const d=await CLOUD.db.collection('adm').doc('m
   const acts=L.map(r=>({date:String(r.d||'').slice(0,10),teacher:r.t,section:r.s,subject:subOf(r.t,r.s),students:r.st||[],whole:false,type:5,detail:'من الميزان — '+[r.c,r.tp,r.w].filter(Boolean).join(' — '),evidence:'',src:'mizan',mid:r.id}));
   S.actions=S.actions.filter(a=>a.src!=='mizan').concat(acts);S.mzpaAt=x.at;refresh();schedulePush()}catch(e){console.warn(e)}}
 
+/* أسماء طالبات الشعب من الميزان: بجلسة الميزان إن وُجدت، وإلا بجلسة سبع سنابل نفسها (لا رقم سري) */
+async function mzStudents(){const post=b=>fetch(MIZAN_API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(b),redirect:'follow'}).then(r=>r.json());
+  let tk='';try{tk=sessionStorage.getItem('mizan_token')||''}catch(_){}
+  if(tk){try{const j=await post({action:'myStudents',token:tk});if(j.ok&&Array.isArray(j.students))return j.students}catch(_){}}
+  try{const u=CLOUD.auth&&CLOUD.auth.currentUser;if(!u)return null;const j=await post({action:'fbStudents',idToken:await u.getIdToken()});if(j.ok&&Array.isArray(j.students))return j.students}catch(e){console.warn(e)}
+  return null}
 /* حساب النائب: الشعب التي ليس لها أسماء في سجل القيد (مثل الثاني عشر) تُستكمل تلقائيًا من ورقة «الطالبات» في الميزان (الشعبة والاسم فقط) */
 async function enrollFromMizan(){try{if(AUTH.role!=='admin'||!AUTH.user)return;const have=new Set((S.enroll||[]).map(e=>secKey(e.section)));
   const need=[...new Set((S.staff||[]).flatMap(t=>(t.sections||[]).map(secKey)).filter(x=>x&&!have.has(x)))];if(!need.length)return;
-  let tk='';try{tk=sessionStorage.getItem('mizan_token')||''}catch(_){}if(!tk){enrAsk(need);return}
-  const r=await fetch(MIZAN_API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'myStudents',token:tk}),redirect:'follow'});const j=await r.json();if(!j.ok||!Array.isArray(j.students))return;
+  const L=await mzStudents();if(!L){enrAsk(need);return}const j={students:L};
   const miss=new Set(need);const seen=new Set();let n=0;j.students.forEach(x=>{const sec=secKey(x.s);if(!miss.has(sec)||!x.n)return;const k=norm(x.n)+'|'+sec;if(seen.has(k))return;seen.add(k);(S.enroll=S.enroll||[]).push({name:String(x.n).trim(),section:sec,id:'',nat:'',track:''});n++});
   if(n){refresh();schedulePush();toast('استُكملت أسماء '+n+' طالبة من الميزان للشعب: '+[...new Set(j.students.map(x=>secKey(x.s)).filter(x=>miss.has(x)))].join('، '),6000)}}catch(e){console.warn(e)}}
 /* لا توجد جلسة ميزان في حساب النائب: يُطلب الرقم السري مرة واحدة لاستكمال أسماء الشعب الناقصة (مثل الثاني عشر)، فتظهر لجميع المعلمات في رصد التقرير السلوكي */
@@ -2576,11 +2581,10 @@ function behMine(){const P=AUTH.prof||{};const st=S.staff||[];if(AUTH.role==='te
 function behGroups(){const out=[];behMine().forEach(t=>(t.sections||[]).forEach(sec=>{const s=secKey(sec);out.push({id:AUTH.user.uid+'__'+docKey(s,subjKey(t.subject)),sec:s,subj:t.subject,teacher:t.name,dept:t.dept||''})}));
   return out.sort((a,b)=>a.sec.localeCompare(b.sec,undefined,{numeric:true}))}
 function behStudents(sec){const seen=new Set();return (S.enroll||[]).filter(e=>secKey(e.section)===sec).map(e=>String(e.name).trim()).filter(n=>{const k=norm(n);if(seen.has(k))return false;seen.add(k);return true}).sort((a,b)=>a.localeCompare(b,'ar'))}
-async function behLoad(){if(AUTH.user&&BEH.mz!==AUTH.user.uid){BEH.mz=AUTH.user.uid;behMz()}if(BEH.loaded||!CLOUD.ok||!AUTH.user)return;BEH.loaded=true;
+async function behLoad(){if(AUTH.user&&BEH.mz!==AUTH.user.uid&&behGroups().length){BEH.mz=AUTH.user.uid;behMz()}if(BEH.loaded||!CLOUD.ok||!AUTH.user)return;BEH.loaded=true;
   try{const q=await CLOUD.db.collection('beh').where('uid','==',AUTH.user.uid).get();q.forEach(d=>{if(!BEH.dirty[d.id])BEH.docs[d.id]=d.data()})}catch(e){console.warn(e)}
   try{const back=[];behGroups().forEach(g=>{const dr=draftGet('beh_'+g.id);if(!dr||!dr.o)return;const cl=BEH.docs[g.id];if(!cl||dr.at>Date.parse(cl.at||0)+1000){BEH.docs[g.id]=dr.o;BEH.dirty[g.id]=1;back.push(g.sec)}else draftClear('beh_'+g.id)});if(back.length)setTimeout(()=>toast('📝 استُرجع رصد لم يُحفظ في: '+back.join('، ')+' — اضغطي «حفظ الرصد» لإرساله',8000),600)}catch(_){}render()}
-async function behMz(pinTk){try{const G=behGroups();if(!G.some(g=>!behStudents(g.sec).length))return;let tk=pinTk||'';try{tk=tk||sessionStorage.getItem('mizan_token')||''}catch(_){}if(!tk)return;
-  const r=await fetch(MIZAN_API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'myStudents',token:tk}),redirect:'follow'});const j=await r.json();if(!j.ok||!Array.isArray(j.students))return;
+async function behMz(pinTk){try{const G=behGroups();if(!G.some(g=>!behStudents(g.sec).length))return;let L=null;if(pinTk){try{const r=await fetch(MIZAN_API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'myStudents',token:pinTk}),redirect:'follow'});const jj=await r.json();if(jj.ok)L=jj.students}catch(_){}}if(!L)L=await mzStudents();if(!Array.isArray(L))return;const j={students:L};
   const have=new Set((S.enroll||[]).map(e=>norm(e.name)+'|'+secKey(e.section)));const miss=new Set(G.filter(g=>!behStudents(g.sec).length).map(g=>g.sec));let n=0;
   j.students.forEach(x=>{const sec=secKey(x.s);if(!miss.has(sec)||!x.n)return;const k=norm(x.n)+'|'+sec;if(have.has(k))return;have.add(k);(S.enroll=S.enroll||[]).push({name:String(x.n).trim(),section:sec});n++});if(n)render()}catch(e){console.warn(e)}}
 function behGet(g){const d=BEH.docs[g.id];const m={};((d&&d.stu)||[]).forEach(s=>m[norm(s.n)]=s.v||{});return m}
