@@ -2421,8 +2421,11 @@ function mergeEntries(){const keep=S.actions.filter(a=>!a.eid),ev=[];CLOUD.entri
 
 function schedulePush(ms){if(AUTH.role!=='admin'||!CLOUD.ok)return;clearTimeout(CLOUD.timer);CLOUD.timer=setTimeout(pushAll,ms==null?3500:ms)}
 let PENDING=[];
-function setIfChanged(col,id,data){const k=col+'/'+id;const h=hashStr(JSON.stringify(data));if(CLOUD.hash[k]===h)return 0;PENDING.push(()=>CLOUD.db.collection(col).doc(id).set(data).then(()=>{CLOUD.hash[k]=h}));return 1}
-async function flushPending(){const q=PENDING;PENDING=[];for(let i=0;i<q.length;i+=15)await Promise.all(q.slice(i,i+15).map(f=>f()));try{localStorage.setItem('sab3_cloud_hash',JSON.stringify(CLOUD.hash))}catch(_){}}
+function setIfChanged(col,id,data){const k=col+'/'+id;const h=hashStr(JSON.stringify(data));if(CLOUD.hash[k]===h)return 0;PENDING.push(()=>CLOUD.db.collection(col).doc(id).set(data).then(()=>{CLOUD.hash[k]=h}).catch(e=>{throw {doc:k,size:JSON.stringify(data).length,e}}));return 1}
+/* كل مستند يُحفظ مستقلًا: فشل مستند واحد لا يوقف حفظ البقية (مثل شعب الثاني عشر)، ويُسجَّل اسمه وسببه */
+async function flushPending(){const q=PENDING;PENDING=[];const bad=[];for(let i=0;i<q.length;i+=15){const r=await Promise.allSettled(q.slice(i,i+15).map(f=>f()));r.forEach(x=>{if(x.status==='rejected')bad.push(x.reason)})}
+  try{localStorage.setItem('sab3_cloud_hash',JSON.stringify(CLOUD.hash))}catch(_){}
+  if(bad.length){const msg=bad.slice(0,5).map(b=>(b&&b.doc?b.doc+' ('+Math.round((b.size||0)/1024)+' ك.ب): ':'')+String(b&&b.e&&(b.e.code||b.e.message)||b&&b.message||b)).join(' | ');try{errLog('حفظ النائب في قاعدة البيانات',new Error(msg),{n:bad.length,of:q.length})}catch(_){}throw new Error('لم يُحفظ '+bad.length+' من '+q.length+' — '+msg)}}
 async function pushAll(){
   if(AUTH.role!=='admin'||!CLOUD.ok)return;if(S.demo){return}
   if(CLOUD.pushing){schedulePush(2000);return}CLOUD.pushing=true;CLOUD.pushErr='';updCloudChip();
@@ -2524,7 +2527,8 @@ renderNav=function(){_renderNav();const nav=$('#nav');if(!nav)return;
 function authChip(){if(AUTH.role==='loading')return '<span class="authchip">…</span>';
   if(AUTH.role==='guest')return '<button type="button" class="authbtn" id="authIn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>تسجيل الدخول</button>';
   const P=AUTH.prof||{};return '<span class="authchip" title="'+esc(AUTH.user&&AUTH.user.email||'')+'"><b>'+esc(nm3(P.name||''))+'</b><small>'+ROLE_NAME[AUTH.role]+(AUTH.role==='coord'&&P.dept?' · '+esc(P.dept):'')+'</small>'+(AUTH.role==='admin'?cloudChip():'')+(['teacher','coord'].includes(AUTH.role)?'<button type="button" class="btn sm" data-mysig="1">✍️ توقيعي</button>':'')+'<button type="button" id="authOut" class="btn sm">خروج</button></span>'}
-function cloudChip(){return '<i id="cloudChip" class="cchip'+(CLOUD.pushErr?' bad':'')+'">'+(CLOUD.pushing?'⟳ جارٍ الحفظ في قاعدة البيانات':CLOUD.pushErr?'⚠ لم تُحفظ في قاعدة البيانات':CLOUD.lastPush?'☁ محفوظ في قاعدة البيانات':'☁ متصل')+'</i>'}
+function cloudChip(){return '<i id="cloudChip" class="cchip'+(CLOUD.pushErr?' bad':'')+'"'+(CLOUD.pushErr?' title="'+esc(CLOUD.pushErr)+'" data-cerr="1" style="cursor:pointer"':'')+'>'+(CLOUD.pushing?'⟳ جارٍ الحفظ في قاعدة البيانات':CLOUD.pushErr?'⚠ لم تُحفظ في قاعدة البيانات':CLOUD.lastPush?'☁ محفوظ في قاعدة البيانات':'☁ متصل')+'</i>'}
+document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('[data-cerr]'))modal('<h3>سبب عدم الحفظ في قاعدة البيانات</h3><p class="small" dir="auto" style="line-height:1.9;word-break:break-word">'+esc(CLOUD.pushErr||'')+'</p><div class="row"><span class="sp"></span><button class="btn sm" data-close>إغلاق</button></div>')});
 function updCloudChip(){const c=document.getElementById('cloudChip');if(c)c.outerHTML=cloudChip()}
 const _save=save;
 save=function(){if(AUTH.role==='admin'){const r=_save();schedulePush();return r}const c=document.getElementById('saveChip');if(c)c.outerHTML=saveChip();return true};
