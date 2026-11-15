@@ -2559,7 +2559,9 @@ const BEH={docs:{},sel:'',dirty:{},busy:false,loaded:false};
 const B_FQ=['دائماً','أحياناً','نادراً'],B_BH=['ملتزمة','ملتزمة إلى حد ما','غير ملتزمة'],B_LV=['ممتاز','جيد جداً','جيد','مقبول','يحتاج إلى دعم'];
 const B_CHOOSE='هل تدرس الطالبة المادة لديكِ؟';
 function behFields(subj,sec){const pe=/بدني/.test(norm(subj));const g12=String(sec).startsWith('12');
+  const sk=/مهارات/.test(norm(subj));
   const F=pe?[['الالتزام بالزي الرياضي','sel',B_FQ],['التفاعل أثناء الحصة','sel',B_FQ],['السلوك في القاعة الرياضية','sel',B_BH]]
+   :sk?[['التقييم الإلكتروني (من 10)','num',10],['واجب إلكتروني 1 (من 2.5)','num',2.5],['واجب إلكتروني 2 (من 2.5)','num',2.5],['المشاركة (من 5)','num',5],['إحضار الأدوات والكتاب المدرسي والدفاتر','sel',B_FQ],['سلوك الطالبة في الصف','sel',B_BH]]
    :[['التقييم الأول (من 20)','num',20],['التقييم الثاني (من 20)','num',20],['واجب ورقي 1 (من 2)','num',2],['واجب ورقي 2 (من 2)','num',2],['واجب إلكتروني 1 (من 2)','num',2],['واجب إلكتروني 2 (من 2)','num',2],['المشاركة (من 5)','num',5],['إحضار الأدوات والكتاب المدرسي والدفاتر','sel',B_FQ],['سلوك الطالبة في الصف','sel',B_BH]];
   if(g12)F.push(['المستوى الأكاديمي العام','sel',B_LV]);return F}
 function behMine(){const P=AUTH.prof||{};const st=S.staff||[];if(AUTH.role==='teacher')return st;
@@ -2594,7 +2596,7 @@ window.vBeh=function(){
   const c=behCount(g);
   h+='<div class="row" style="gap:8px;flex-wrap:wrap;margin:0 0 10px"><button type="button" class="btn sm" id="behTpl">تنزيل ملف الشعبة (Excel)</button><label class="btn sm" style="cursor:pointer">رفع ملف الدرجات<input type="file" id="behUp" accept=".xlsx,.xls,.csv" hidden></label><span class="small" style="color:#6B5A5F">ارفعي ملف درجات فيه عمود لأسماء الطالبات، فتُعبّأ الدرجات تلقائيًا، ثم راجعي واضغطي «حفظ الرصد».</span></div>';
   h+='<section class="panel"><h3>'+esc(g.subj)+' — الشعبة <bdi dir="ltr">'+esc(g.sec)+'</bdi><small>'+c.done+' من '+c.total+' طالبة مكتملة'+(BEH.docs[g.id]&&BEH.docs[g.id].at?' · آخر حفظ '+new Date(BEH.docs[g.id].at).toLocaleString('ar-QA',{day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'}):'')+'</small></h3>'+
-    '<div class="tbl-wrap"><table class="behT"><thead><tr><th>م</th><th>الطالبة</th><th>تدرس المادة لديّ</th>'+F.map(f=>'<th style="min-width:'+(f[1]==='num'?'70':'120')+'px">'+esc(f[0]).replace(/ \(من (\d+)\)/,'<br><small>من $1</small>')+'</th>').join('')+'</tr></thead><tbody>'+
+    '<div class="tbl-wrap"><table class="behT"><thead><tr><th>م</th><th>الطالبة</th><th>تدرس المادة لديّ</th>'+F.map(f=>'<th style="min-width:'+(f[1]==='num'?'70':'120')+'px">'+esc(f[0]).replace(/ \(من ([\d.]+)\)/,'<br><small>من $1</small>')+'</th>').join('')+'</tr></thead><tbody>'+
     st.map((n,i)=>{const v=m[norm(n)]||{};const no=v[B_CHOOSE]==='لا';return '<tr'+(no?' style="opacity:.45"':'')+'><td>'+(i+1)+'</td><td style="white-space:nowrap">'+esc(nm3(n))+'</td><td style="text-align:center"><input type="checkbox" data-bi="'+i+'" data-bh="'+B_CHOOSE+'"'+(no?'':' checked')+'></td>'+F.map(f=>'<td>'+(no?'':cell(i,f,v))+'</td>').join('')+'</tr>'}).join('')+
     '</tbody></table></div><div class="row" style="gap:10px;margin-top:12px;align-items:center"><button class="btn gold" id="behSave"'+(BEH.busy?' disabled':'')+'>'+(BEH.busy?'جارٍ الحفظ…':'حفظ الرصد')+'</button>'+(BEH.dirty[g.id]?'<span class="small" style="color:#B23A48">توجد تعديلات غير محفوظة</span>':'<span class="small">يُحفظ في قاعدة البيانات، ويمكنكِ الرجوع والتعديل في أي وقت.</span>')+'</div></section>';
   return h};
@@ -2619,7 +2621,7 @@ document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest
 
 function behMapHead(h,F){const n=norm(h).replace(/[()]/g,' ');const ex=F.find(f=>norm(f[0])===norm(h));if(ex)return ex[0];
   const one=/(^|\s)(1|١|الاول|اول)(\s|$)/.test(n),two=/(^|\s)(2|٢|الثاني|ثاني)(\s|$)/.test(n);const pick=k=>(F.find(f=>f[0].startsWith(k))||[])[0];
-  if(/تقييم|اختبار قصير|تقويم/.test(n)){if(two)return pick('التقييم الثاني');if(one)return pick('التقييم الأول')}
+  if(/تقييم|اختبار قصير|تقويم/.test(n)){const ta=F.filter(f=>f[0].startsWith('التقييم'));if(ta.length===1)return ta[0][0];if(two)return pick('التقييم الثاني');if(one)return pick('التقييم الأول')}
   if(/واجب/.test(n)){const el=/الكترون|إلكترون|منصه|منصة/.test(n);const k=(el?'واجب إلكتروني ':'واجب ورقي ')+(two?'2':'1');if(one||two)return pick(k)}
   if(/مشارك/.test(n))return pick('المشاركة');if(/احضار|إحضار/.test(n))return pick('إحضار');if(/سلوك الطالب/.test(n))return pick('سلوك الطالبة');if(/الزي/.test(n))return pick('الالتزام بالزي');if(/التفاعل/.test(n))return pick('التفاعل');if(/القاعه|القاعة/.test(n))return pick('السلوك في القاعة');if(/المستوي|المستوى/.test(n))return pick('المستوى الأكاديمي');return null}
 /* مطابقة ذكية لاسم الطالبة داخل الشعبة: «سحر راشد» = «سحر علي راشد»، و«سحر التميمي» = «سحر راشد علي التميمي» متى كانت الوحيدة بذلك في الشعبة */

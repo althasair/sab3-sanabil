@@ -489,11 +489,11 @@ function students(sec){const a=A();const E=entries();const out=new Map();
 const fq=v=>v==='دائماً'?2:v==='أحياناً'?1:v==='نادراً'?0:null;
 function commit(subj,v){const g=k=>v[Object.keys(v).find(h=>h.startsWith(k))||'__'];
   if(subj==='التربية البدنية'){const a=fq(g('الالتزام بالزي')),b=fq(g('التفاعل')),c=g('السلوك في القاعة');if(a==null||b==null||!c)return null;const s=a+b+(c==='ملتزمة'?2:0);return s>=5?'ملتزمة':s>=3?'ملتزمة إلى حد ما':'غير ملتزمة'}
-  const hw=Object.keys(v).filter(h=>/^واجب/.test(h)).map(h=>num(v[h]));const part=num(g('المشاركة')),books=fq(g('إحضار')),beh=g('سلوك الطالبة');
-  if(books==null||!beh)return null;const hwMax=hw.length*2;const hwS=hw.reduce((s,x)=>s+(x||0),0);
+  const mx=h=>{const m=h.match(/\(من ([\d.]+)\)/);return m?+m[1]:2};const hwK=Object.keys(v).filter(h=>/^واجب/.test(h));const hw=hwK.map(h=>num(v[h]));const part=num(g('المشاركة')),books=fq(g('إحضار')),beh=g('سلوك الطالبة');
+  if(books==null||!beh)return null;const hwMax=hwK.reduce((s,h)=>s+mx(h),0);const hwS=hw.reduce((s,x)=>s+(x||0),0);
   let s=books+(beh==='ملتزمة'?2:0)+(part==null?1:part>=4?2:part>=2.5?1:0)+(hwMax?(hwS/hwMax>=.75?2:hwS/hwMax>=.5?1:0):1);
   const c=s>=7?'ملتزمة':s>=4?'ملتزمة إلى حد ما':'غير ملتزمة';return beh!=='ملتزمة'&&c==='ملتزمة'?'ملتزمة إلى حد ما':c}
-function assessPct(v){const a=num(v['التقييم الأول (من 20)']),b=num(v['التقييم الثاني (من 20)']);const xs=[a,b].filter(x=>x!=null);return xs.length?xs.reduce((s,x)=>s+x,0)/(xs.length*20)*100:null}
+function assessPct(v){let g=0,t=0;Object.keys(v).forEach(h=>{const m=h.match(/^التقييم.*\(من ([\d.]+)\)/);if(!m)return;const x=num(v[h]);if(x==null)return;g+=x;t+=+m[1]});return t?g/t*100:null}
 function studentReport(st,sec){const E=entries()[st.pid]||{subs:{}};const a=A();const per=REPORTS[R.rep].mid;const cur=((a.cur||{})[per]||{})[st.pid];const g12=sec.startsWith('12');
   const h=hash(st.pid);const subs=Object.keys(E.subs).sort(subjSort);
   const items=subs.map((s,i)=>{const e=E.subs[s];const c=commit(s,e.v);const ap=assessPct(e.v);const mid=cur&&typeof cur.g[s]==='number'?cur.g[s]:null;
@@ -517,8 +517,8 @@ function chart(items,g12){const it=items.filter(x=>x.ap!=null||x.mid!=null);if(!
 function subjBox(x,g12){const v=x.v;const head='<div class="rh"><span>موجز عن أداء الطالبة في مادة (<b>'+esc(x.s)+'</b>)</span><span class="tch">معلمة المادة: أ. '+esc(x.teacher)+'</span></div>';
   let acad='';
   if(x.s==='التربية البدنية'){acad='<table><tr><th>الالتزام بالزي الرياضي</th><th>التفاعل أثناء الحصة</th><th>السلوك في القاعة الرياضية</th>'+(g12?'<th>المستوى العام</th>':'')+'</tr><tr><td>'+esc(v['الالتزام بالزي الرياضي'])+'</td><td>'+esc(v['التفاعل أثناء الحصة'])+'</td><td>'+esc(v['السلوك في القاعة الرياضية'])+'</td>'+(g12?'<td>'+esc(v['المستوى الأكاديمي العام']||'')+'</td>':'')+'</tr></table>'}
-  else{const keys=Object.keys(v).filter(h=>/\(من \d+\)/.test(h));
-    acad='<table class="ac"><tr>'+(!g12&&x.mid!=null?'<th class="mid">منتصف الفصل /30</th>':'')+keys.map(k=>'<th>'+esc(k.replace(/\s*\(من (\d+)\)/,'/$1'))+'</th>').join('')+(g12?'<th class="mid">المستوى العام</th>':'')+'</tr><tr>'+(!g12&&x.mid!=null?'<td class="mid">'+fmt(x.mid*0.3)+'</td>':'')+keys.map(k=>'<td>'+esc(v[k])+'</td>').join('')+(g12?'<td class="mid">'+esc(v['المستوى الأكاديمي العام']||'—')+'</td>':'')+'</tr></table>'+
+  else{const keys=Object.keys(v).filter(h=>/\(من [\d.]+\)/.test(h));
+    acad='<table class="ac"><tr>'+(!g12&&x.mid!=null?'<th class="mid">منتصف الفصل /30</th>':'')+keys.map(k=>'<th>'+esc(k.replace(/\s*\(من ([\d.]+)\)/,'/$1'))+'</th>').join('')+(g12?'<th class="mid">المستوى العام</th>':'')+'</tr><tr>'+(!g12&&x.mid!=null?'<td class="mid">'+fmt(x.mid*0.3)+'</td>':'')+keys.map(k=>'<td>'+esc(v[k])+'</td>').join('')+(g12?'<td class="mid">'+esc(v['المستوى الأكاديمي العام']||'—')+'</td>':'')+'</tr></table>'+
       '<table><tr><th>إحضار الأدوات والكتاب المدرسي والدفاتر</th><th>سلوك الطالبة في الصف</th></tr><tr><td>'+esc(v['إحضار الأدوات والكتاب المدرسي والدفاتر'])+'</td><td>'+esc(v['سلوك الطالبة في الصف'])+'</td></tr></table>'}
   return'<div class="rbox">'+head+acad+(x.ph||x.mis?'<div class="ph">'+esc(x.ph)+(x.mis?' '+esc(x.mis):'')+'</div>':'')+'</div>'}
 function reportHTML(r){const rep=REPORTS[R.rep];const g12=r.g12;
