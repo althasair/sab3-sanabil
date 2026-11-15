@@ -2579,6 +2579,7 @@ function behFields(subj,sec){const pe=/بدني/.test(norm(subj));const g12=Stri
    :art?[['المشاركة (من 5)','num',5],['إحضار الأدوات والكتاب المدرسي والدفاتر','sel',B_FQ],['سلوك الطالبة في الصف','sel',B_BH]]
    :sk?[['التقييم الإلكتروني (من 10)','num',10],['واجب إلكتروني 1 (من 2.5)','num',2.5],['واجب إلكتروني 2 (من 2.5)','num',2.5],['المشاركة (من 5)','num',5],['إحضار الأدوات والكتاب المدرسي والدفاتر','sel',B_FQ],['سلوك الطالبة في الصف','sel',B_BH]]
    :[['التقييم الأول (من 20)','num',20],['التقييم الثاني (من 20)','num',20],['واجب ورقي 1 (من 2)','num',2],['واجب ورقي 2 (من 2)','num',2],['واجب إلكتروني 1 (من 2)','num',2],['واجب إلكتروني 2 (من 2)','num',2],['المشاركة (من 5)','num',5],['إحضار الأدوات والكتاب المدرسي والدفاتر','sel',B_FQ],['سلوك الطالبة في الصف','sel',B_BH]];
+  if(g12&&!pe&&!sk&&!art){for(let i=F.length-1;i>=0;i--)if(/^واجب إلكتروني/.test(F[i][0]))F.splice(i,1)}/* الثاني عشر: تقييمان وواجبان ورقيان فقط، بلا واجبات إلكترونية */
   if(g12)F.push(['المستوى الأكاديمي العام','sel',B_LV]);return F}
 function behMine(){const P=AUTH.prof||{};const st=S.staff||[];if(AUTH.role==='teacher')return st;
   let m=st.filter(t=>norm(t.name)===P.nk);if(!m.length){const f=fuzzyStaff(P.nk)||fuzzyStaff(P.name);if(f)m=st.filter(t=>norm(t.name)===norm(f.name))}
