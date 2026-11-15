@@ -2426,6 +2426,10 @@ function setIfChanged(col,id,data){const k=col+'/'+id;const h=hashStr(JSON.strin
 async function flushPending(){const q=PENDING;PENDING=[];const bad=[];for(let i=0;i<q.length;i+=15){const r=await Promise.allSettled(q.slice(i,i+15).map(f=>f()));r.forEach(x=>{if(x.status==='rejected')bad.push(x.reason)})}
   try{localStorage.setItem('sab3_cloud_hash',JSON.stringify(CLOUD.hash))}catch(_){}
   if(bad.length){const msg=bad.slice(0,5).map(b=>(b&&b.doc?b.doc+' ('+Math.round((b.size||0)/1024)+' ك.ب): ':'')+String(b&&b.e&&(b.e.code||b.e.message)||b&&b.message||b)).join(' | ');try{errLog('حفظ النائب في قاعدة البيانات',new Error(msg),{n:bad.length,of:q.length})}catch(_){}throw new Error('لم يُحفظ '+bad.length+' من '+q.length+' — '+msg)}}
+/* قاعدة البيانات لا تقبل «مصفوفة داخل مصفوفة» (مثل جداول الاستطلاعات والحصر): يُحفظ كل إعداد فيه ذلك نصًّا ويُعاد عند القراءة */
+function fsNested(v,inArr){if(Array.isArray(v)){if(inArr)return true;return v.some(y=>fsNested(y,true))}if(v&&typeof v==='object')return Object.values(v).some(y=>fsNested(y,false));return false}
+function fsPack(o){Object.keys(o).forEach(k=>{if(fsNested(o[k],false)){o['__j_'+k]=JSON.stringify(o[k]);delete o[k]}});return o}
+function fsUnpack(o){o=o||{};Object.keys(o).forEach(k=>{if(k.startsWith('__j_')){try{o[k.slice(4)]=JSON.parse(o[k])}catch(_){}delete o[k]}});return o}
 async function pushAll(){
   if(AUTH.role!=='admin'||!CLOUD.ok)return;if(S.demo){return}
   if(CLOUD.pushing){schedulePush(2000);return}CLOUD.pushing=true;CLOUD.pushErr='';updCloudChip();
@@ -2437,7 +2441,7 @@ async function pushAll(){
     for(let i=0;i<n;i++)w+=setIfChanged('adm','s'+i,{t:txt.slice(i*CH,(i+1)*CH)});
     const sAt=S.savedAt||new Date().toISOString();w+=setIfChanged('adm','meta',{n,savedAt:sAt,size:txt.length});
     // 2) shared settings and staff list (any signed-in account)
-    const st=Object.assign({},S.settings);delete st.sig;
+    const st=fsPack(Object.assign({},S.settings));delete st.sig;
     if(S.settings.sig)w+=setIfChanged('shared','sig',{sig:S.settings.sig});w+=setIfChanged('shared','cfg',{settings:st,staff:(S.staff||[]).map(t=>({name:t.name,role:t.role||'',subject:t.subject||'',dept:t.dept||'',sections:t.sections||[]}))});
     // 3) one document per section and subject (teachers read only theirs)
     const docs=sectionDocs();for(const [id,d] of docs)w+=setIfChanged('sec',id,d);
@@ -2468,7 +2472,7 @@ function pubStats(){const T=D.targets;const got=T.reduce((x,t)=>x+t.core,0);retu
 /* --- teachers and coordinators: only their sections --- */
 async function scopedLoad(){
   const P=AUTH.prof;const st=blankState();
-  try{const c=await CLOUD.db.collection('shared').doc('cfg').get();if(c.exists){const cd=c.data();st.settings=Object.assign({},DEFAULT_SETTINGS,cd.settings||{});try{const sg=await CLOUD.db.collection('shared').doc('sig').get();if(sg.exists&&sg.data().sig)st.settings.sig=sg.data().sig}catch(_){}const all=fixStaff(cd.staff||[]);
+  try{const c=await CLOUD.db.collection('shared').doc('cfg').get();if(c.exists){const cd=c.data();st.settings=Object.assign({},DEFAULT_SETTINGS,fsUnpack(cd.settings));try{const sg=await CLOUD.db.collection('shared').doc('sig').get();if(sg.exists&&sg.data().sig)st.settings.sig=sg.data().sig}catch(_){}const all=fixStaff(cd.staff||[]);
       st.staff=(AUTH.role==='coord'||AUTH.role==='viewer')?all.filter(t=>P.depts.includes(norm(t.dept))):all.filter(t=>norm(t.name)===P.nk);
       if(AUTH.role==='coord'){const me=all.find(t=>norm(t.name)===P.nk)||fuzzyStaff0(P.nk,all)||(P.name?fuzzyStaff0(P.name,all):null);if(me&&(me.sections||[]).length){P.me=me;if(!st.staff.includes(me))st.staff.push(me)}}}}catch(e){console.warn(e)}
   P.keys=[...new Set(st.staff.flatMap(staffKeys))];if(AUTH.role==='teacher'&&st.staff[0])P.name=st.staff[0].name;if((AUTH.role==='coord'||AUTH.role==='viewer')&&st.staff[0])P.dept=[...new Set(st.staff.map(t=>t.dept))].join('، ');
