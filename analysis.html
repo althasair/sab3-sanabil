@@ -1289,7 +1289,7 @@ function cMerge(k,ag){const it=rdItem(k);['lo','hi','ch','so'].forEach(f=>Object
 function vCRead(){if(!M.stu.length)return noData();rdLoad();rdTeamLoad();rdFbLoad();sanLoad();
   const G=cGroups();if(!G.length)return head('قراءة نتائج القسم','')+'<div class="box"><div class="empty">لم يُعثر على مواد قسمكِ في توزيع المعلمات.</div></div>';
   const vfb=myFb(UI.per,'admin');
-  let h=head('قراءة نتائج القسم','نموذج التقرير الكمي الوصفي لكل مادة ومستوى. تنعكس فيه قراءات المعلمات وإجراءاتهن المسجلة في سبع سنابل تلقائيًا؛ اختاري ما تؤيدينه، واكتبي مشروع القسم وتغذيتكِ الراجعة لكل معلمة. تصل قراءتكِ إلى النائب الأكاديمي.')+rdSaveBar('c')+(vfb.length?'<div class="box rqfb"><h3>التغذية الراجعة من النائب الأكاديمي</h3>'+fbHTML(vfb)+'</div>':'');
+  let h=head('قراءة نتائج القسم','نموذج التقرير الكمي الوصفي لكل مادة ومستوى. تنعكس فيه قراءات المعلمات وإجراءاتهن المسجلة في سبع سنابل تلقائيًا؛ اختاري ما تؤيدينه، واكتبي مشروع القسم وتغذيتكِ الراجعة لكل معلمة. تصل قراءتكِ إلى النائب الأكاديمي.')+rdSaveBar('c')+'<div class="chips noprint" style="margin:4px 0 8px"><button class="btn" data-rqrest="1" style="border-color:#2E7D52;color:#1F6B43">♻️ استرجاع قراءتي وتغذيتي الراجعة من نسخة احتياطية</button></div>'+(vfb.length?'<div class="box rqfb"><h3>التغذية الراجعة من النائب الأكاديمي</h3>'+fbHTML(vfb)+'</div>':'');
   G.forEach(g=>{const k=g.sub+'|'+g.l;const ag=teamAgg(g.secs,g.sub);const it=cMerge(k,ag);
     const cols=g.secs.map(sec=>({h:'<bdi dir="ltr">'+sec+'</bdi>',hp:sec,s:short(teacherOf(sec,g.sub)),t:teacherOf(sec,g.sub),st:colStat(M.stu.filter(x=>x.s===sec),g.sub),tr:trackOf(sec)}));
     const lvSecs=[...new Set(M.stu.filter(x=>x.l===g.l&&(typeof x.g[g.sub]==='number'||/محروم/.test(String(x.g[g.sub]||'')))).map(x=>x.s))];const allLv=lvSecs.every(sc=>g.secs.includes(sc));const tot={h:allLv?'إجمالي المستوى':'إجمالي شعب القسم',st:totStat(M.stu.filter(x=>g.secs.includes(x.s)),g.sub)};
@@ -1355,7 +1355,7 @@ function vReadingBody(){
         return{sub,st:c&&c.st,levels:lv.map(l=>({l:lvlName(l),st:colStat(M.stu.filter(x=>x.l===l),sub)})),actions:s2.n?sanText(s2):'',impact:impact(M.stu,sub,As)}}),
       coords:coR.map(r=>({uid:r.uid,name:r.name,dept:r.dept,depts:r.depts,at:r.at,items:cl(r.items),curFb:fbs[r.uid]||null})),
       teachers:teR.map(r=>({uid:r.uid,name:r.name,dept:r.dept,at:r.at,items:cl(r.items)})),vp:{op:it0.op,opt:it0.opt,so:it0.so,ins:it0.ins,exp:it0.exp}}};
-  h+=prVpBox();h+='<div class="chips noprint rqtools" style="margin:6px 0 10px"><button class="btn" data-rqexp="1">📥 تصدير القراءات للمراجعة</button><button class="btn" data-rqimp="1">📤 استيراد التغذية الراجعة</button><span class="stl">التصدير ملف تُرسلينه لمراجعة القراءات وصياغة التغذية الراجعة، والاستيراد يضعها في خاناتها لتراجعيها ثم تحفظي.</span></div>';
+  h+=prVpBox();h+='<div class="chips noprint rqtools" style="margin:6px 0 10px"><button class="btn" data-rqexp="1">📥 تصدير القراءات للمراجعة</button><button class="btn" data-rqimp="1">📤 استيراد التغذية الراجعة</button><button class="btn" data-rqrest="1" style="border-color:#2E7D52;color:#1F6B43">♻️ استرجاع القراءات من نسخة احتياطية</button><span class="stl">التصدير ملف تُرسلينه لمراجعة القراءات وصياغة التغذية الراجعة، والاستيراد يضعها في خاناتها لتراجعيها ثم تحفظي.</span></div>';
   h+='<div class="kpis rqk8">'+tile('نسبة النجاح',pc(pass),'في جميع المواد','var(--tiff-d)')+tile('نسبة التحصيل',pc(S0&&S0.m),'متوسط الدرجات')+tile('70% فأعلى',pc(a70),'نسبة الدرجات')+tile('90% فأعلى',pc(a90),'نسبة الدرجات','var(--c90)')+
     tile('طالبات لديهن رسوب',fail,'في مادة أو أكثر','var(--bad)')+tile('الحصص الإثرائية',(ss.by[3]||{n:0}).n,'مسجلة في سبع سنابل')+tile('الإجراءات الفردية',ss.ind,ss.stu+' طالبة مستفيدة')+tile('التواصل مع أولياء الأمور',(ss.by[5]||{n:0}).n,'مسجل في سبع سنابل')+'</div>';
   h+='<p class="stl">قراءات محفوظة: '+coR.length+' منسقة و'+teR.length+' معلمة لهذه الفترة.</p>';
@@ -1400,6 +1400,28 @@ document.addEventListener('click',async e=>{if(!e.target.closest)return;
       Object.entries(J.fb||{}).forEach(([uid,t])=>{const o=fbs[uid]=fbs[uid]||{sel:[],txt:'',dept:''};if(typeof t==='string'){o.txt=t}else{if(t.txt!=null)o.txt=t.txt;if(t.sel)o.sel=t.sel;if(t.dept)o.dept=t.dept}n++});
       const it=rdItem('_vp');['opt','ins','exp'].forEach(k=>{if(J[k]!=null)it[k]=J[k]});['op','so'].forEach(k=>{if(Array.isArray(J[k]))it[k]=J[k]});
       render();toast('تم وضع التغذية الراجعة لـ'+n+' منسقة ورأيكِ في خاناتها. راجعيها ثم اضغطي حفظ.')}catch(err){toast('الملف غير صالح')}};fr.readAsText(f)};i.click()}});
+/* ===== استرجاع القراءات من نسخة احتياطية (ملف «تصدير القراءات»): يُكمل الناقص فقط، ولا يحذف ولا يغيّر أي شيء موجود ===== */
+async function rqRestore(J){if(!CLD.db||!CLD.uid)return;const per=PERIODS.indexOf(String(J.per||''));if(per<0){toast('الملف لا يحمل فترة معروفة');return}
+  const own=!CLD.admin;const recs=[].concat((J.teachers||[]).map(r=>Object.assign({role:'teacher'},r)),(J.coords||[]).map(r=>Object.assign({role:'coord'},r))).filter(r=>r.uid&&(!own||r.uid===CLD.uid));
+  const fbL=(J.fb||[]).filter(f=>f&&f.to&&f.by&&(!own||f.by===CLD.uid));
+  if(!recs.length&&!fbL.length){toast('لا توجد في الملف قراءات تخصّكِ');return}
+  const empty=v=>v==null||v===''||(Array.isArray(v)&&!v.length);const plan=[];let addI=0,addF=0,newD=0;
+  for(const r of recs){const id=r.uid+'__'+per;let cur=null;try{const d=await CLD.db.collection('reads').doc(id).get();cur=d.exists?d.data():null}catch(e){}
+    const myFb={};fbL.filter(f=>f.by===r.uid&&f.role!=='admin').forEach(f=>{myFb[f.to]={sel:f.sel||[],txt:f.txt||'',dept:f.dept||''}});
+    if(!cur){newD++;addI+=Object.keys(r.items||{}).length;addF+=Object.keys(myFb).length;
+      plan.push({id,doc:{v:2,uid:r.uid,role:r.role,name:r.name||'',dept:r.dept||'',depts:r.depts||[r.dept||''],per,at:r.at||new Date().toISOString(),items:r.items||{},fbs:myFb,restoredAt:new Date().toISOString()}});continue}
+    const doc=JSON.parse(JSON.stringify(cur));doc.items=doc.items||{};doc.fbs=doc.fbs||{};let ch=0;
+    Object.entries(r.items||{}).forEach(([k,it])=>{if(!doc.items[k]){doc.items[k]=it;addI++;ch++;return}const c=doc.items[k];Object.entries(it||{}).forEach(([f,v])=>{if(empty(c[f])&&!empty(v)){c[f]=v;ch++}})});
+    Object.entries(myFb).forEach(([to,f])=>{const c=doc.fbs[to];if(!c||(empty(c.sel)&&empty(c.txt))){doc.fbs[to]=f;addF++;ch++}});
+    if(ch){doc.restoredAt=new Date().toISOString();plan.push({id,doc})}}
+  const fbW=[];for(const f of fbL){const id=f.to+'__'+per+'__'+f.by;try{const d=await CLD.db.collection('fb').doc(id).get();if(!d.exists||(empty((d.data()||{}).sel)&&empty((d.data()||{}).txt)))fbW.push({id,doc:{to:f.to,by:f.by,byName:f.byName||'',role:f.role||'coord',dept:f.dept||'',per,sel:f.sel||[],txt:f.txt||'',at:J.at||new Date().toISOString(),restored:true}})}catch(e){}}
+  if(!plan.length&&!fbW.length){toast('كل ما في النسخة الاحتياطية موجود أصلًا ✓ لم يُفقد شيء');return}
+  if(!confirm('سيُسترجع من نسخة «'+J.per+'» ('+String(J.at||'').slice(0,10)+'):\n• '+newD+' قراءة غير موجودة الآن\n• '+addI+' بندًا ناقصًا في القراءات\n• '+(addF+fbW.length)+' تغذية راجعة ناقصة\n\nيُضاف الناقص فقط، ولا يُحذف ولا يُغيَّر أي شيء موجود. متابعة؟'))return;
+  let ok=0;const bad=[];for(const w of plan){try{await CLD.db.collection('reads').doc(w.id).set(w.doc);ok++}catch(e){bad.push((w.doc.name||w.id)+': '+(e&&e.code||e))}}
+  for(const w of fbW){try{await CLD.db.collection('fb').doc(w.id).set(w.doc);ok++}catch(e){bad.push('تغذية '+w.id+': '+(e&&e.code||e))}}
+  RD.loaded=false;RD.team=null;RD.all=null;RD.fb=null;RD.doc=null;render();
+  if(bad.length)alert('تم استرجاع '+ok+' وتعذّر '+bad.length+':\n'+bad.slice(0,12).join('\n'));else toast('تم الاسترجاع ✓ ('+ok+')')}
+document.addEventListener('click',e=>{if(!(e.target.closest&&e.target.closest('[data-rqrest]')))return;const i=document.createElement('input');i.type='file';i.accept='.json,application/json';i.onchange=()=>{const f=i.files[0];if(!f)return;const fr=new FileReader();fr.onload=()=>{let J;try{J=JSON.parse(fr.result)}catch(_){toast('الملف غير صالح');return}if(!J||!(J.teachers||J.coords)){toast('اختاري ملف «قراءات الأقسام» المصدَّر من هذه الصفحة');return}rqRestore(J)};fr.readAsText(f)};i.click()});
 /* المديرة: ترى قراءة النائب الأكاديمي بعد اعتمادها فقط */
 async function prLoad(){if(RD.prDone||!CLD.db)return;RD.prDone=true;try{const q=await CLD.db.collection('reads').where('role','==','admin').get();RD.prDocs=[];q.forEach(d=>{const v=d.data();if(v.approved)RD.prDocs.push(v)})}catch(e){console.warn(e);RD.prDocs=[]}render()}
 /* ---- الأحداث ---- */
