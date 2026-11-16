@@ -1203,7 +1203,9 @@ function rdItem(k){RD.doc=RD.doc||{};RD.doc.items=RD.doc.items||{};const it=RD.d
 function rdStu(){RD.doc=RD.doc||{};return RD.doc.stu=RD.doc.stu||{}}
 function myFb(per,role){return (RD.fb||[]).filter(f=>String(f.per)===String(per)&&(!role||f.role===role))}
 function fbHTML(L){return L.map(f=>(f.sel||[]).concat(f.txt?[f.txt]:[]).map(x=>'• '+esc(x)).join('<br>')+'<div class="stl">— '+esc(f.byName||'')+'</div>').join('<hr>')}
-function teamFor(secs,sub){return (RD.team||(CLD.admin?(RD.all||[]).filter(r=>r.role==='teacher'):[])).filter(r=>String(r.per)===String(UI.per)).map(r=>({r,items:secs.map(sc=>[sc,(r.items||{})[sc+'|'+sub]]).filter(x=>x[1])})).filter(x=>x.items.length)}
+/* بند قراءة المعلمة لشعبة ومادة: المفتاح نفسه أولًا، ثم المطابقة بعد توحيد كتابة الشعبة والمادة (اللغة العربية/اللغه العربيه، 10-1/10/1) */
+function rdIt(r,sc,sub){const I=r.items||{};if(I[sc+'|'+sub])return I[sc+'|'+sub];const ns=x=>String(x||'').replace(/[\/\\_ ]/g,'-').replace(/-+/g,'-').trim(),nb=x=>nkA(x).replace(/^ال/,'');const k=Object.keys(I).find(k=>{const i=k.lastIndexOf('|');return ns(k.slice(0,i))===ns(sc)&&nb(k.slice(i+1))===nb(sub)});return k?I[k]:null}
+function teamFor(secs,sub){return (RD.team||(CLD.admin?(RD.all||[]).filter(r=>r.role==='teacher'):[])).filter(r=>String(r.per)===String(UI.per)).map(r=>({r,items:secs.map(sc=>[sc,rdIt(r,sc,sub)]).filter(x=>x[1])})).filter(x=>x.items.length)}
 async function rdSave(){if(!CLD.db||!CLD.uid)return;RD.busy=true;render();
   const P=(CLD.me||[])[0]||{};const role=CLD.admin?'admin':CLD.role;const doc=Object.assign({},RD.doc||{},{v:2,uid:CLD.uid,role,name:CLD.admin?'النائب الأكاديمي':(CLD.nm||P.name||''),dept:role==='coord'?(CLD.dept[0]||''):role==='admin'?'_admin':nkA(P.dept||''),depts:role==='coord'?CLD.dept:[nkA(P.dept||'')],per:UI.per,at:new Date().toISOString()});
   try{await CLD.db.collection('reads').doc(rdId()).set(doc);RD.doc=doc;
@@ -1291,7 +1293,10 @@ function vCRead(){if(!M.stu.length)return noData();rdLoad();rdTeamLoad();rdFbLoa
   G.forEach(g=>{const k=g.sub+'|'+g.l;const ag=teamAgg(g.secs,g.sub);const it=cMerge(k,ag);
     const cols=g.secs.map(sec=>({h:'<bdi dir="ltr">'+sec+'</bdi>',hp:sec,s:short(teacherOf(sec,g.sub)),t:teacherOf(sec,g.sub),st:colStat(M.stu.filter(x=>x.s===sec),g.sub),tr:trackOf(sec)}));
     const lvSecs=[...new Set(M.stu.filter(x=>x.l===g.l&&(typeof x.g[g.sub]==='number'||/محروم/.test(String(x.g[g.sub]||'')))).map(x=>x.s))];const allLv=lvSecs.every(sc=>g.secs.includes(sc));const tot={h:allLv?'إجمالي المستوى':'إجمالي شعب القسم',st:totStat(M.stu.filter(x=>g.secs.includes(x.s)),g.sub)};
-    const tchs=[...new Map(ag.T.map(x=>[x.r.uid,x.r])).values()];RD.doc=RD.doc||{};const fbs=RD.doc.fbs=RD.doc.fbs||{};
+    RD.doc=RD.doc||{};const fbs=RD.doc.fbs=RD.doc.fbs||{};const tm0=new Map(ag.T.map(x=>[x.r.uid,x.r]));
+    /* لا تختفي معلمة كُتبت لها تغذية راجعة: تُضاف من قراءتها (أي فترة) إن كانت تدرّس إحدى شعب المستوى */
+    (RD.team||[]).filter(r=>r.uid&&!tm0.has(r.uid)&&fbs[r.uid]&&((fbs[r.uid].sel||[]).length||fbs[r.uid].txt)&&g.secs.some(sc=>rdIt(r,sc,g.sub))).sort((a,b)=>String(b.at).localeCompare(String(a.at))).forEach(r=>{if(!tm0.has(r.uid))tm0.set(r.uid,Object.assign({},r,{_op:String(r.per)!==String(UI.per)}))});
+    const tchs=[...tm0.values()];
     h+='<section class="rqsec"><h2 class="rqtitle">'+esc(g.sub)+' — المستوى '+lvlName(g.l)+'</h2>'+
       rqForm({title:'نموذج تقرير كمي ووصفي لنتائج الطلبة: '+esc(PERIODS[UI.per])+' لمادة '+esc(g.sub)+' — المستوى '+lvlName(g.l)+' للعام الأكاديمي 2026–2027',cols,tot,interp:cInterp(g,cols,tot,ag,it),fbLabel:'التغذية الراجعة من النائب الأكاديمي',fb:vfb.length?fbHTML(vfb):'',sign:['اسم المنسق وتوقيعه','نائب المدير للشؤون الأكاديمية',meSig(),vpSigCell(vfb)]})+rqCharts(cols)+
       '<div class="box rdbox"><h3>قراءة القسم للمستوى <small class="stl">'+(ag.T.length?'تشمل اختيارات '+ag.T.length+' معلمة (معلَّمة باسم الشعب)':'لم تحفظ معلمات هذه المادة قراءتهن بعد')+'</small></h3>'+
@@ -1301,7 +1306,7 @@ function vCRead(){if(!M.stu.length)return noData();rdLoad();rdTeamLoad();rdFbLoa
           '<div class="rdg">الأنشطة التي انبثقت منه</div>'+ck(k,'pacts',[...new Set(RD_PROG.concat(ag.prog.map(x=>x.x)))],it.pacts||[])+txt(k,'pdesc','وصف مختصر للمشروع (اختياري)',it.pdesc)+'</details>'+
         (ag.notes.length?'<div class="rdg">ما كتبته المعلمات</div><ul class="stl">'+ag.notes.map(n=>'<li><b>أ. '+esc(short(n.t))+' — <bdi dir="ltr">'+esc(n.sc)+'</bdi>:</b> '+esc(n.n)+'</li>').join('')+'</ul>':'')+
         '<details><summary><b>تحليل الواقع بكلماتكِ</b> <small>(اختياري)</small></summary>'+txt(k,'note','أي إضافة على القراءة المكتوبة تلقائيًا',it.note,3)+'</details></div>'+
-      (tchs.length?'<div class="box rdbox"><h3>التغذية الراجعة لكل معلمة <small class="stl">تظهر في نموذجها بعد الحفظ</small></h3>'+tchs.map(r=>{const f=fbs[r.uid]=fbs[r.uid]||{sel:[],txt:''};return '<details><summary><b>أ. '+esc(short(r.name))+'</b> <small>('+(f.sel.length+(f.txt?1:0))+')</small></summary><div class="rdck">'+RD_CFB.map(x=>'<label><input type="checkbox" data-fb="'+esc(r.uid)+'" value="'+esc(x)+'"'+(f.sel.includes(x)?' checked':'')+'> <span>'+esc(x)+'</span></label>').join('')+'</div><textarea class="rqta" data-fbt="'+esc(r.uid)+'" rows="2" placeholder="إضافة خاصة بهذه المعلمة (اختياري)">'+esc(f.txt||'')+'</textarea></details>'}).join('')+'</div>':'')+'</section>'});
+      (tchs.length?'<div class="box rdbox"><h3>التغذية الراجعة لكل معلمة <small class="stl">تظهر في نموذجها بعد الحفظ</small></h3>'+tchs.map(r=>{const f=fbs[r.uid]=fbs[r.uid]||{sel:[],txt:''};return '<details><summary><b>أ. '+esc(short(r.name))+'</b> <small>('+(f.sel.length+(f.txt?1:0))+')</small>'+(r._op?' <small style="color:#9A3B1E">(قراءتها محفوظة في «'+esc(PERIODS[r.per]||'فترة أخرى')+'»)</small>':'')+'</summary><div class="rdck">'+RD_CFB.map(x=>'<label><input type="checkbox" data-fb="'+esc(r.uid)+'" value="'+esc(x)+'"'+(f.sel.includes(x)?' checked':'')+'> <span>'+esc(x)+'</span></label>').join('')+'</div><textarea class="rqta" data-fbt="'+esc(r.uid)+'" rows="2" placeholder="إضافة خاصة بهذه المعلمة (اختياري)">'+esc(f.txt||'')+'</textarea></details>'}).join('')+'</div>':'')+'</section>'});
   return h+rdSaveBar('c')}
 /* ======== النائب الأكاديمي ======== */
 function vReading(){if(!M.stu.length)return noData();
