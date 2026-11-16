@@ -1280,7 +1280,7 @@ function cInterp(g,cols,tot,ag,it){const p=[];const R=cols.filter(c=>c.st);if(!t
   const byT={};cols.forEach(c=>{(c.t||'').split(' و').filter(Boolean).forEach(t=>{(byT[t]=byT[t]||[]).push(c.hp)})});
   const acts=Object.entries(byT).map(([t,ss])=>{const s=sanSum(sanFor(ss,g.sub,t));const pr=[...new Set(ag.prog.filter(x=>nkA(x.t)===nkA(t)).map(x=>x.x))];if(!s.n&&!pr.length)return '';return 'نفّذت أ. '+short(t)+' '+[sanText(s),pr.length?joinAr(pr):''].filter(Boolean).join('، واتبعت ')}).filter(Boolean);
   if(acts.length)p.push('أما إجراءات المعلمات: '+acts.join('؛ ')+'.');
-  if(it.pname){const A=sanFor(g.secs,g.sub);const im=impact(M.stu.filter(x=>g.secs.includes(x.s)),g.sub,A);p.push('وفعّل القسم مشروع «'+it.pname+'»'+(it.pdesc?' ('+it.pdesc+')':'')+(it.pacts&&it.pacts.length?'، وانبثقت منه أنشطة: '+joinAr(it.pacts):'')+(tot.st.va!=null?'، وكان أثره أن بلغت القيمة المضافة في المستوى '+(tot.st.va>0?'+':'')+r1(tot.st.va)+' درجة'+(im?' وتحسّنت '+im.up+' من '+im.n+' طالبة مستفيدة من الإجراءات الفردية':''):'، ويُقاس أثره في التقييم القادم')+'.')}
+  if(it.pname){p.push('ومشروع القسم الذي حددته المنسقة: «'+String(it.pname).replace(/[.。]+$/,'')+'»'+(it.pdesc?' ('+String(it.pdesc).replace(/[.。]+$/,'')+')':'')+(it.pacts&&it.pacts.length?'، وأنشطته: '+joinAr(it.pacts):'')+'.')}
   if(it.ch.length)p.push('ومن التحديات: '+joinAr(it.ch)+'.');if(it.so.length)p.push('ويقترح القسم للفترة القادمة: '+joinAr(it.so)+'.');if(it.note)p.push(it.note);
   return p.map(x=>'<p>'+esc(x)+'</p>').join('')}
 function cMerge(k,ag){const it=rdItem(k);['lo','hi','ch','so'].forEach(f=>Object.keys(ag.src[f]).forEach(x=>{if(!it.rm.includes(x+'|'+f)&&!it[f].includes(x))it[f].push(x)}));return it}
@@ -1375,7 +1375,7 @@ function vInterp(cols,coR,ss){const p=[];const R=cols.filter(c=>c.st).sort((a,b)
   const va=R.filter(c=>c.st.va!=null).sort((a,b)=>b.st.va-a.st.va);if(va.length)p.push('وحققت '+joinAr(va.filter(c=>c.st.va>0).slice(0,4).map(c=>c.hp+' (+'+r1(c.st.va)+')'))+' أعلى قيمة مضافة عن التقييم السابق.');
   const cnt={};coR.forEach(r=>Object.values(r.items||{}).forEach(x=>(x.lo||x.low||[]).forEach(q=>cnt[q]=(cnt[q]||0)+1)));const top=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,4).map(e=>e[0]);
   if(top.length)p.push('وأجمعت قراءات الأقسام على أن أبرز أسباب الانخفاض: '+joinAr(top)+'.');
-  const pj=coR.flatMap(r=>Object.entries(r.items||{}).filter(([,x])=>x.pname).map(([k,x])=>'«'+x.pname+'» ('+k.split('|')[0]+')'));if(pj.length)p.push('وفعّلت الأقسام برامج: '+joinAr(pj)+'.');
+  const pj=coR.flatMap(r=>Object.entries(r.items||{}).filter(([,x])=>x.pname).map(([k,x])=>'«'+x.pname+'» ('+k.split('|')[0]+')'));if(pj.length)p.push('ومشاريع الأقسام كما حددتها المنسقات: '+joinAr(pj)+'.');
   if(ss.n)p.push('ورُصد في سبع سنابل '+ss.n+' إجراء، منها '+(ss.by[3]||{n:0}).n+' حصة إثرائية و'+ss.ind+' إجراء فرديًا استفادت منه '+ss.stu+' طالبة.');
   if((it.so||[]).length)p.push('ويُوصى للفترة القادمة بـ: '+joinAr(it.so)+'.');if(it.ins)p.push(it.ins);if(it.exp)p.push('التوقعات: '+it.exp);
   return p.map(x=>'<p>'+esc(x)+'</p>').join('')}
