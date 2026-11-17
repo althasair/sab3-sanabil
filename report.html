@@ -507,7 +507,7 @@ function studentReport(st,sec){const E=entries()[st.pid]||{subs:{}};const a=A();
   const subs=Object.keys(E.subs).filter(s=>filled(E.subs[s].v)).sort(subjSort);
   const items=subs.map((s,i)=>{const e=E.subs[s];const c=commit(s,e.v);const ap=assessPct(e.v);const mid=cur&&typeof cur.g[s]==='number'?cur.g[s]:null;
     let ph=c?PH[c][(h+i*3)%10]:'';let mis='';if(!g12&&mid!=null&&ap!=null){if(mid-ap>=20)mis=MIS_HI;else if(ap-mid>=20)mis=MIS_LO}
-    return{s,teacher:e.teacher,v:e.v,c,ap,mid,ph,mis}});
+    const skg=g12&&/مهارات/.test(s);return{s,teacher:e.teacher,v:e.v,c,ap:skg?null:ap,mid:skg?null:mid,ph,mis:skg?'':mis}});
   const sw=R.sw&&R.sw.secs[sec]?(R.sw.secs[sec].notes[st.pid]||[]):null;
   const lv=items.map(x=>x.mid!=null&&x.ap!=null?(x.mid+x.ap)/2:x.mid!=null?x.mid:x.ap).filter(x=>x!=null);const avg=lv.length?lv.reduce((s,x)=>s+x,0)/lv.length:null;
   const goodC=items.filter(x=>x.c==='ملتزمة').length,badC=items.filter(x=>x.c==='غير ملتزمة').length;
@@ -523,7 +523,12 @@ function chart(items,g12){const it=items.filter(x=>x.ap!=null||x.mid!=null);if(!
     if(x.ap!=null){g+='<rect x="'+(W-lw-sx(x.ap))+'" y="'+y+'" width="'+sx(x.ap)+'" height="10" rx="3" fill="#0ABAB5"/><text x="'+(W-lw-sx(x.ap)-4)+'" y="'+(y+9)+'" font-size="9.5" text-anchor="end" fill="#16233F">'+fmt(x.ap)+'</text>'}
     if(!g12&&x.mid!=null){g+='<rect x="'+(W-lw-sx(x.mid))+'" y="'+(y+12)+'" width="'+sx(x.mid)+'" height="10" rx="3" fill="#1F3A5F"/><text x="'+(W-lw-sx(x.mid)-4)+'" y="'+(y+21)+'" font-size="9.5" text-anchor="end" fill="#16233F">'+fmt(x.mid)+'</text>'}});
   return'<div class="rbox chartbox"><div class="rh">الأداء في المواد</div><div class="lg"><span><i style="background:#0ABAB5"></i>التقييمات القصيرة</span>'+(g12?'':'<span><i style="background:#1F3A5F"></i>منتصف الفصل الدراسي الأول</span>')+'</div>'+g+'</svg></div>'}
-function subjBox(x,g12){const v=x.v;const head='<div class="rh"><span>موجز عن أداء الطالبة في مادة (<b>'+esc(x.s)+'</b>)</span><span class="tch">معلمة المادة: أ. '+esc(x.teacher)+'</span></div>';
+function subjBox(x,g12){const v=x.v;
+  /* المهارات الحياتية للثاني عشر: بنود الالتزام فقط (بلا درجات ولا واجبات)، وما لم تعبّئه المعلمة لا يظهر */
+  if(g12&&/مهارات/.test(x.s)){const ks=Object.keys(v).filter(k=>!/\(من [\d.]+\)|^واجب|^التقييم|المستوى الأكاديمي العام|هل تدرس الطالبة/.test(k)&&v[k]!=null&&String(v[k]).trim()!==''&&!/^[\d.]+$/.test(String(v[k]).trim()));
+    if(!ks.length)return '';
+    return'<div class="rbox"><div class="rh"><span>موجز عن أداء الطالبة في مادة (<b>'+esc(x.s)+'</b>)</span><span class="tch">معلمة المادة: أ. '+esc(x.teacher)+'</span></div><table><tr>'+ks.map(k=>'<th>'+esc(k)+'</th>').join('')+'</tr><tr>'+ks.map(k=>'<td>'+esc(v[k])+'</td>').join('')+'</tr></table>'+(x.ph?'<div class="ph">'+esc(x.ph)+'</div>':'')+'</div>'}
+  const head='<div class="rh"><span>موجز عن أداء الطالبة في مادة (<b>'+esc(x.s)+'</b>)</span><span class="tch">معلمة المادة: أ. '+esc(x.teacher)+'</span></div>';
   let acad='';
   if(x.s==='التربية البدنية'){acad='<table><tr><th>الالتزام بالزي الرياضي</th><th>التفاعل أثناء الحصة</th><th>السلوك في القاعة الرياضية</th>'+(g12?'<th>المستوى العام</th>':'')+'</tr><tr><td>'+esc(v['الالتزام بالزي الرياضي'])+'</td><td>'+esc(v['التفاعل أثناء الحصة'])+'</td><td>'+esc(v['السلوك في القاعة الرياضية'])+'</td>'+(g12?'<td>'+esc(v['المستوى الأكاديمي العام']||'')+'</td>':'')+'</tr></table>'}
   else{const keys=Object.keys(v).filter(h=>/\(من [\d.]+\)/.test(h));
