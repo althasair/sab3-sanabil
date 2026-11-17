@@ -391,8 +391,8 @@ pre.spec{white-space:pre-wrap;background:color-mix(in srgb,var(--cream) 35%,var(
 .pt{width:100%;border-collapse:collapse;font-size:9.5pt}.pt th{background:#62102A;color:#fff;padding:1.4mm 2mm;font-weight:700}.pt td{padding:1.2mm 2mm;border-bottom:1px solid #EFE6D8;text-align:center;vertical-align:middle}
 .pt td.sn{text-align:right;font-weight:800;color:#2A1820;white-space:nowrap}.pt td b{font-size:10pt;color:#2A1820}.pt td small{display:block;color:#7A6A70;font-size:8pt;line-height:1.2}.pt td.na{color:#A99A9E}
 .pb{height:1.6mm;border-radius:1mm;background:#EEE7DC;margin:.8mm auto 0;max-width:34mm;overflow:hidden}.pb i{display:block;height:100%;border-radius:1mm}
-.pb i.c1{background:#2E9E62}.pb i.c2{background:#2A8FB8}.pb i.c3{background:#E0A800}.pb i.c4{background:#D9607A}
-.cat{display:inline-block;border-radius:3mm;padding:.3mm 2.6mm;font-weight:800;font-size:9pt;white-space:nowrap}.cat.c1{background:#E3F4EA;color:#1F6B43}.cat.c2{background:#E2F1F8;color:#1C5F7D}.cat.c3{background:#FFF4D6;color:#7A5B00}.cat.c4{background:#FCE8EE;color:#9B2C4A}
+.pb i.c1{background:#2E9E62}.pb i.c2{background:#2A8FB8}.pb i.c3{background:#E0A800}.pb i.c4{background:#E8853A}.pb i.c5{background:#D04E5B}
+.cat{display:inline-block;border-radius:3mm;padding:.3mm 2.6mm;font-weight:800;font-size:9pt;white-space:nowrap}.cat.c1{background:#E3F4EA;color:#1F6B43}.cat.c2{background:#E2F1F8;color:#1C5F7D}.cat.c3{background:#FFF4D6;color:#7A5B00}.cat.c4{background:#FDEBDC;color:#9A4A12}.cat.c5{background:#FCE4E7;color:#9B1C2C}
 .vpsay{padding:2mm 3mm 1mm;border-top:1px dashed #E6D9C4}.vpsay p{margin:0;font-size:10pt;line-height:1.8;color:#3B2B30;text-align:justify}.vpsay span{display:block;text-align:left;font-size:8pt;color:#9A9095;margin-top:.5mm}
 .pt td small.lvw{font-size:8.5pt;color:#5C4E54;font-weight:700;margin-top:.6mm}.ptk{font-size:7.5pt;color:#9A9095;padding:0 3mm 1.5mm}
 .chartbox .lg{display:flex;gap:5mm;font-size:8.5pt;padding:1mm 3mm 0;color:#5C4E54}
@@ -525,18 +525,19 @@ function studentReport(st,sec){const E=entries()[st.pid]||{subs:{}};const a=A();
 /* ---------- report html ---------- */
 const CAP='<svg class="cap" viewBox="0 0 120 120" aria-hidden="true"><defs><linearGradient id="gd" x1="0" x2="1"><stop offset="0" stop-color="#9B7329"/><stop offset=".45" stop-color="#E0BE73"/><stop offset="1" stop-color="#A57B2C"/></linearGradient></defs><path d="M60 22 112 44 60 66 8 44Z" fill="#62102A"/><path d="M60 22 112 44 60 66 8 44Z" fill="none" stroke="url(#gd)" stroke-width="2.4"/><path d="M30 55v22c0 8 14 15 30 15s30-7 30-15V55L60 68Z" fill="#4A0B20" stroke="url(#gd)" stroke-width="2.4"/><path d="M104 47v30" stroke="url(#gd)" stroke-width="2.6"/><path d="M104 77c-5 4-6 13-4 19h8c2-6 1-15-4-19Z" fill="url(#gd)"/></svg>';
 /* الأداء في المواد: جدول بالأرقام بدل المخطط — النسبة، والدرجة الورقية للاختبار، والفئة من متوسط المتاح، ثم تحليل النائب الأكاديمي */
-function catOf(v){return v>=90?['الرائدات','c1','ممتاز']:v>=80?['الطموحات','c2','جيد جدًا']:v>=70?['المثابرات','c3','متوسط']:['الواعدات','c4','متدنٍّ']}
+/* فئات سبع سنابل نفسها: الرائدات 90+، الطموحات 80–89، المثابرات 70–79، الواعدات 50–69، دعم مكثف دون 50 */
+function catOf(v){return v>=90?['الرائدات','c1','المتميزات']:v>=80?['الطموحات','c2','جيد جدًا']:v>=70?['المثابرات','c3','المتوسطات']:v>=50?['الواعدات','c4','المتدنيات']:['دعم مكثف','c5','الراسبات']}
 function joinS(a){return a.length<2?a.join(''):a.slice(0,-1).join('، ')+' و'+a[a.length-1]}
 function chart(items,g12){const it=items.filter(x=>x.ap!=null||x.mid!=null);if(!it.length)return'';
   const bar=v=>'<div class="pb"><i class="'+catOf(v)[1]+'" style="width:'+Math.max(0,Math.min(100,v))+'%"></i></div>';
   const cell=(v,paper)=>v==null?'<td class="na">—</td>':'<td><b>'+fmt(v)+'%</b>'+(paper?'<small>'+fmt(Math.round(v*.3*10)/10)+' من 30</small>':'')+bar(v)+'</td>';
   const rows=it.map(x=>{const vs=[x.ap,g12?null:x.mid].filter(v=>v!=null);const m=vs.reduce((a,b)=>a+b,0)/vs.length;const c=catOf(m);return{x,m,c}});
-  const t='<table class="pt"><tr><th>المادة</th><th>التقييمات القصيرة</th>'+(g12?'':'<th>اختبار منتصف الفصل</th>')+'<th>الفئة</th></tr>'+rows.map(({x,c})=>'<tr><td class="sn">'+esc(x.s)+'</td>'+cell(x.ap)+(g12?'':cell(x.mid,!/بدني/.test(x.s)))+'<td><span class="cat '+c[1]+'">من '+c[0]+'</span><small class="lvw">'+c[2]+'</small></td></tr>').join('')+'</table>';
+  const t='<table class="pt"><tr><th>المادة</th><th>التقييمات القصيرة</th>'+(g12?'':'<th>اختبار منتصف الفصل</th>')+'<th>الفئة</th></tr>'+rows.map(({x,c})=>'<tr><td class="sn">'+esc(x.s)+'</td>'+cell(x.ap)+(g12?'':cell(x.mid,!/بدني/.test(x.s)))+'<td><span class="cat '+c[1]+'">'+(c[1]==='c5'?'':'من ')+c[0]+'</span><small class="lvw">'+c[2]+'</small></td></tr>').join('')+'</table>';
   const weak=rows.filter(r=>r.m<70).map(r=>r.x.s),mid=rows.filter(r=>r.m>=70&&r.m<80).map(r=>r.x.s);
   const say=weak.length?'ابنتي بحاجة إلى بذل مزيد من الجهد في '+(weak.length>2?'مواد ':weak.length===2?'مادتي ':'مادة ')+joinS(weak)+'، ولكنها قادرة بإذن الله على تحقيق درجات أعلى، وأنا على ثقة تامة بأنها ستكون على قدر المسؤولية.'
     :mid.length?'ابنتي على طريق التميز، وبمزيد من المراجعة في '+joinS(mid)+' ستصل إلى مستويات أعلى، وأنا على ثقة تامة بقدرتها على ذلك.'
     :'ابنتي نموذج للطالبة الرائدة، وأنا على ثقة تامة بأنها ستحافظ على هذا المستوى المشرّف وتواصل تميزها.';
-  return'<div class="rbox chartbox"><div class="rh">الأداء في المواد</div>'+t+'<div class="vpsay"><p>'+esc(say)+'</p><span>نائب المديرة للشؤون الأكاديمية — آسيا الذبياني</span></div><div class="ptk">الفئة من متوسط التقييمات القصيرة واختبار منتصف الفصل: الرائدات (ممتاز) 90% فأكثر، والطموحات (جيد جدًا) 80%–89%، والمثابرات (متوسط) 70%–79%، والواعدات (متدنٍّ) دون 70%.</div></div>'}
+  return'<div class="rbox chartbox"><div class="rh">الأداء في المواد</div>'+t+'<div class="vpsay"><p>'+esc(say)+'</p><span>نائب المديرة للشؤون الأكاديمية — آسيا الذبياني</span></div><div class="ptk">الفئة من متوسط التقييمات القصيرة واختبار منتصف الفصل: الرائدات (المتميزات) 90% فأكثر، والطموحات (جيد جدًا) 80%–89%، والمثابرات (المتوسطات) 70%–79%، والواعدات (المتدنيات) 50%–69%، ودعم مكثف (الراسبات) دون 50%.</div></div>'}
 function subjBox(x,g12){const v=x.v;
   /* المهارات الحياتية للثاني عشر: بنود الالتزام فقط (بلا درجات ولا واجبات)، وما لم تعبّئه المعلمة لا يظهر */
   if(g12&&/مهارات/.test(x.s)){const ks=Object.keys(v).filter(k=>!/\(من [\d.]+\)|^واجب|^التقييم|المستوى الأكاديمي العام|هل تدرس الطالبة/.test(k)&&v[k]!=null&&String(v[k]).trim()!==''&&!/^[\d.]+$/.test(String(v[k]).trim()));
