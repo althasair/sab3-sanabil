@@ -945,6 +945,8 @@ function chPrDoc(){const D=window.__PRCM||{};return Object.entries(D).find(([u,d
 function chSync(){if(AUTH.role!=='admin')return;const P=chPrDoc();let ch=0;const I=S.settings.chIss||{};
   Object.keys(I).forEach(L=>{const x=I[L];if(x.st!=='pend'||!P)return;const a=((P[1].chq||{})[L])||{};if(!a.at||String(a.at)<String(x.sentAt||''))return;
     if(a.ok){x.st='ok';x.ok=a.at.slice(0,10);x.note=a.note||'';ch++;toast('✅ اعتمدت مديرة المدرسة ميثاق الشراكة ('+(S.settings.tests[L]||'')+')، وظهر للمعلمات',7000)}else if(a.ret){x.st='ret';x.note=a.note||'';ch++;toast('↩️ أعادت مديرة المدرسة الميثاق بملاحظة',7000)}});
+  brState().filter(b=>b.st==='ok').forEach(b=>{const BD=S.settings.brDone=S.settings.brDone||{};if(BD[b.k]===b.at)return;BD[b.k]=b.at;const L=lastTestIdx(S);S.settings.chIss=S.settings.chIss||{};
+    if((S.settings.chIss[L]||{}).st!=='ok')S.settings.chIss[L]={st:'ok',ok:String(b.at).slice(0,10),note:'',via:'br'};ch++;toast('✅ اعتمدت مديرة المدرسة '+(b.x.name||'التقرير الأكاديمي السلوكي')+'، وهو جاهز للطباعة، وظهر للمعلمات أنه تم إصدار ميثاق الشراكة',8000)});
   if(ch){save();schedulePush();render()}
   if(!window.__PRSIG&&CLOUD.db)CLOUD.db.collection('csig').doc('pr').get().then(d=>{if(d.exists&&d.data().sig)window.__PRSIG=d.data().sig}).catch(()=>{})}
 function chAppPanel(L,n){const x=chIss(L),T=esc(S.settings.tests[L]||'');const box=(bg,bd,h)=>'<section class="panel" style="background:'+bg+';border:1.5px solid '+bd+'"><h3 style="margin:0 0 6px">📜 اعتماد مديرة المدرسة<small>'+T+'</small></h3>'+h+'</section>';
@@ -958,7 +960,20 @@ function chAppPanel(L,n){const x=chIss(L),T=esc(S.settings.tests[L]||'');const b
     if(x.st==='ok'||a.ok)return box('#EAF6EE','#9FD3B0','<p style="margin:0">✅ اعتمدتِ الميثاق'+(a.at?' في <b>'+esc(String(a.at).slice(0,10))+'</b>':'')+'.</p>');return ''}
   return x.st==='ok'?box('#EAF6EE','#9FD3B0','<p style="margin:0">✅ تم إصدار ميثاق الشراكة، واعتمدته مديرة المدرسة في '+esc(x.ok||'')+'.</p>'):''}
 /* شريط أعلى الصفحات: المعلمات يرين أنه تم الإصدار، والمديرة ترى طلب الاعتماد */
-function chIssBar(){const I=S.settings.chIss||{};const ks=Object.keys(I);if(!ks.length||!AUTH)return '';const bar=(bg,bd,h)=>'<div class="noprint" style="margin:0 0 14px;padding:10px 14px;background:'+bg+';border:1.5px solid '+bd+';border-radius:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">'+h+'</div>';
+/* ===== اعتماد التقرير الأكاديمي السلوكي (report.html): النائب ← المديرة ← جاهز للطباعة ===== */
+function brState(){const M=window.__BRM;if(!M||!M.reps)return [];const P=chPrDoc();const Q=P?(P[1].brq||{}):{};
+  return Object.entries(M.reps).map(([k,x])=>{const d=Q[k]||{};const fr=!!d.at&&String(d.at)>=String(x.vpAt||'');return {k,x,st:fr?(d.ok?'ok':d.ret?'ret':'pend'):'pend',at:fr?d.at:'',note:fr?(d.note||''):''}}).sort((a,b)=>String(b.x.vpAt).localeCompare(String(a.x.vpAt)))}
+function brBar(){if(!AUTH)return '';const L=brState();if(!L.length)return '';const s=L[0],nm=esc(s.x.name||'التقرير الأكاديمي السلوكي');
+  const bar=(bg,bd,h)=>'<div class="noprint" style="margin:0 0 14px;padding:10px 14px;background:'+bg+';border:1.5px solid '+bd+';border-radius:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">'+h+'<span style="flex:1"></span><a class="btn sm pri" href="report.html">فتح التقارير</a></div>';
+  const recent=s.at&&(Date.now()-new Date(s.at).getTime())<7*864e5;
+  if(prLead()==='pr'){if(s.st==='pend')return bar('#FFF8E1','#E3C77A','<b>📄 '+nm+' بانتظار اعتمادكِ</b><span class="small">اعتمدته نائب المديرة للشؤون الأكاديمية في '+esc(String(s.x.vpAt).slice(0,10))+' ('+(s.x.n||0)+' طالبة)</span>');
+    if(s.st==='ok'&&recent)return bar('#EAF6EE','#9FD3B0','<b>✅ اعتمدتِ '+nm+'</b><span class="small">جاهز للطباعة</span>');return ''}
+  if(AUTH.role==='admin'){if(s.st==='ok'&&recent)return bar('#EAF6EE','#9FD3B0','<b>✅ اعتمدت مديرة المدرسة '+nm+' — جاهز للطباعة</b><span class="small">'+esc(String(s.at).slice(0,10))+' · وظهر للمعلمات أنه تم إصدار ميثاق الشراكة</span>');
+    if(s.st==='ret')return bar('#FBEDEF','#E8A9B3','<b>↩️ أعادت مديرة المدرسة '+nm+'</b><span class="small">'+esc(s.note)+'</span>');
+    if(s.st==='pend')return bar('#FFF8E1','#E3C77A','<b>⏳ '+nm+' بانتظار اعتماد مديرة المدرسة</b>')}
+  return ''}
+function chIssBar(){return brBar()+chIssBar0()}
+function chIssBar0(){const I=S.settings.chIss||{};const ks=Object.keys(I);if(!ks.length||!AUTH)return '';const bar=(bg,bd,h)=>'<div class="noprint" style="margin:0 0 14px;padding:10px 14px;background:'+bg+';border:1.5px solid '+bd+';border-radius:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">'+h+'</div>';
   if(prLead()==='pr'){const P=chPrDoc();const pend=ks.filter(L=>I[L].st==='pend'&&!(P&&(((P[1].chq||{})[L])||{}).at>=String(I[L].sentAt||'')));if(pend.length)return bar('#FFF8E1','#E3C77A','<b>📜 ميثاق الشراكة بانتظار اعتمادكِ</b><span class="small">('+esc(S.settings.tests[pend[0]]||'')+')</span><span style="flex:1"></span><button type="button" class="btn sm pri" data-go="charter">فتح الميثاق</button>');return ''}
   if(['teacher','coord'].includes(AUTH.role)){const ok=ks.filter(L=>I[L].st==='ok').sort((a,b)=>String(I[b].ok).localeCompare(String(I[a].ok)));if(!ok.length)return '';const L=ok[0];
     return bar('#EAF6EE','#9FD3B0','<b>📜 تم إصدار ميثاق الشراكة</b><span class="small">'+esc(S.settings.tests[L]||'')+' · اعتمدته مديرة المدرسة في '+esc(I[L].ok||'')+'</span><span class="small muted">تابعي استلام مواثيق طالباتكِ موقّعة من أولياء الأمور.</span>')}
@@ -3393,7 +3408,7 @@ const PR_WHO={vp:['نائب المديرة للشؤون الأكاديمية','�
 function prLead(){if(AUTH.role!=='viewer'||!(AUTH.prof&&AUTH.prof.all))return null;const n=norm(AUTH.prof.name||'');return Object.keys(PR_WHO).find(k=>k!=='vp'&&norm(PR_WHO[k][1].replace(/^أ\.\s*/,''))===n)||null}
 function prLeadCm(key){const D=window.__PRCM||{},me=AUTH.user&&AUTH.user.uid,out=[];Object.entries(D).forEach(([u,d])=>((d.items||{})[key]||[]).forEach(c=>out.push(Object.assign({u,w:d.w},c))));
   return out.sort((a,b)=>String(a.at).localeCompare(String(b.at))).map(c=>{const w=PR_WHO[c.w]||['',''];return '<div class="pr-note pr-cm"><div class="nh"><span>💬 تعليق '+esc(w[0])+' / '+esc(w[1])+'</span>'+(c.u===me||AUTH.role==='admin'?'<button type="button" class="btn sm ghost noprint" data-prldel="'+esc(key)+'" data-u="'+esc(c.u)+'" data-id="'+esc(c.id)+'">🗑️ حذف</button>':'')+'</div><p>'+esc(c.t)+'</p></div>'}).join('')+(prLead()?'<div class="noprint" style="text-align:center;margin-top:8px"><button type="button" class="btn sm" data-prladd="'+esc(key)+'">＋ قم بإضافة تعليقك</button></div>':'')}
-async function prcmLoad(){try{if(!CLOUD.db)return;const q=await CLOUD.db.collection('prcm').get();const D={};q.forEach(d=>D[d.id]=d.data());window.__PRCM=D;chSync();if(UI.tab==='prio'||UI.tab==='surv'||UI.tab==='charter'||UI.tab==='home')render()}catch(e){console.warn(e)}}
+async function prcmLoad(){try{if(!CLOUD.db)return;if(AUTH.role==='admin'||prLead()==='pr'){try{const m=await CLOUD.db.collection('adm').doc('brmeta').get();window.__BRM=m.exists?m.data():null}catch(_){}}const q=await CLOUD.db.collection('prcm').get();const D={};q.forEach(d=>D[d.id]=d.data());window.__PRCM=D;chSync();if(UI.tab==='prio'||UI.tab==='surv'||UI.tab==='charter'||UI.tab==='home')render()}catch(e){console.warn(e)}}
 function prCmHtml(key){return prCmHtml0(key)+prLeadCm(key)}
 function prCmHtml0(key){const L=((S.settings.prComments||{})[key])||[];const ADM=AUTH.role==='admin';if(!L.length&&!ADM)return '';
   return L.map(c=>{const w=PR_WHO[c.w]||['',''];return '<div class="pr-note pr-cm"><div class="nh"><span>💬 توصية '+esc(w[0])+' / '+esc(w[1])+'</span>'+(ADM?'<button type="button" class="btn sm ghost noprint" data-prcmdel="'+esc(key)+'" data-id="'+esc(c.id)+'" title="حذف التوصية">🗑️ حذف</button>':'')+'</div><p>'+esc(c.t)+'</p></div>'}).join('')+(ADM?'<div class="noprint" style="text-align:center;margin-top:8px"><button type="button" class="btn sm" data-prcmadd="'+esc(key)+'">＋ إضافة توصية</button></div>':'')}
