@@ -622,7 +622,12 @@ function paginate(){document.querySelectorAll('.rep>.flow').forEach(fl=>{const a
   const build=()=>{art.querySelectorAll('.pgx').forEach(x=>x.remove());let pg=null;const np=()=>{pg=document.createElement('div');pg.className='pgx';art.appendChild(pg);return pg};np();
     blocks.forEach(b=>{pg.appendChild(b);if(pg.scrollHeight>pg.clientHeight+1&&pg.children.length>1){pg.removeChild(b);np().appendChild(b)}});return art.querySelectorAll('.pgx').length};
   /* التقرير في صفحتين: يُصغَّر التنسيق تدريجيًا حتى يتسع */
-  const L=['fit1','fit2','fit3','fit4'];let n=build();for(let i=0;i<L.length&&n>2;i++){art.classList.add(L[i]);n=build()}})}
+  const L=['fit1','fit2','fit3','fit4'];let n=build();for(let i=0;i<L.length&&n>2;i++){art.classList.add(L[i]);n=build()}
+  /* إلزام بصفحتين: تصغير متناسب للمحتوى كله (الجدول والأشرطة كما هي) حتى يتسع */
+  let z=1;while(n>2&&z>.62){z=Math.round((z-.03)*100)/100;blocks.forEach(b=>{b.style.zoom=z});n=build()}
+  if(n>2){const P=[...art.querySelectorAll('.pgx')],p2=P[1];P.slice(2).forEach(p=>{[...p.children].forEach(c=>p2.appendChild(c));p.remove()});
+    const pad=parseFloat(getComputedStyle(p2).paddingTop)+parseFloat(getComputedStyle(p2).paddingBottom),r=(p2.clientHeight-pad)/(p2.scrollHeight-pad)*.98;
+    [...p2.children].forEach(c=>{c.style.zoom=(parseFloat(c.style.zoom)||1)*r})}})}
 function paginateSoon(){const go=()=>requestAnimationFrame(()=>{try{paginate()}catch(e){console.warn(e)}});(document.fonts&&document.fonts.ready)?document.fonts.ready.then(go):go()}
 function render(){try{$('#nav').innerHTML=TABS.map(([id,l])=>'<button type="button" data-tab="'+id+'"'+(UI.tab===id?' aria-current="page"':'')+'>'+l+'</button>').join('')+'<a class="backlink" href="./">العودة إلى سبع سنابل ←</a>';
   $('#view').innerHTML={status:vStatus,reports:vReports,files:vFiles}[UI.tab]();if(UI.tab==='reports')paginateSoon();
