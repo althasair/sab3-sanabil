@@ -2658,8 +2658,9 @@ function smartName(name,list){const w=tokT(name).map(skAl);if(!w.length)return n
 function behMatch(name,list){const k=norm(name);if(!k)return null;let m=list.find(n=>norm(n)===k);if(m)return m;const w=k.split(' ');
   if(w.length>=2){m=list.filter(n=>{const x=norm(n).split(' ');return x[0]===w[0]&&x[1]===w[1]&&(w.length<3||x[x.length-1]===w[w.length-1])});if(m.length===1)return m[0]}
   m=list.filter(n=>norm(n).startsWith(k)||k.startsWith(norm(n)));return m.length===1?m[0]:smartName(name,list)}
-function behTemplate(){const g=behGroups().find(x=>x.id===BEH.sel);if(!g)return;const F=behFields(g.subj,g.sec).filter(f=>f[1]==='num');const st=behStudents(g.sec);
-  const rows=[['م','اسم الطالبة'].concat(F.map(f=>f[0]))].concat(st.map((n,i)=>[i+1,n]));const ws=XLSX.utils.aoa_to_sheet(rows);ws['!cols']=[{wch:5},{wch:36}].concat(F.map(()=>({wch:16})));
+/* ملف الشعبة: كل بنود الرصد (الدرجات والاختيارات) معبّأة بما رُصد في الموقع، فيُحفظ نسخة ويُعاد رفعه دون فقد شيء */
+function behTemplate(){const g=behGroups().find(x=>x.id===BEH.sel);if(!g)return;const F=behFields(g.subj,g.sec);const st=behStudents(g.sec);const m=behGet(g);
+  const rows=[['م','اسم الطالبة'].concat(F.map(f=>f[0]))].concat(st.map((n,i)=>{const v=m[norm(n)]||{};return [i+1,n].concat(F.map(f=>{const x=v[f[0]];return x==null?'':x}))}));const ws=XLSX.utils.aoa_to_sheet(rows);ws['!cols']=[{wch:5},{wch:36}].concat(F.map(f=>({wch:f[1]==='num'?14:24})));
   const wb=XLSX.utils.book_new();wb.Workbook={Views:[{RTL:true}]};XLSX.utils.book_append_sheet(wb,ws,'الدرجات');XLSX.writeFile(wb,'درجات '+g.subj+' '+g.sec+'.xlsx')}
 async function behImport(file){const g=behGroups().find(x=>x.id===BEH.sel);if(!g)return;const F=behFields(g.subj,g.sec);const st=behStudents(g.sec);
   try{const buf=await file.arrayBuffer();const wb=XLSX.read(new Uint8Array(buf),{type:'array'});let done=0,cols=new Set(),bad=0,miss=[],skipped=0;
