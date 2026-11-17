@@ -409,7 +409,7 @@ pre.spec{white-space:pre-wrap;background:color-mix(in srgb,var(--cream) 35%,var(
 .qr{display:flex;align-items:center;gap:4mm;justify-content:center;margin:3mm 0 2mm;break-inside:avoid}
 .qr img{width:22mm;height:22mm}
 .qr span{font-size:9.5pt;font-weight:700;color:#1F3A5F;max-width:115mm;line-height:1.7}
-.sigs{display:grid;grid-template-columns:repeat(3,1fr);text-align:center;margin-top:4mm;break-inside:avoid;font-size:10pt}
+.sigs{display:grid;grid-template-columns:auto auto;justify-content:space-between;padding:0 14mm;text-align:center;margin-top:4mm;break-inside:avoid;font-size:10pt}
 .sigs div{display:flex;flex-direction:column;gap:3.5mm;align-items:center}.sigs b{color:#6E0F25}.sigs .sn2{position:relative;display:inline-block}.sigs .sgi{position:absolute;left:50%;top:50%;transform:translate(-50%,-52%);height:15mm;max-width:42mm;object-fit:contain;opacity:.62;pointer-events:none}
 .brp{border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:10px}.brp h3{margin:0;font-size:16px;color:var(--maroon)}.brp p{margin:0;font-size:14px;line-height:1.8}
 .brsteps{display:flex;gap:8px;flex-wrap:wrap}.brsteps span{border-radius:999px;padding:4px 12px;font-size:13px;font-weight:800;background:#F1ECE4;color:#8A7A80;border:1px solid #E4DACB}.brsteps span.on{background:#EAF6EE;color:#1F6B3A;border-color:#9FD3B0}.brsteps span.cur{background:#FFF6DC;color:#7A5A0B;border-color:#E3C77A}
@@ -448,7 +448,8 @@ const QR='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAWgAAAFoCAAAAABfjj4JAAAO
 const RK='sab3_taqreer_v1', AK='sab3_tahleel_v1', SAN='sab3_sanabil_v1';
 const REPORTS=[{n:'التقرير الأول',exam:'اختبارات نهاية الفصل الدراسي الأول',mid:0},{n:'التقرير الثاني',exam:'اختبارات منتصف الفصل الدراسي الثاني',mid:1},{n:'التقرير الثالث',exam:'اختبارات نهاية الفصل الدراسي الثاني',mid:2}];
 const SUBJ_ORDER=['التربية الإسلامية','اللغة العربية','اللغة الإنجليزية','الرياضيات','الرياضيات العامة','العلوم','العلوم العامة','الفيزياء','الكيمياء','الأحياء','الدراسات الاجتماعية','التاريخ','الجغرافيا','الحوسبة وتكنولوجيا المعلومات','علوم الحاسب','إدارة الأعمال','الفنون','المهارات الحياتية والمهنية','التربية البدنية'];
-const SIG=[['النائبة الأكاديمية','آسيا الذبياني'],['النائبة الإدارية','وداد الكربي'],['مديرة المدرسة','شيخة الرميحي']];
+/* التوقيعات: على اليمين النائبة الأكاديمية، وعلى اليسار مديرة المدرسة */
+const SIG=[['النائبة الأكاديمية','آسيا الذبياني'],['مديرة المدرسة','شيخة الرميحي']];
 const PH={
  'ملتزمة':['التزامكِ وحرصكِ يصنعان الفرق، فاستمري على هذا التميز الذي نفخر به.','أنتِ نموذج مشرّف للطالبة المجتهدة، وننتظر منكِ مزيداً من الإنجاز.','ما تبذلينه من جهد يظهر بوضوح في أدائكِ، بارك الله في همّتكِ.','انضباطكِ داخل الصف وحسن استعدادكِ مفتاحان لنجاح مستمر بإذن الله.','نعتز بكِ قدوةً لزميلاتكِ في الالتزام وحب التعلم.','حضوركِ المتميز في الحصة يعكس وعياً ومسؤولية نقدّرهما عالياً.','تفوقكِ ثمرة اجتهادكِ، فواصلي المسير نحو القمة بثقة.','نشكر لكِ التزامكِ الدائم، ونثق أنكِ ستبقين في مصاف المتميزات.','جهودكِ المتواصلة جديرة بالثناء، ونتطلع إلى نجاحات أكبر تليق بكِ.','أنتِ متعلمة ريادية بحق، وطموحكِ يرسم لكِ مستقبلاً مشرقاً.'],
  'ملتزمة إلى حد ما':['لديكِ قدرات واضحة، وبمزيد من الانتظام ستصلين إلى ما تستحقين.','خطوة إضافية من الالتزام تكفي لتنقلكِ إلى مصاف المتميزات.','نثق بإمكاناتكِ، ونتطلع إلى أن نراها في كل حصة وكل واجب.','أداؤكِ طيب، والمراجعة المنتظمة ستجعله أفضل بإذن الله.','ما لاحظناه من تحسّن يبشّر بالخير، فاستمري ولا تتوقفي.','التزامكِ بإحضار أدواتكِ وإنجاز واجباتكِ سيصنع فرقاً كبيراً في نتائجكِ.','أنتِ قريبة من هدفكِ، وبالتركيز والمثابرة سيكون في متناولكِ.','نؤمن بأنكِ قادرة على المزيد، وننتظر أن نرى أفضل ما لديكِ.','تنظيم وقتكِ والمشاركة الفاعلة في الحصة سيرفعان مستواكِ بوضوح.','البداية الجيدة تحتاج استمراراً، ونحن واثقون من قدرتكِ على ذلك.'],
@@ -630,7 +631,7 @@ const brK=()=>'r'+R.rep;const DB=()=>firebase.firestore();
 const dAr=x=>String(x||'').slice(0,10);
 function brInfo(k){k=k||brK();const x=BR.meta&&BR.meta.reps&&BR.meta.reps[k];if(!x)return{k,st:'none'};const d=(BR.dec||{})[k]||{};const fresh=!!d.at&&String(d.at)>=String(x.vpAt||'');
   return Object.assign({k},x,{st:fresh?(d.ok?'ok':d.ret?'ret':'pend'):'pend',prAt:fresh?d.at:'',note:fresh?(d.note||''):''})}
-function sigsHTML(){const i=brInfo();const im=[(i.st==='pend'||i.st==='ok')?BR.vpSig:'','',i.st==='ok'?BR.prSig:''];
+function sigsHTML(){const i=brInfo();const im=[(i.st==='pend'||i.st==='ok')?BR.vpSig:'',i.st==='ok'?BR.prSig:''];
   return '<div class="sigs">'+SIG.map(([t,n],j)=>'<div><b>'+t+'</b><span class="sn2">'+(im[j]?'<img class="sgi" src="'+im[j]+'" alt="">':'')+n+'</span></div>').join('')+'</div>'}
 async function brLoad(){try{const db=DB();
   const [m,a,b]=await Promise.all(['adm/brmeta','csig/vp','csig/pr'].map(x=>{const [c,d]=x.split('/');return db.collection(c).doc(d).get().catch(()=>null)}));
@@ -642,7 +643,8 @@ async function brLoad(){try{const db=DB();
   const i=brInfo();if(i.st!=='none')await brData(i)}catch(e){console.warn(e);toast('تعذّر تحميل حالة الاعتماد: '+(e&&e.message||e))}BR.ready=true;render()}
 async function brData(i){if(BR.data&&BR.dataK===i.k+i.vpAt)return;const db=DB();const ps=await Promise.all([...Array(i.parts||0).keys()].map(j=>db.collection('adm').doc('br_'+i.k+'_'+j).get()));
   BR.data=JSON.parse(ps.map(p=>p.exists?p.data().t:'').join('')||'null');BR.dataK=i.k+i.vpAt}
-function brPanel(i){if(!BR.who)return '';if(!BR.ready)return '<div class="box noprint"><div class="stl">جارٍ تحميل حالة الاعتماد…</div></div>';
+function brPanel(i){if(BR.noAuth)return '<section class="brp noprint" style="background:#FBEDEF;border:1.5px solid #E8A9B3"><h3>📜 اعتماد التقارير</h3><p>لم يتم تسجيل الدخول. افتحي سبع سنابل وسجّلي الدخول، ثم ارجعي لهذه الصفحة واضغطي Ctrl + F5.</p></section>';
+  if(!BR.who||!BR.ready)return '<section class="brp noprint" style="background:#FBF6EC;border:1.5px solid #EADBB8"><h3>📜 اعتماد التقارير</h3><p>جارٍ تحميل حالة الاعتماد…</p></section>';
   const step=(t,on,cur)=>'<span class="'+(on?'on':cur?'cur':'')+'">'+(on?'✓ ':'')+t+'</span>';
   const steps='<div class="brsteps">'+step('١. اعتماد النائب الأكاديمي',i.st==='pend'||i.st==='ok',i.st==='none'||i.st==='ret')+step('٢. اعتماد مديرة المدرسة',i.st==='ok',i.st==='pend')+step('٣. جاهز للطباعة',i.st==='ok',false)+'</div>';
   const box=(bg,bd,h)=>'<section class="brp noprint" style="background:'+bg+';border:1.5px solid '+bd+'"><h3>📜 اعتماد '+esc(REPORTS[R.rep].n)+'</h3>'+steps+h+'</section>';
@@ -696,7 +698,7 @@ function paginate(){document.querySelectorAll('.rep>.flow').forEach(fl=>{const a
 function paginateSoon(){const go=()=>requestAnimationFrame(()=>{try{paginate()}catch(e){console.warn(e)}});(document.fonts&&document.fonts.ready)?document.fonts.ready.then(go):go()}
 function render(){try{if(BR.who==='pr'){$('#nav').innerHTML='<button type="button" aria-current="page">اعتماد التقارير</button><a class="backlink" href="./">العودة إلى سبع سنابل ←</a>';$('#view').innerHTML=vPr();paginateSoon();$('#marq').textContent='التقرير الأكاديمي السلوكي · اعتماد مديرة المدرسة · «إِنَّا لَا نُضِيعُ أَجْرَ مَنْ أَحْسَنَ عَمَلًا»';return}
   $('#nav').innerHTML=TABS.map(([id,l])=>'<button type="button" data-tab="'+id+'"'+(UI.tab===id?' aria-current="page"':'')+'>'+l+'</button>').join('')+'<a class="backlink" href="./">العودة إلى سبع سنابل ←</a>';
-  $('#view').innerHTML={status:vStatus,reports:vReports,files:vFiles}[UI.tab]();if(UI.tab==='reports')paginateSoon();
+  $('#view').innerHTML=(UI.tab==='status'?brPanel(brInfo()):'')+{status:vStatus,reports:vReports,files:vFiles}[UI.tab]();if(UI.tab==='reports')paginateSoon();
   const T=teacherStatus();$('#marq').textContent='التقرير الأكاديمي السلوكي · '+REPORTS[R.rep].n+' · '+T.filter(t=>t.st==='done').length+' معلمة أنهت الرصد من '+T.length+' · «إِنَّا لَا نُضِيعُ أَجْرَ مَنْ أَحْسَنَ عَمَلًا»'}catch(e){console.error(e);$('#view').innerHTML='<div class="box"><div class="empty">حدث خطأ: '+esc(e.message)+'</div></div>'}}
 function toast(m){const t=document.createElement('div');t.className='toast';t.textContent=m;$('#toastRoot').appendChild(t);setTimeout(()=>t.remove(),4500)}
 function openMsg(t){const k=t.st==='done'?'thanks':'remind';const m=mailParts(t,k);const q=s=>encodeURIComponent(s);
@@ -738,10 +740,10 @@ async function cloudPull(u){try{const fb=firebase.firestore();const q=await fb.c
   Object.entries(byT).forEach(([k,f])=>{const old=R.files[k];if(old&&!old.cloud){const keep=old.sheets.filter(s=>!f.sheets.some(c=>c.sec===s.sec&&c.subj===s.subj));f.sheets=keep.concat(f.sheets);f.file='من المنصة + '+old.file}R.files[k]=f});
   save();render();if(docs.length)toast('تم جلب رصد '+Object.keys(byT).length+' معلمة من المنصة')}catch(e){console.warn(e);toast('تعذّر جلب الرصد من المنصة: '+(e&&e.message||e))}}
 try{if(window.firebase){firebase.initializeApp({apiKey:"AIzaSyBUA_OYl9NCZsiR92Uvez1545xV-KHId20",authDomain:"sab3-sanabil.firebaseapp.com",projectId:"sab3-sanabil",storageBucket:"sab3-sanabil.firebasestorage.app",messagingSenderId:"336261274314",appId:"1:336261274314:web:7d23de783b3178d3453233"});
-  firebase.auth().onAuthStateChanged(async u=>{if(!u)return;let cl={};try{cl=(await u.getIdTokenResult()).claims||{}}catch(_){}const isVP=String(u.email||'').toLowerCase()==='althasair@gmail.com';
+  firebase.auth().onAuthStateChanged(async u=>{if(!u){BR.noAuth=true;render();return}BR.noAuth=false;let cl={};try{cl=(await u.getIdTokenResult()).claims||{}}catch(_){}const isVP=String(u.email||'').toLowerCase()==='althasair@gmail.com';
     if(!isVP&&norm(cl.nm||'').includes(norm('الرميحي'))){BR.who='pr';BR.uid=u.uid;render();brLoad();return}
-    if(isVP||(cl.role==='admin'&&(!cl.mz||cl.mz==='admin'))){BR.who='vp';BR.uid=u.uid;brLoad()}
-    if(isVP||cl.role==='admin')cloudPull(u)})}}catch(e){console.warn(e)}
+    BR.who='vp';BR.uid=u.uid;brLoad();
+    if(isVP||cl.role==='admin')cloudPull(u)})}else{BR.noAuth=true}}catch(e){console.warn(e)}
 
 </script>
 </body></html>
