@@ -388,6 +388,14 @@ pre.spec{white-space:pre-wrap;background:color-mix(in srgb,var(--cream) 35%,var(
 .rbox .ph.muted{color:#7D6E73;background:none}
 .rbox.sw ul{margin:1.5mm 7mm 0;padding:0;font-size:9.6pt;line-height:1.7}
 .rbox.close .ph{background:#FBF5E8;color:#6E0F25;border:0;text-align:center}
+.endrow{display:grid;grid-template-columns:1.25fr 1fr;gap:3mm;align-items:center;margin-bottom:1mm}.endrow .rbox{margin:0}.endrow .qr{margin:0;justify-content:flex-start;gap:2.5mm;font-size:8.4pt;line-height:1.5}.endrow .qr img{width:17mm;height:17mm}
+.fit4 .pt td{padding:.35mm 1.6mm}.fit4 .pt td small.lvw{display:inline;margin-right:1mm;font-size:7.6pt}.fit4 .pt th{padding:.8mm 1.6mm}.fit4 .cat{font-size:8pt;padding:0 2mm}.fit4 .sbrow{gap:1.6mm;margin-bottom:1.6mm}.fit4 .sbrow .ph{font-size:7.8pt;line-height:1.35;padding:.8mm 2mm}.fit4 .kvs{padding:1mm 1.6mm}.fit4 .kv{font-size:7.6pt}.fit4 .sbrow .rh{padding:.7mm 2mm}.fit4 .sigs b,.fit4 .sigs span{font-size:9pt}.fit4 .sw .ph,.fit4 .sw li{font-size:8.2pt}.fit4 .rbox{margin-bottom:1.6mm}
+.kvs{display:flex;flex-wrap:wrap;gap:1mm 1.2mm;padding:1.4mm 2mm}.kv{background:#FAF5EC;border:1px solid #EADFCB;border-radius:2mm;padding:.2mm 1.6mm;font-size:8.2pt;white-space:nowrap}.kv i{font-style:normal;color:#6E5C62}.kv b{color:#2A1820}
+.sbrow{display:grid;grid-template-columns:1fr 1fr;gap:2.2mm;margin-bottom:2.2mm}.sbrow>.rbox{margin:0}.sbrow .rh{font-size:9pt;padding:1.1mm 2.4mm;flex-wrap:wrap;gap:1mm 3mm}.sbrow .rh .tch{font-size:8pt;font-weight:600}
+.sbrow .rbox table{font-size:8pt}.sbrow .rbox th,.sbrow .rbox td{padding:.8mm .8mm;line-height:1.35}.sbrow .ph{font-size:8.6pt;line-height:1.5;padding:1.1mm 2.4mm}
+.fit1 .intro{font-size:8.8pt;line-height:1.55;margin-bottom:2mm}.fit1 h1{font-size:30px}.fit1 .pt td{padding:.7mm 2mm}.fit1 .pt td b{font-size:9pt}.fit1 .vpsay p{font-size:9pt;line-height:1.6}.fit1 .rbox{margin-bottom:2mm}.fit1 .qr{margin:2mm 0 1mm}
+.fit2 .pb{display:none}.fit2 .pt{font-size:8.6pt}.fit2 .pt td small{display:inline;margin-right:1mm}.fit2 .sbrow .ph{font-size:8pt;line-height:1.4}.fit2 .who{font-size:9pt}.fit2 .qr img{width:16mm;height:16mm}
+.fit3 .ptk{display:none}.fit3 .sbrow .rbox table{font-size:7.4pt}.fit3 .sbrow .rh{font-size:8.4pt}.fit3 .intro{font-size:8.2pt}.fit3 .vpsay{padding:1mm 2mm}.fit3 .pgx{padding-top:34mm}
 .pt{width:100%;border-collapse:collapse;font-size:9.5pt}.pt th{background:#62102A;color:#fff;padding:1.4mm 2mm;font-weight:700}.pt td{padding:1.2mm 2mm;border-bottom:1px solid #EFE6D8;text-align:center;vertical-align:middle}
 .pt td.sn{text-align:right;font-weight:800;color:#2A1820;white-space:nowrap}.pt td b{font-size:10pt;color:#2A1820}.pt td small{display:block;color:#7A6A70;font-size:8pt;line-height:1.2}.pt td.na{color:#A99A9E}
 .pb{height:1.6mm;border-radius:1mm;background:#EEE7DC;margin:.8mm auto 0;max-width:34mm;overflow:hidden}.pb i{display:block;height:100%;border-radius:1mm}
@@ -542,23 +550,25 @@ function subjBox(x,g12){const v=x.v;
   /* المهارات الحياتية للثاني عشر: بنود الالتزام فقط (بلا درجات ولا واجبات)، وما لم تعبّئه المعلمة لا يظهر */
   if(g12&&/مهارات/.test(x.s)){const ks=Object.keys(v).filter(k=>!/\(من [\d.]+\)|^واجب|^التقييم|المستوى الأكاديمي العام|هل تدرس الطالبة/.test(k)&&v[k]!=null&&String(v[k]).trim()!==''&&!/^[\d.]+$/.test(String(v[k]).trim()));
     if(!ks.length)return '';
-    return'<div class="rbox"><div class="rh"><span>موجز عن أداء الطالبة في مادة (<b>'+esc(x.s)+'</b>)</span><span class="tch">معلمة المادة: أ. '+esc(x.teacher)+'</span></div><table><tr>'+ks.map(k=>'<th>'+esc(k)+'</th>').join('')+'</tr><tr>'+ks.map(k=>'<td>'+esc(v[k])+'</td>').join('')+'</tr></table>'+(x.ph?'<div class="ph">'+esc(x.ph)+'</div>':'')+'</div>'}
-  const head='<div class="rh"><span>موجز عن أداء الطالبة في مادة (<b>'+esc(x.s)+'</b>)</span><span class="tch">معلمة المادة: أ. '+esc(x.teacher)+'</span></div>';
-  let acad='';
-  if(x.s==='التربية البدنية'){acad='<table><tr><th>الالتزام بالزي الرياضي</th><th>التفاعل أثناء الحصة</th><th>السلوك في القاعة الرياضية</th>'+(g12?'<th>المستوى العام</th>':'')+'</tr><tr><td>'+esc(v['الالتزام بالزي الرياضي'])+'</td><td>'+esc(v['التفاعل أثناء الحصة'])+'</td><td>'+esc(v['السلوك في القاعة الرياضية'])+'</td>'+(g12?'<td>'+esc(v['المستوى الأكاديمي العام']||'')+'</td>':'')+'</tr></table>'}
-  else{const keys=Object.keys(v).filter(h=>/\(من [\d.]+\)/.test(h));
-    acad='<table class="ac"><tr>'+(!g12&&x.mid!=null?'<th class="mid">منتصف الفصل /30</th>':'')+keys.map(k=>'<th>'+esc(k.replace(/\s*\(من ([\d.]+)\)/,'/$1'))+'</th>').join('')+(g12?'<th class="mid">المستوى العام</th>':'')+'</tr><tr>'+(!g12&&x.mid!=null?'<td class="mid">'+fmt(x.mid*0.3)+'</td>':'')+keys.map(k=>'<td>'+esc(v[k])+'</td>').join('')+(g12?'<td class="mid">'+esc(v['المستوى الأكاديمي العام']||'—')+'</td>':'')+'</tr></table>'+
-      '<table><tr><th>إحضار الأدوات والكتاب المدرسي والدفاتر</th><th>سلوك الطالبة في الصف</th></tr><tr><td>'+esc(v['إحضار الأدوات والكتاب المدرسي والدفاتر'])+'</td><td>'+esc(v['سلوك الطالبة في الصف'])+'</td></tr></table>'}
+    return'<div class="rbox"><div class="rh"><span><b>'+esc(x.s)+'</b></span><span class="tch">أ. '+esc(x.teacher)+'</span></div><table><tr>'+ks.map(k=>'<th>'+esc(k)+'</th>').join('')+'</tr><tr>'+ks.map(k=>'<td>'+esc(v[k])+'</td>').join('')+'</tr></table>'+(x.ph?'<div class="ph">'+esc(x.ph)+'</div>':'')+'</div>'}
+  const head='<div class="rh"><span><b>'+esc(x.s)+'</b></span><span class="tch">أ. '+esc(x.teacher)+'</span></div>';
+  /* موجز مضغوط: كل بند في شارة صغيرة (القيمة/الدرجة الكاملة)، والواجبات مجموعة في شارة واحدة */
+  const ch=(k,val)=>'<span class="kv"><i>'+esc(k)+'</i> <b>'+esc(val)+'</b></span>';const parts=[];
+  const nums=Object.keys(v).filter(h=>/\(من [\d.]+\)/.test(h)),mx=h=>parseFloat((h.match(/\(من ([\d.]+)\)/)||[])[1]),has=h=>v[h]!==''&&v[h]!=null;
+  nums.filter(h=>/^التقييم/.test(h)&&has(h)).forEach(h=>parts.push(ch(h.replace(/\s*\(من [\d.]+\)/,'').replace('التقييم الأول','التقييم 1').replace('التقييم الثاني','التقييم 2').replace('التقييم الإلكتروني','التقييم الإلكتروني'),fmt(+v[h])+'/'+mx(h))));
+  const hw=nums.filter(h=>/^واجب/.test(h)&&has(h));if(hw.length)parts.push(ch('الواجبات',fmt(hw.reduce((a,h)=>a+(+v[h]||0),0))+'/'+fmt(hw.reduce((a,h)=>a+mx(h),0))));
+  nums.filter(h=>/^المشاركة/.test(h)&&has(h)).forEach(h=>parts.push(ch('المشاركة',fmt(+v[h])+'/'+mx(h))));
+  [['الالتزام بالزي الرياضي','الزي الرياضي'],['التفاعل أثناء الحصة','التفاعل'],['السلوك في القاعة الرياضية','السلوك'],['إحضار الأدوات والكتاب المدرسي والدفاتر','الأدوات والكتاب'],['سلوك الطالبة في الصف','السلوك'],['المستوى الأكاديمي العام','المستوى العام']].forEach(([k,l])=>{if(has(k))parts.push(ch(l,v[k]))});
+  const acad='<div class="kvs">'+parts.join('')+'</div>';
   return'<div class="rbox">'+head+acad+(x.ph||x.mis?'<div class="ph">'+esc(x.ph)+(x.mis?' '+esc(x.mis):'')+'</div>':'')+'</div>'}
 function reportHTML(r){const rep=REPORTS[R.rep];const g12=r.g12;
   return'<article class="rep'+(g12?' g12':'')+'"><div class="flow">'+
   (g12?CAP:'')+'<h1>التقرير الأكاديمي السلوكي — '+rep.n+' 2026-2027</h1>'+
   '<div class="who"><span>السيد ولي أمر الطالبة/ <b>'+esc(r.st.n)+'</b></span><span>بالرقم الشخصي/ <b>'+esc(r.st.pid)+'</b></span><span>والمقيدة في الصف/ <b>'+esc(r.sec)+'</b></span></div>'+
   '<p class="intro">من منطلق التواصل الفعّال مع أولياء الأمور، وتيسيراً للإجراءات اللازمة لاطلاعهم على تحصيل بناتهم ومستوى التقدم الذي يحرزنه، وتعزيزاً للسلوك الإيجابي، نوفر لكم في هذا التقرير موجزاً لأداء الطالبة قبل '+rep.exam+'.'+(g12?' ونتمنى لابنتنا في عام تخرّجها كل التوفيق والنجاح.':'')+'</p>'+
-  chart(r.items,g12)+r.items.map(x=>subjBox(x,g12)).join('')+
+  chart(r.items,g12)+(()=>{const bx=r.items.map(x=>subjBox(x,g12)).filter(Boolean);let o='';for(let i=0;i<bx.length;i+=2)o+='<div class="sbrow">'+bx[i]+(bx[i+1]||'')+'</div>';return o})()+
   '<div class="rbox sw"><div class="rh">ملاحظات الأخصائية الاجتماعية — رصد المخالفات السلوكية</div>'+(r.sw==null?'<div class="ph muted">لم يُستلم رصد الأخصائيات لهذه الشعبة بعد.</div>':r.sw.length?'<ul>'+r.sw.map(n=>'<li>'+esc(n)+'</li>').join('')+'</ul><div class="ph">'+SW_BAD+'</div>':'<div class="ph">لا توجد أي ملاحظات سلوكية على الطالبة. '+SW_OK+'</div>')+'</div>'+
-  '<div class="rbox close"><div class="ph">'+esc(r.closing)+'</div></div>'+
-  '<div class="qr"><img src="'+QR+'" alt=""><span>الفاضل ولي الأمر، في حال اطلاعك على التقرير يرجى إبلاغنا بملاحظاتك ومقترحاتك من خلال مسح الباركود.</span></div>'+
+  '<div class="endrow"><div class="rbox close"><div class="ph">'+esc(r.closing)+'</div></div><div class="qr"><img src="'+QR+'" alt=""><span>الفاضل ولي الأمر، في حال اطلاعك على التقرير يرجى إبلاغنا بملاحظاتك ومقترحاتك من خلال مسح الباركود.</span></div></div>'+
   '<div class="sigs">'+SIG.map(([t,n])=>'<div><b>'+t+'</b><span>'+n+'</span></div>').join('')+'</div>'+
   '</div></article>'}
 
@@ -609,8 +619,10 @@ const TABS=[['status','حالة الرصد'],['reports','تقارير أوليا
 
 /* تقسيم كل تقرير إلى صفحات A4: لا يدخل أي محتوى في منطقة الترويسة أو التذييل، والتوقيعات في آخر صفحة فقط */
 function paginate(){document.querySelectorAll('.rep>.flow').forEach(fl=>{const art=fl.parentNode;const blocks=[...fl.children];fl.remove();
-  let pg=null;const np=()=>{pg=document.createElement('div');pg.className='pgx';art.appendChild(pg);return pg};np();
-  blocks.forEach(b=>{pg.appendChild(b);if(pg.scrollHeight>pg.clientHeight+1&&pg.children.length>1){pg.removeChild(b);np().appendChild(b)}})})}
+  const build=()=>{art.querySelectorAll('.pgx').forEach(x=>x.remove());let pg=null;const np=()=>{pg=document.createElement('div');pg.className='pgx';art.appendChild(pg);return pg};np();
+    blocks.forEach(b=>{pg.appendChild(b);if(pg.scrollHeight>pg.clientHeight+1&&pg.children.length>1){pg.removeChild(b);np().appendChild(b)}});return art.querySelectorAll('.pgx').length};
+  /* التقرير في صفحتين: يُصغَّر التنسيق تدريجيًا حتى يتسع */
+  const L=['fit1','fit2','fit3','fit4'];let n=build();for(let i=0;i<L.length&&n>2;i++){art.classList.add(L[i]);n=build()}})}
 function paginateSoon(){const go=()=>requestAnimationFrame(()=>{try{paginate()}catch(e){console.warn(e)}});(document.fonts&&document.fonts.ready)?document.fonts.ready.then(go):go()}
 function render(){try{$('#nav').innerHTML=TABS.map(([id,l])=>'<button type="button" data-tab="'+id+'"'+(UI.tab===id?' aria-current="page"':'')+'>'+l+'</button>').join('')+'<a class="backlink" href="./">العودة إلى سبع سنابل ←</a>';
   $('#view').innerHTML={status:vStatus,reports:vReports,files:vFiles}[UI.tab]();if(UI.tab==='reports')paginateSoon();
