@@ -538,7 +538,7 @@ function studentReport(st,sec,EO){const E=EO||entries()[st.pid]||{subs:{}};const
   const h=hash(st.pid);const filled=v=>Object.entries(v||{}).some(([k,x])=>k!=='هل تدرس الطالبة المادة لديكِ؟'&&x!=null&&String(x).trim()!=='');
   /* المادة التي لم تُعبّأ خاناتها تُستبعد من التقرير كاملة */
   const subs=Object.keys(E.subs).filter(s=>filled(E.subs[s].v)).sort(subjSort);
-  const items=subs.map((s,i)=>{const e=E.subs[s];const c=commit(s,e.v);const ap=assessPct(e.v);const mid=cur?midOf(cur.g,s):null;
+  const items=subs.map((s,i)=>{const e=E.subs[s];const c=commit(s,e.v);const ap=assessPct(e.v);const mid=cur&&typeof cur.g[s]==='number'?cur.g[s]:null;
     let ph=c?PH[c][(h+i*3)%10]:'';let mis='';if(!g12&&mid!=null&&ap!=null){if(mid-ap>=20)mis=MIS_HI;else if(ap-mid>=20)mis=MIS_LO}
     const skg=g12&&/مهارات/.test(s);return{s,teacher:e.teacher,v:e.v,c,ap:skg?null:ap,mid:skg?null:mid,ph,mis:skg?'':mis}});
   const sw=R.sw&&R.sw.secs[sec]?(R.sw.secs[sec].notes[st.pid]||[]):null;
@@ -647,7 +647,7 @@ function brDiff(){if(!BR.data)return null;const E=entries();const G={};
     let up=0,dn=0;g.rows.forEach((x,j)=>{if(!x.nv)return;if(j>0&&same(g.rows[j-1].ov,x.nv)&&!same(x.ov,x.nv))up++;if(j<g.rows.length-1&&same(g.rows[j+1].ov,x.nv)&&!same(x.ov,x.nv))dn++});
     return Object.assign(g,{ch,shift:Math.max(up,dn)>=2?(up>=dn?'up':'down'):'',at:sheetAt[g.sec+'|'+g.s]||''})}).filter(g=>g.ch.length||g.shift)}
 function brDiffBox(){if(BR.who!=='vp')return '';const i=brInfo();if(!BR.data||!['pend','part','ok'].includes(i.st))return '';
-  let h='<section class="brp noprint" style="background:#fff;border:1.5px solid #EADBB8"><h3>🔍 مراجعة الرصد بعد الاعتماد</h3><p class="stl">تقارن الرصد الحالي للمعلمات بالنسخة التي اعتمدتِها في '+dAr(i.vpAt)+'، وتكشف أي تعديل بعد الاعتماد، وأي إزاحة للدرجات بين طالبة والتي قبلها.</p><div class="chips">'+((i.fixed||[]).length?'<button class="btn pri" data-prfixed="1">🖨️ طباعة التقارير المعدلة ('+i.fixed.length+')</button>':'')+'<button class="btn" data-braddmid="1">➕ إضافة درجات منتصف الفصل الأول الناقصة</button><button class="btn pri" data-braudit="1">🔎 مقارنة التقرير المعتمد بالمرصود عند المعلمات</button><button class="btn" data-brdiff="1">🔍 مقارنة الآن</button></div>'+brAuditHTML();
+  let h='<section class="brp noprint" style="background:#fff;border:1.5px solid #EADBB8"><h3>🔍 مراجعة الرصد بعد الاعتماد</h3><p class="stl">تقارن الرصد الحالي للمعلمات بالنسخة التي اعتمدتِها في '+dAr(i.vpAt)+'، وتكشف أي تعديل بعد الاعتماد، وأي إزاحة للدرجات بين طالبة والتي قبلها.</p><div class="chips">'+((i.fixed||[]).length?'<button class="btn pri" data-prfixed="1">🖨️ طباعة التقارير المعدلة ('+i.fixed.length+')</button>':'')+(brNeedRevert()?'<button class="btn pri" data-brrevert="1">↩️ إرجاع منتصف الفصل الأول كما كان</button>':'')+'<button class="btn pri" data-braudit="1">🔎 مقارنة التقرير المعتمد بالمرصود عند المعلمات</button><button class="btn" data-brdiff="1">🔍 مقارنة الآن</button></div>'+brAuditHTML();
   if(UI.diff){const D=brDiff()||[];
     if(!D.length)h+='<p>✅ لا يوجد أي اختلاف: الرصد الحالي مطابق تمامًا للنسخة المعتمدة.</p>';
     else{const sh=D.filter(g=>g.shift);h+='<p><b>'+D.length+'</b> مادة/شعبة فيها اختلاف'+(sh.length?' · <b style="color:#B23A48">'+sh.length+'</b> يُشتبه فيها بإزاحة الدرجات':'')+'.</p>';
@@ -679,7 +679,7 @@ async function brFix(){const A0=BR.audit;if(!A0||!BR.data)return;const T=new Map
   BR.busy=true;render();try{T.forEach(E=>{const reps=BR.data.secs[E.sec];const j=reps.indexOf(E.r);const nr=studentReport(E.r.st,E.sec,{subs:E.subs});nr.items.forEach(it=>{if(E.fx.has(it.s))it.fx=1});reps[j]=nr});
     const k=brK(),db=DB(),txt=JSON.stringify(BR.data),CH=300000,parts=Math.max(1,Math.ceil(txt.length/CH));
     for(let j=0;j<parts;j++)await db.collection('adm').doc('br_'+k+'_'+j).set({t:txt.slice(j*CH,(j+1)*CH)});
-    const x=BR.meta.reps[k];const fixed=[...new Set([...(x.fixed||[]),...T.keys()])];const up={parts,fixed,fixedAt:new Date().toISOString()};
+    const x=BR.meta.reps[k];const corr=[...new Set([...(x.corr||[]),...T.keys()])];const up={parts,fixed:corr,corr,fixedAt:new Date().toISOString()};
     await db.collection('adm').doc('brmeta').set({reps:{[k]:up}},{merge:true});Object.assign(x,up);BR.audit=null;BR.busy=false;
     /* تحقق تلقائي بعد التصحيح: إعادة المطابقة كاملة من قاعدة البيانات */
     await brAudit();const left=(BR.audit&&BR.audit.out||[]).reduce((a,g)=>a+g.bad.filter(b=>b.pid).length,0);
@@ -688,15 +688,27 @@ async function brFix(){const A0=BR.audit;if(!A0||!BR.data)return;const T=new Map
 async function brAddMid(){if(!BR.data)return;const a=A();const per=REPORTS[R.rep].mid;if(!((a.cur||{})[per])){toast('كشف درجات «منتصف الفصل الأول» غير مرفوع في لوحة تحليل النتائج على هذا الجهاز',8000);return}
   const add=[];const D=JSON.parse(JSON.stringify(BR.data));Object.entries(D.secs).forEach(([sec,reps])=>{if(sec.startsWith('12'))return;reps.forEach((r,j)=>{const before={};r.items.forEach(it=>before[it.s]=it.mid);
     const subs=Object.fromEntries(r.items.map(it=>[it.s,{teacher:it.teacher,v:it.v}]));const nr=studentReport(r.st,sec,{subs});let n=0;
-    nr.items.forEach(it=>{const o=r.items.find(x=>x.s===it.s);if(o&&o.fx)it.fx=1;if(before[it.s]==null&&it.mid!=null){it.fx=1;n++}});
+    nr.items.forEach(it=>{const o=r.items.find(x=>x.s===it.s);if(o&&o.fx)it.fx=1;if(before[it.s]==null&&it.mid!=null)n++});
     if(n){reps[j]=nr;add.push(sec+'|'+r.st.pid)}})});
   if(!add.length){toast('لا توجد درجات منتصف فصل ناقصة يمكن إضافتها من الكشف المرفوع',7000);return}
-  if(!confirm('ستُضاف درجات منتصف الفصل الأول الناقصة إلى تقارير '+add.length+' طالبة من كشف الدرجات، وتُلوَّن بالبنفسجي. متابعة؟'))return;
+  if(!confirm('ستُضاف درجات منتصف الفصل الأول الناقصة إلى تقارير '+add.length+' طالبة من كشف الدرجات، ولا تُحتسب ضمن التقارير المعدلة. متابعة؟'))return;
   BR.busy=true;render();try{const k=brK(),db=DB(),txt=JSON.stringify(D),CH=300000,parts=Math.max(1,Math.ceil(txt.length/CH));
     for(let j=0;j<parts;j++)await db.collection('adm').doc('br_'+k+'_'+j).set({t:txt.slice(j*CH,(j+1)*CH)});
-    const x=BR.meta.reps[k];const fixed=[...new Set([...(x.fixed||[]),...add])];const up={parts,fixed,fixedAt:new Date().toISOString()};
-    await db.collection('adm').doc('brmeta').set({reps:{[k]:up}},{merge:true});Object.assign(x,up);BR.data=D;toast('✅ أُضيفت درجات منتصف الفصل الأول إلى تقارير '+add.length+' طالبة. اضغطي «طباعة التقارير المعدلة».',9000)}catch(e){console.warn(e);toast('تعذّر الحفظ: '+(e&&e.message||e))}BR.busy=false;render()}
+    const x=BR.meta.reps[k];const up={parts,midAdded:[...new Set([...(x.midAdded||[]),...add])],midAt:new Date().toISOString()};
+    await db.collection('adm').doc('brmeta').set({reps:{[k]:up}},{merge:true});Object.assign(x,up);BR.data=D;toast('✅ أُضيفت درجات منتصف الفصل الأول إلى تقارير '+add.length+' طالبة',9000)}catch(e){console.warn(e);toast('تعذّر الحفظ: '+(e&&e.message||e))}BR.busy=false;render()}
 document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-braddmid]');if(!t||t.disabled||BR.busy||BR.who!=='vp')return;brAddMid()});
+/* إلغاء إضافة درجات منتصف الفصل: إعادة بناء كل تقرير من رصده في النسخة المعتمدة بمنتصف الفصل الأصلي كما اعتُمد، مع الإبقاء على التصحيحات فقط */
+function brNeedRevert(){const x=BR.meta&&BR.meta.reps&&BR.meta.reps[brK()];return !!(x&&((x.midAdded&&x.midAdded.length)||(x.fixed&&x.fixed.length&&!x.corr)))}
+async function brRevertMid(){const k=brK();const x=BR.meta.reps[k];if(!BR.data||!x)return;
+  if(!confirm('سترجع درجات منتصف الفصل الأول في كل التقارير كما كانت عند الاعتماد، وتُلغى إضافتها، ويبقى فقط تصحيح الطالبات اللي كان فيهن خطأ. متابعة؟'))return;
+  const keep=new Set(x.corr||[]);const D=JSON.parse(JSON.stringify(BR.data));
+  Object.entries(D.secs).forEach(([sec,reps])=>reps.forEach((r,j)=>{const key=sec+'|'+r.st.pid;const fxS=new Set(keep.has(key)?r.items.filter(it=>it.fx).map(it=>it.s):[]);
+    const nr=studentReport(r.st,sec,{subs:Object.fromEntries(r.items.map(it=>[it.s,{teacher:it.teacher,v:it.v}]))});nr.items.forEach(it=>{if(fxS.has(it.s))it.fx=1});reps[j]=nr}));
+  BR.busy=true;render();try{const db=DB(),txt=JSON.stringify(D),CH=300000,parts=Math.max(1,Math.ceil(txt.length/CH));
+    for(let j=0;j<parts;j++)await db.collection('adm').doc('br_'+k+'_'+j).set({t:txt.slice(j*CH,(j+1)*CH)});
+    const up={parts,fixed:[...keep],corr:[...keep],midAdded:[]};await db.collection('adm').doc('brmeta').set({reps:{[k]:up}},{merge:true});Object.assign(x,up);BR.data=D;
+    toast('✅ رجعت درجات منتصف الفصل الأول كما كانت. اضغطي الآن «مقارنة التقرير المعتمد بالمرصود عند المعلمات» لمعرفة عدد التقارير التي فيها خطأ.',10000)}catch(e){console.warn(e);toast('تعذّر الحفظ: '+(e&&e.message||e))}BR.busy=false;render()}
+document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-brrevert]');if(!t||t.disabled||BR.busy||BR.who!=='vp')return;brRevertMid()});
 async function brPrintFixed(){const i=brInfo();const L=(i.fixed||[]).filter(key=>i.okSecs.includes(key.split('|')[0]));
   if(!L.length){toast((i.fixed||[]).length?'شعب التقارير المعدلة لم تعتمدها مديرة المدرسة بعد':'لا توجد تقارير معدلة');return}
   toast('جارٍ تجهيز '+L.length+' تقريرًا معدلًا للطباعة…',6000);UI.printPids=L;UI.printList=null;UI.stu='';UI.tab='reports';render();await (window.__pg||Promise.resolve());await new Promise(r=>setTimeout(r,300));
@@ -704,7 +716,7 @@ async function brPrintFixed(){const i=brInfo();const L=(i.fixed||[]).filter(key=
 document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-brfix],[data-prfixed]');if(!t||t.disabled||BR.busy)return;if(t.dataset.brfix&&BR.who==='vp')brFix();else if(t.dataset.prfixed)brPrintFixed()});
 function brAuditHTML(){if(BR.auditErr)return '<p style="color:#B23A48"><b>⚠️ '+esc(BR.auditErr)+'</b></p>';const A0=BR.audit;if(!A0)return '';if(!A0.out.length)return '<p>✅ تمت مطابقة <b>'+A0.checked+'</b> رصدًا في <b>'+A0.docs+'</b> ملف معلمة: التقرير المعتمد مطابق تمامًا لما رصدته المعلمات.</p>';
   const nb=A0.out.reduce((a,g)=>a+g.bad.length,0);const nf=A0.out.reduce((a,g)=>a+g.bad.filter(b=>b.pid).length,0);
-  return '<div class="chips" style="margin:6px 0"><button class="btn pri" data-brfix="1"'+(BR.busy?' disabled':'')+'>✅ تصحيح التقرير المعتمد من رصد المعلمات ('+nf+')</button></div><p style="color:#B23A48"><b>⚠️ '+nb+'</b> طالبة في <b>'+A0.out.length+'</b> مادة/شعبة يختلف تقريرها المعتمد عن رصد المعلمة:</p>'+A0.out.map(g=>{const sh=g.bad.filter(b=>b.from).length;
+  return '<div class="chips" style="margin:6px 0"><button class="btn pri" data-brfix="1"'+(BR.busy?' disabled':'')+'>✅ تصحيح التقرير المعتمد من رصد المعلمات ('+nf+')</button></div><p style="color:#B23A48;font-size:16px"><b>⚠️ عدد التقارير التي فيها خطأ: '+new Set(A0.out.flatMap(g=>g.bad.map(b=>g.sec+'|'+(b.pid||b.n)))).size+' تقريرًا</b> — في '+A0.out.length+' مادة/شعبة، و'+nb+' خانة مادة مختلفة عن رصد المعلمة:</p>'+A0.out.map(g=>{const sh=g.bad.filter(b=>b.from).length;
     return '<details open style="border:1px solid #EFE6D8;border-radius:10px;padding:6px 10px;margin:4px 0"><summary><b>'+esc(g.s)+'</b> — '+esc(g.sec)+' — '+esc(short(g.t||''))+' · '+g.bad.length+' من '+g.tot+' طالبة'+(sh?' · <b style="color:#B23A48">'+sh+' منها أخذت درجات طالبة أخرى</b>':'')+'</summary>'+
     '<table style="width:100%;font-size:13px;margin-top:6px"><tr><th>الطالبة</th><th>الخطأ</th><th>البند</th><th>المرصود عند المعلمة</th><th>في التقرير المعتمد</th></tr>'+
     g.bad.map(b=>b.diff?b.diff.map((d,j)=>'<tr>'+(j?'<td></td><td></td>':'<td><b>'+esc(b.n)+'</b></td><td>'+(b.from?'أخذت درجات <b>'+esc(b.from)+'</b>':'قيم مختلفة')+'</td>')+'<td>'+esc(d[0])+'</td><td>'+esc(d[1])+'</td><td>'+esc(d[2])+'</td></tr>').join(''):'<tr><td><b>'+esc(b.n)+'</b></td><td colspan="4">'+esc(b.why)+'</td></tr>').join('')+'</table></details>'}).join('')}
