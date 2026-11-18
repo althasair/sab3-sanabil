@@ -642,13 +642,36 @@ function brDiff(){if(!BR.data)return null;const E=entries();const G={};
     let up=0,dn=0;g.rows.forEach((x,j)=>{if(!x.nv)return;if(j>0&&same(g.rows[j-1].ov,x.nv)&&!same(x.ov,x.nv))up++;if(j<g.rows.length-1&&same(g.rows[j+1].ov,x.nv)&&!same(x.ov,x.nv))dn++});
     return Object.assign(g,{ch,shift:Math.max(up,dn)>=2?(up>=dn?'up':'down'):'',at:sheetAt[g.sec+'|'+g.s]||''})}).filter(g=>g.ch.length||g.shift)}
 function brDiffBox(){if(BR.who!=='vp')return '';const i=brInfo();if(!BR.data||!['pend','part','ok'].includes(i.st))return '';
-  let h='<section class="brp noprint" style="background:#fff;border:1.5px solid #EADBB8"><h3>🔍 مراجعة الرصد بعد الاعتماد</h3><p class="stl">تقارن الرصد الحالي للمعلمات بالنسخة التي اعتمدتِها في '+dAr(i.vpAt)+'، وتكشف أي تعديل بعد الاعتماد، وأي إزاحة للدرجات بين طالبة والتي قبلها.</p><div class="chips"><button class="btn pri" data-brdiff="1">🔍 مقارنة الآن</button></div>';
+  let h='<section class="brp noprint" style="background:#fff;border:1.5px solid #EADBB8"><h3>🔍 مراجعة الرصد بعد الاعتماد</h3><p class="stl">تقارن الرصد الحالي للمعلمات بالنسخة التي اعتمدتِها في '+dAr(i.vpAt)+'، وتكشف أي تعديل بعد الاعتماد، وأي إزاحة للدرجات بين طالبة والتي قبلها.</p><div class="chips"><button class="btn pri" data-braudit="1">🔎 مقارنة التقرير المعتمد بالمرصود عند المعلمات</button><button class="btn" data-brdiff="1">🔍 مقارنة الآن</button></div>'+brAuditHTML();
   if(UI.diff){const D=brDiff()||[];
     if(!D.length)h+='<p>✅ لا يوجد أي اختلاف: الرصد الحالي مطابق تمامًا للنسخة المعتمدة.</p>';
     else{const sh=D.filter(g=>g.shift);h+='<p><b>'+D.length+'</b> مادة/شعبة فيها اختلاف'+(sh.length?' · <b style="color:#B23A48">'+sh.length+'</b> يُشتبه فيها بإزاحة الدرجات':'')+'.</p>';
       h+=D.map(g=>'<details style="border:1px solid #EFE6D8;border-radius:10px;padding:6px 10px;margin:4px 0"><summary><b>'+esc(g.s)+'</b> — '+esc(g.sec)+' — '+esc(short(g.t||''))+' · '+g.ch.length+' طالبة تغيّر رصدها'+(g.at?' · آخر حفظ للمعلمة: '+esc(new Date(g.at).toLocaleString('ar-QA',{day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'})):'')+(String(g.at)>String(i.vpAt)?' <span style="color:#B23A48">(بعد الاعتماد)</span>':'')+(g.shift?' <b style="color:#B23A48">⚠️ إزاحة محتملة: درجات كل طالبة صارت درجات الطالبة '+(g.shift==='up'?'التي قبلها':'التي بعدها')+'</b>':'')+'</summary>'+
         '<table style="width:100%;font-size:13px;margin-top:6px"><tr><th>الطالبة</th><th>البند</th><th>في النسخة المعتمدة</th><th>الآن</th></tr>'+g.ch.map(c=>c.d.map((d,j)=>'<tr>'+(j?'<td></td>':'<td><b>'+esc(c.n)+'</b></td>')+'<td>'+esc(d[0])+'</td><td>'+esc(d[1]||'—')+'</td><td>'+esc(d[2]||'—')+'</td></tr>').join('')).join('')+'</table></details>').join('')}}
   return h+'</section>'}
+/* تدقيق: مطابقة كل طالبة في التقرير المعتمد مع رصدها عند المعلمة (بالاسم مباشرة من قاعدة البيانات)، وكشف من أين جاءت القيمة الخاطئة */
+async function brAudit(){if(!BR.data){toast('لا توجد نسخة معتمدة');return}toast('جارٍ جلب رصد المعلمات والمطابقة…');
+  let docs=[];try{const q=await DB().collection('beh').get();q.forEach(x=>docs.push(x.data()))}catch(e){toast('تعذّر الجلب: '+(e&&e.message||e));return}
+  const vs=v=>{const o={};Object.keys(v||{}).forEach(k=>{if(!/تدرس/.test(k)&&String(v[k]??'')!=='')o[k]=String(v[k])});return o};
+  const eq=(a,b)=>{const ka=Object.keys(a),kb=Object.keys(b);return ka.length>0&&ka.length===kb.length&&ka.every(k=>a[k]===b[k])};
+  const out=[];let checked=0;
+  docs.forEach(d=>{if(!d||!d.sec||!Array.isArray(d.stu))return;const reps=(BR.data.secs||{})[d.sec];if(!reps)return;
+    const raw=d.stu.filter(x=>(x.v||{})['هل تدرس الطالبة المادة لديكِ؟']!=='لا').map(x=>({n:x.n,v:vs(x.v)}));const bad=[];
+    raw.forEach(x=>{const r=reps.find(r=>norm(r.st.n)===norm(x.n));const it=r&&r.items.find(i=>i.s===d.subj);checked++;
+      if(!r){bad.push({n:x.n,why:'الطالبة غير موجودة في التقرير المعتمد بهذا الاسم'});return}
+      if(!it){if(Object.keys(x.v).length)bad.push({n:x.n,why:'المادة غير ظاهرة في تقريرها رغم وجود رصد'});return}
+      const rv=vs(it.v);if(eq(rv,x.v))return;
+      const src=raw.find(y=>y!==x&&eq(rv,y.v));const diff=[...new Set([...Object.keys(x.v),...Object.keys(rv)])].filter(k=>x.v[k]!==rv[k]).map(k=>[k,x.v[k]||'—',rv[k]||'—']);
+      bad.push({n:x.n,from:src?src.n:'',diff})});
+    if(bad.length)out.push({t:d.teacher,s:d.subj,sec:d.sec,at:d.at,bad,tot:raw.length})});
+  BR.audit={at:new Date().toISOString(),out,checked,docs:docs.length};UI.tab='status';render()}
+function brAuditHTML(){const A0=BR.audit;if(!A0)return '';if(!A0.out.length)return '<p>✅ تمت مطابقة <b>'+A0.checked+'</b> رصدًا في <b>'+A0.docs+'</b> ملف معلمة: التقرير المعتمد مطابق تمامًا لما رصدته المعلمات.</p>';
+  const nb=A0.out.reduce((a,g)=>a+g.bad.length,0);
+  return '<p style="color:#B23A48"><b>⚠️ '+nb+'</b> طالبة في <b>'+A0.out.length+'</b> مادة/شعبة يختلف تقريرها المعتمد عن رصد المعلمة:</p>'+A0.out.map(g=>{const sh=g.bad.filter(b=>b.from).length;
+    return '<details open style="border:1px solid #EFE6D8;border-radius:10px;padding:6px 10px;margin:4px 0"><summary><b>'+esc(g.s)+'</b> — '+esc(g.sec)+' — '+esc(short(g.t||''))+' · '+g.bad.length+' من '+g.tot+' طالبة'+(sh?' · <b style="color:#B23A48">'+sh+' منها أخذت درجات طالبة أخرى</b>':'')+'</summary>'+
+    '<table style="width:100%;font-size:13px;margin-top:6px"><tr><th>الطالبة</th><th>الخطأ</th><th>البند</th><th>المرصود عند المعلمة</th><th>في التقرير المعتمد</th></tr>'+
+    g.bad.map(b=>b.diff?b.diff.map((d,j)=>'<tr>'+(j?'<td></td><td></td>':'<td><b>'+esc(b.n)+'</b></td><td>'+(b.from?'أخذت درجات <b>'+esc(b.from)+'</b>':'قيم مختلفة')+'</td>')+'<td>'+esc(d[0])+'</td><td>'+esc(d[1])+'</td><td>'+esc(d[2])+'</td></tr>').join(''):'<tr><td><b>'+esc(b.n)+'</b></td><td colspan="4">'+esc(b.why)+'</td></tr>').join('')+'</table></details>'}).join('')}
+document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-braudit]');if(t)brAudit()});
 document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-brdiff]');if(!t)return;UI.diff=1;render();toast('تمت المقارنة بآخر رصد جُلب من المنصة')});
 /* طباعة عدة شعب دفعة واحدة (المعتمد منها فقط) */
 async function brPrintSecs(list){const i=brInfo();const ok=list.filter(sc=>i.okSecs.includes(sc)).sort(secSort);const skip=list.length-ok.length;
