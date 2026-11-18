@@ -479,7 +479,9 @@ const short=n=>String(n||'').split(' ').filter(Boolean).slice(0,2).join(' ');
 
 function blank(){return{rep:0,files:{},sw:null,set:{vpMail:'',prMail:'',due:'',leave:'وضحى سعد فيصل بن شبعان الهاجرى، لينا محمود شقير'}}}
 let R=blank();try{const x=JSON.parse(localStorage.getItem(RK)||'null');if(x)R=Object.assign(blank(),x,{set:Object.assign(blank().set,x.set||{})})}catch(e){}
-function save(){try{localStorage.setItem(RK,JSON.stringify(R))}catch(e){toast('تعذّر الحفظ: الملفات كثيرة على مساحة المتصفح')}}
+/* رصد المعلمات المجلوب من المنصة لا يُخزَّن في المتصفح (يُجلب من جديد عند كل فتح)، فلا تمتلئ مساحة المتصفح */
+function save(){const strip=()=>{const files={};Object.entries(R.files||{}).forEach(([k,f])=>{if(!f.cloud)files[k]=f});return JSON.stringify(Object.assign({},R,{files}))};
+  try{localStorage.setItem(RK,strip())}catch(e){try{localStorage.setItem(RK,JSON.stringify(Object.assign({},R,{files:{}})))}catch(_){console.warn('report save skipped',e)}}}
 function A(){try{return JSON.parse(localStorage.getItem(AK)||'null')||{}}catch(e){return{}}}
 function staff(){const a=A();if(a.staff&&a.staff.length)return{list:a.staff,coord:a.coord||{}};try{const s=JSON.parse(localStorage.getItem(SAN)||'null');if(s&&s.staff)return{list:s.staff,coord:{}}}catch(e){}return{list:[],coord:{}}}
 const UI={tab:'status',sec:'',stu:''};
