@@ -286,7 +286,8 @@ td.num,th.num{font-variant-numeric:tabular-nums;text-align:center}
 .tl{position:relative;padding:4px 18px 12px 0}
 .tl::before{content:"";position:absolute;right:-7px;top:10px;width:12px;height:12px;border-radius:50%;background:var(--maroon);border:2px solid var(--paper);box-shadow:0 0 0 2px var(--gold-soft)}
 .tl .when{font-size:12.5px;color:var(--muted)}
-.toast{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:#16233F;color:#F3DDA0;padding:10px 18px;border-radius:14px;font-size:14px;font-weight:700;z-index:60;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+#toastRoot{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);z-index:60;display:flex;flex-direction:column;gap:8px;align-items:center;max-width:92vw;pointer-events:none}
+.toast{position:static;background:#16233F;color:#F3DDA0;padding:10px 18px;border-radius:14px;font-size:14px;font-weight:700;z-index:60;box-shadow:0 8px 24px rgba(0,0,0,.25)}
 .drop{border:1.5px dashed color-mix(in srgb,var(--gold) 60%,transparent);border-radius:22px;padding:18px;display:flex;flex-direction:column;gap:8px;background:color-mix(in srgb,var(--cream) 45%,var(--paper))}
 .drop.over{background:var(--cream)}
 .drop h4{margin:0;font-size:17px;font-weight:900;color:var(--maroon)}
@@ -653,7 +654,7 @@ function brDiffBox(){if(BR.who!=='vp')return '';const i=brInfo();if(!BR.data||![
   return h+'</section>'}
 /* تدقيق: مطابقة كل طالبة في التقرير المعتمد مع رصدها عند المعلمة (بالاسم مباشرة من قاعدة البيانات)، وكشف من أين جاءت القيمة الخاطئة */
 async function brAudit(){if(!BR.data){toast('لا توجد نسخة معتمدة');return}toast('جارٍ جلب رصد المعلمات والمطابقة…');
-  let docs=[];try{const q=await DB().collection('beh').get();q.forEach(x=>docs.push(x.data()))}catch(e){toast('تعذّر الجلب: '+(e&&e.message||e));return}
+  let docs=[];BR.auditErr='';try{const q=await DB().collection('beh').get();q.forEach(x=>docs.push(x.data()))}catch(e){BR.auditErr='تعذّر جلب رصد المعلمات: '+(e&&e.message||e);UI.tab='status';render();return}
   const vs=v=>{const o={};Object.keys(v||{}).forEach(k=>{if(!/تدرس/.test(k)&&String(v[k]??'')!=='')o[k]=String(v[k])});return o};
   const eq=(a,b)=>{const ka=Object.keys(a),kb=Object.keys(b);return ka.length>0&&ka.length===kb.length&&ka.every(k=>a[k]===b[k])};
   const out=[];let checked=0;
@@ -686,7 +687,7 @@ async function brPrintFixed(){const i=brInfo();const L=(i.fixed||[]).filter(key=
   toast('جارٍ تجهيز '+L.length+' تقريرًا معدلًا للطباعة…',6000);UI.printPids=L;UI.printList=null;UI.stu='';UI.tab='reports';render();await (window.__pg||Promise.resolve());await new Promise(r=>setTimeout(r,300));
   const done=()=>{window.removeEventListener('afterprint',done);UI.printPids=null;render()};window.addEventListener('afterprint',done);window.print()}
 document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-brfix],[data-prfixed]');if(!t||t.disabled||BR.busy)return;if(t.dataset.brfix&&BR.who==='vp')brFix();else if(t.dataset.prfixed)brPrintFixed()});
-function brAuditHTML(){const A0=BR.audit;if(!A0)return '';if(!A0.out.length)return '<p>✅ تمت مطابقة <b>'+A0.checked+'</b> رصدًا في <b>'+A0.docs+'</b> ملف معلمة: التقرير المعتمد مطابق تمامًا لما رصدته المعلمات.</p>';
+function brAuditHTML(){if(BR.auditErr)return '<p style="color:#B23A48"><b>⚠️ '+esc(BR.auditErr)+'</b></p>';const A0=BR.audit;if(!A0)return '';if(!A0.out.length)return '<p>✅ تمت مطابقة <b>'+A0.checked+'</b> رصدًا في <b>'+A0.docs+'</b> ملف معلمة: التقرير المعتمد مطابق تمامًا لما رصدته المعلمات.</p>';
   const nb=A0.out.reduce((a,g)=>a+g.bad.length,0);const nf=A0.out.reduce((a,g)=>a+g.bad.filter(b=>b.pid).length,0);
   return '<div class="chips" style="margin:6px 0"><button class="btn pri" data-brfix="1"'+(BR.busy?' disabled':'')+'>✅ تصحيح التقرير المعتمد من رصد المعلمات ('+nf+')</button></div><p style="color:#B23A48"><b>⚠️ '+nb+'</b> طالبة في <b>'+A0.out.length+'</b> مادة/شعبة يختلف تقريرها المعتمد عن رصد المعلمة:</p>'+A0.out.map(g=>{const sh=g.bad.filter(b=>b.from).length;
     return '<details open style="border:1px solid #EFE6D8;border-radius:10px;padding:6px 10px;margin:4px 0"><summary><b>'+esc(g.s)+'</b> — '+esc(g.sec)+' — '+esc(short(g.t||''))+' · '+g.bad.length+' من '+g.tot+' طالبة'+(sh?' · <b style="color:#B23A48">'+sh+' منها أخذت درجات طالبة أخرى</b>':'')+'</summary>'+
@@ -811,7 +812,7 @@ function render(){try{if(BR.who==='pr'){$('#nav').innerHTML='<button type="butto
   $('#nav').innerHTML=TABS.map(([id,l])=>'<button type="button" data-tab="'+id+'"'+(UI.tab===id?' aria-current="page"':'')+'>'+l+'</button>').join('')+'<a class="backlink" href="./">العودة إلى سبع سنابل ←</a>';
   $('#view').innerHTML=(UI.tab==='status'?brPanel(brInfo())+brDiffBox():'')+{status:vStatus,reports:vReports,files:vFiles}[UI.tab]();if(UI.tab==='reports')paginateSoon();
   const T=teacherStatus();$('#marq').textContent='التقرير الأكاديمي السلوكي · '+REPORTS[R.rep].n+' · '+T.filter(t=>t.st==='done').length+' معلمة أنهت الرصد من '+T.length+' · «إِنَّا لَا نُضِيعُ أَجْرَ مَنْ أَحْسَنَ عَمَلًا»'}catch(e){console.error(e);$('#view').innerHTML='<div class="box"><div class="empty">حدث خطأ: '+esc(e.message)+'</div></div>'}}
-function toast(m){const t=document.createElement('div');t.className='toast';t.textContent=m;$('#toastRoot').appendChild(t);setTimeout(()=>t.remove(),4500)}
+function toast(m,ms){const t=document.createElement('div');t.className='toast';t.textContent=m;$('#toastRoot').appendChild(t);setTimeout(()=>t.remove(),ms||5000)}
 function openMsg(t){const k=t.st==='done'?'thanks':'remind';const m=mailParts(t,k);const q=s=>encodeURIComponent(s);
   const mailto='mailto:'+m.to+'?'+(m.cc?'cc='+q(m.cc)+'&':'')+'subject='+q(m.subj)+'&body='+q(m.body);
   const owa='https://outlook.office.com/mail/deeplink/compose?to='+q(m.to)+(m.cc?'&cc='+q(m.cc):'')+'&subject='+q(m.subj)+'&body='+q(m.body);
