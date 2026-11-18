@@ -700,8 +700,10 @@ document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest
 /* إلغاء إضافة درجات منتصف الفصل: إعادة بناء كل تقرير من رصده في النسخة المعتمدة بمنتصف الفصل الأصلي كما اعتُمد، مع الإبقاء على التصحيحات فقط */
 function brNeedRevert(){const x=BR.meta&&BR.meta.reps&&BR.meta.reps[brK()];return !!(x&&((x.midAdded&&x.midAdded.length)||(x.fixed&&x.fixed.length&&!x.corr)))}
 async function brRevertMid(){const k=brK();const x=BR.meta.reps[k];if(!BR.data||!x)return;
-  if(!confirm('سترجع درجات منتصف الفصل الأول في كل التقارير كما كانت عند الاعتماد، وتُلغى إضافتها، ويبقى فقط تصحيح الطالبات اللي كان فيهن خطأ. متابعة؟'))return;
-  const keep=new Set(x.corr||[]);const D=JSON.parse(JSON.stringify(BR.data));
+  /* النسخة السابقة كانت تضيف طالبات منتصف الفصل إلى نهاية قائمة المعدلة نفسها؛ فالتصحيحات هي أول القائمة بترتيبها */
+  let keepL=x.corr;if(!keepL){const L=x.fixed||[];const ans=prompt('قائمة التقارير المعدلة الآن فيها '+L.length+' تقريرًا (التصحيحات أولًا ثم طالبات منتصف الفصل).\nاكتبي عدد التقارير التي صُحّحت فعلًا (قبل إضافة منتصف الفصل):','186');if(ans==null)return;const n=parseInt(ans,10);if(!(n>=0&&n<=L.length)){toast('العدد غير صحيح');return}keepL=L.slice(0,n)}
+  if(!confirm('سترجع درجات منتصف الفصل الأول في كل التقارير كما كانت عند الاعتماد، ويبقى '+keepL.length+' تقريرًا معدلًا فقط (اللي كان فيها خطأ). متابعة؟'))return;
+  const keep=new Set(keepL);const D=JSON.parse(JSON.stringify(BR.data));
   Object.entries(D.secs).forEach(([sec,reps])=>reps.forEach((r,j)=>{const key=sec+'|'+r.st.pid;const fxS=new Set(keep.has(key)?r.items.filter(it=>it.fx).map(it=>it.s):[]);
     const nr=studentReport(r.st,sec,{subs:Object.fromEntries(r.items.map(it=>[it.s,{teacher:it.teacher,v:it.v}]))});nr.items.forEach(it=>{if(fxS.has(it.s))it.fx=1});reps[j]=nr}));
   BR.busy=true;render();try{const db=DB(),txt=JSON.stringify(D),CH=300000,parts=Math.max(1,Math.ceil(txt.length/CH));
