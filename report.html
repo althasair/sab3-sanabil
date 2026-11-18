@@ -736,9 +736,31 @@ function paginate(){document.querySelectorAll('.rep>.flow').forEach(fl=>{const a
     const pad=parseFloat(getComputedStyle(p2).paddingTop)+parseFloat(getComputedStyle(p2).paddingBottom),r=(p2.clientHeight-pad)/(p2.scrollHeight-pad)*.98;
     [...p2.children].forEach(c=>{c.style.zoom=(parseFloat(c.style.zoom)||1)*r})}})}
 function paginateSoon(){window.__pg=new Promise(res=>{const go=()=>requestAnimationFrame(()=>{try{paginate()}catch(e){console.warn(e)}res()});(document.fonts&&document.fonts.ready)?document.fonts.ready.then(go):go()});return window.__pg}
+/* الخطوة 2 (اطلاع فقط، دون أي تعديل): مطابقة كل طالبة في التقرير المعتمد مع رصد معلمتها بالاسم */
+async function brCheck(){if(!BR.data){toast('لا توجد نسخة معتمدة');return}BR.chk={busy:1};render();let docs=[];
+  try{const q=await DB().collection('beh').get();q.forEach(x=>docs.push(x.data()))}catch(e){BR.chk={err:'تعذّر جلب رصد المعلمات: '+(e&&e.message||e)};render();return}
+  const vs=v=>{const o={};Object.keys(v||{}).forEach(k=>{if(!/تدرس/.test(k)&&String(v[k]??'')!=='')o[k]=String(v[k])});return o};
+  const eq=(a,b)=>{const ka=Object.keys(a),kb=Object.keys(b);return ka.length===kb.length&&ka.every(k=>a[k]===b[k])};
+  const bad=new Map();let checked=0;
+  docs.forEach(d=>{if(!d||!d.sec||!Array.isArray(d.stu))return;const reps=(BR.data.secs||{})[d.sec];if(!reps)return;
+    const raw=d.stu.filter(x=>(x.v||{})['هل تدرس الطالبة المادة لديكِ؟']!=='لا').map(x=>({n:x.n,v:vs(x.v)}));
+    raw.forEach(x=>{if(!Object.keys(x.v).length)return;checked++;const r=reps.find(r=>norm(r.st.n)===norm(x.n));const it=r&&r.items.find(i=>i.s===d.subj);
+      let why='';if(!r)why='غير موجودة في التقرير بهذا الاسم';else if(!it)why='المادة غير ظاهرة في تقريرها';else{const rv=vs(it.v);if(eq(rv,x.v))return;
+        const src=raw.find(y=>y!==x&&Object.keys(y.v).length&&eq(rv,y.v));why=src?'أخذت درجات '+src.n:'درجات مختلفة عن رصد المعلمة'}
+      const key=d.sec+'|'+x.n;const o=bad.get(key)||{n:x.n,sec:d.sec,subs:[]};o.subs.push({s:d.subj,t:d.teacher,why});bad.set(key,o)})});
+  BR.chk={list:[...bad.values()].sort((a,b)=>secSort(a.sec,b.sec)||a.n.localeCompare(b.n,'ar')),checked,docs:docs.length};render()}
+function brCheckBox(){if(BR.who!=='vp'||!BR.data)return '';const C=BR.chk||{};
+  let h='<section class="brp noprint" style="background:#fff;border:1.5px solid #EADBB8"><h3>🔎 الخطوة 2: الطالبات اللي تقريرهن المعتمد يختلف عن رصد المعلمة</h3><p class="stl">اطلاع فقط — لا يُعدَّل أي تقرير ولا أي رصد.</p><div class="chips"><button class="btn pri" data-brcheck="1"'+(C.busy?' disabled':'')+'>'+(C.busy?'جارٍ المطابقة…':'🔎 عرض العدد والأسماء')+'</button></div>';
+  if(C.err)h+='<p style="color:#B23A48"><b>⚠️ '+esc(C.err)+'</b></p>';
+  if(C.list){if(!C.list.length)h+='<p>✅ تمت مطابقة '+C.checked+' رصدًا: التقرير المعتمد مطابق تمامًا لرصد المعلمات.</p>';
+    else h+='<p style="color:#B23A48;font-size:17px"><b>⚠️ عدد الطالبات اللي تقريرهن فيه خطأ: '+C.list.length+' طالبة</b> (من '+C.checked+' رصدًا تمت مطابقته)</p>'+
+      '<table style="width:100%;font-size:13px"><tr><th>م</th><th>الطالبة</th><th>الشعبة</th><th>المادة</th><th>المعلمة</th><th>الخطأ</th></tr>'+
+      C.list.map((o,i)=>o.subs.map((x,j)=>'<tr>'+(j?'<td></td><td></td><td></td>':'<td>'+(i+1)+'</td><td><b>'+esc(o.n)+'</b></td><td>'+esc(o.sec)+'</td>')+'<td>'+esc(x.s)+'</td><td>'+esc(short(x.t||''))+'</td><td>'+esc(x.why)+'</td></tr>').join('')).join('')+'</table>'}
+  return h+'</section>'}
+document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-brcheck]');if(t&&!t.disabled)brCheck()});
 function render(){try{if(BR.who==='pr'){$('#nav').innerHTML='<button type="button" aria-current="page">اعتماد التقارير</button><a class="backlink" href="./">العودة إلى سبع سنابل ←</a>';$('#view').innerHTML=vPr();paginateSoon();$('#marq').textContent='التقرير الأكاديمي السلوكي · اعتماد مديرة المدرسة · «إِنَّا لَا نُضِيعُ أَجْرَ مَنْ أَحْسَنَ عَمَلًا»';return}
   $('#nav').innerHTML=TABS.map(([id,l])=>'<button type="button" data-tab="'+id+'"'+(UI.tab===id?' aria-current="page"':'')+'>'+l+'</button>').join('')+'<a class="backlink" href="./">العودة إلى سبع سنابل ←</a>';
-  $('#view').innerHTML=(UI.tab==='status'?brPanel(brInfo()):'')+{status:vStatus,reports:vReports,files:vFiles}[UI.tab]();if(UI.tab==='reports')paginateSoon();
+  $('#view').innerHTML=(UI.tab==='status'?brPanel(brInfo())+brCheckBox():'')+{status:vStatus,reports:vReports,files:vFiles}[UI.tab]();if(UI.tab==='reports')paginateSoon();
   const T=teacherStatus();$('#marq').textContent='التقرير الأكاديمي السلوكي · '+REPORTS[R.rep].n+' · '+T.filter(t=>t.st==='done').length+' معلمة أنهت الرصد من '+T.length+' · «إِنَّا لَا نُضِيعُ أَجْرَ مَنْ أَحْسَنَ عَمَلًا»'}catch(e){console.error(e);$('#view').innerHTML='<div class="box"><div class="empty">حدث خطأ: '+esc(e.message)+'</div></div>'}}
 function toast(m){const t=document.createElement('div');t.className='toast';t.textContent=m;$('#toastRoot').appendChild(t);setTimeout(()=>t.remove(),4500)}
 function openMsg(t){const k=t.st==='done'?'thanks':'remind';const m=mailParts(t,k);const q=s=>encodeURIComponent(s);
