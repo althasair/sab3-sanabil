@@ -622,6 +622,7 @@ function repsUI(secs,reps,info,i){
     (canCur?'<p class="stl">في نافذة الطباعة: حجم الورق A4، والهوامش «بلا»، وفعّلي «رسومات الخلفية» (Background graphics).</p>':'<p class="stl">تُطبع الشعبة بعد اعتماد مديرة المدرسة لها، ويمكنكِ معاينة التقارير الآن.</p>')+'</div>';
   let show=UI.stu?reps.filter(r=>r.st.pid===UI.stu):reps;
   if(UI.printList&&BR.data){show=UI.printList.flatMap(sc=>BR.data.secs[sc]||[])}
+  if(UI.printPids&&BR.data){const P=new Set(UI.printPids);show=Object.keys(BR.data.secs).sort(secSort).flatMap(sc=>BR.data.secs[sc].filter(r=>P.has(sc+'|'+norm(r.st.n))))}
   return h+'<div class="reps">'+show.map(reportHTML).join('')+'</div>'}
 /* طباعة عدة شعب دفعة واحدة (المعتمد منها فقط) */
 async function brPrintSecs(list){const i=brInfo();const ok=list.filter(sc=>i.okSecs.includes(sc)).sort(secSort);const skip=list.length-ok.length;
@@ -749,6 +750,20 @@ async function brCheck(){if(!BR.data){toast('لا توجد نسخة معتمدة
         const src=raw.find(y=>y!==x&&Object.keys(y.v).length&&eq(rv,y.v));why=src?'أخذت درجات '+src.n:'درجات مختلفة عن رصد المعلمة'}
       const key=d.sec+'|'+x.n;const o=bad.get(key)||{n:x.n,sec:d.sec,subs:[]};o.subs.push({s:d.subj,t:d.teacher,why});bad.set(key,o)})});
   BR.chk={list:[...bad.values()].sort((a,b)=>secSort(a.sec,b.sec)||a.n.localeCompare(b.n,'ar')),checked,docs:docs.length};render()}
+/* رصد عدّلته المعلمات بعد اعتماد التقرير (آخر حفظ بعد وقت الاعتماد): هذه هي مواضع التصحيح الممكنة */
+async function brAfter(){const i=brInfo();BR.aft={busy:1};render();let docs=[];
+  try{const q=await DB().collection('beh').get();q.forEach(x=>docs.push(x.data()))}catch(e){BR.aft={err:'تعذّر الجلب: '+(e&&e.message||e)};render();return}
+  const L=docs.filter(d=>d&&d.sec&&Array.isArray(d.stu)&&String(d.at||'')>String(i.vpAt||'')).map(d=>({t:d.teacher,s:d.subj,sec:d.sec,at:d.at,names:d.stu.filter(x=>(x.v||{})['هل تدرس الطالبة المادة لديكِ؟']!=='لا').map(x=>x.n)}))
+    .sort((a,b)=>secSort(a.sec,b.sec));const keys=new Set();L.forEach(g=>g.names.forEach(n=>keys.add(g.sec+'|'+norm(n))));BR.aft={list:L,keys:[...keys]};render()}
+async function brPrintAfter(){const K=(BR.aft&&BR.aft.keys)||[];const i=brInfo();const ok=K.filter(k=>i.okSecs.includes(k.split('|')[0]));if(!ok.length){toast('لا توجد تقارير للطباعة');return}
+  toast('جارٍ تجهيز '+ok.length+' تقريرًا للطباعة…');UI.printPids=ok;UI.printList=null;UI.stu='';UI.tab='reports';render();await (window.__pg||Promise.resolve());await new Promise(r=>setTimeout(r,300));
+  const done=()=>{window.removeEventListener('afterprint',done);UI.printPids=null;render()};window.addEventListener('afterprint',done);window.print()}
+document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-braft],[data-prafter]');if(!t||t.disabled)return;if(t.dataset.braft)brAfter();else brPrintAfter()});
+function brAfterBox(){if(BR.who!=='vp'||!BR.data)return '';const A=BR.aft||{};const i=brInfo();
+  let h='<section class="brp noprint" style="background:#fff;border:1.5px solid #C9B3EC"><h3>🟪 الرصد الذي عدّلته المعلمات بعد اعتماد التقرير ('+dAr(i.vpAt)+')</h3><p class="stl">اطلاع وطباعة فقط — لا يُعدَّل شيء. هذه الشعب والمواد هي التي تغيّر رصدها بعد الاعتماد، فتقارير طالباتها هي التي صُحّحت.</p><div class="chips"><button class="btn pri" data-braft="1"'+(A.busy?' disabled':'')+'>'+(A.busy?'جارٍ الجلب…':'🔎 عرض الشعب والطالبات')+'</button>'+(A.keys&&A.keys.length?'<button class="btn" data-prafter="1">🖨️ طباعة تقارير هذه الطالبات فقط ('+A.keys.length+')</button>':'')+'</div>';
+  if(A.err)h+='<p style="color:#B23A48"><b>⚠️ '+esc(A.err)+'</b></p>';
+  if(A.list){if(!A.list.length)h+='<p>لم تعدّل أي معلمة رصدها بعد الاعتماد.</p>';else h+='<p style="font-size:16px"><b>'+A.list.length+' مادة/شعبة عُدّل رصدها بعد الاعتماد، وفيها '+A.keys.length+' طالبة</b></p><table style="width:100%;font-size:13px"><tr><th>الشعبة</th><th>المادة</th><th>المعلمة</th><th>آخر حفظ</th><th>عدد الطالبات</th></tr>'+A.list.map(g=>'<tr><td>'+esc(g.sec)+'</td><td>'+esc(g.s)+'</td><td>'+esc(short(g.t||''))+'</td><td>'+esc(new Date(g.at).toLocaleString('ar-QA',{day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'}))+'</td><td>'+g.names.length+'</td></tr>').join('')+'</table>'}
+  return h+'</section>'}
 function brCheckBox(){if(BR.who!=='vp'||!BR.data)return '';const C=BR.chk||{};
   let h='<section class="brp noprint" style="background:#fff;border:1.5px solid #EADBB8"><h3>🔎 الخطوة 2: الطالبات اللي تقريرهن المعتمد يختلف عن رصد المعلمة</h3><p class="stl">اطلاع فقط — لا يُعدَّل أي تقرير ولا أي رصد.</p><div class="chips"><button class="btn pri" data-brcheck="1"'+(C.busy?' disabled':'')+'>'+(C.busy?'جارٍ المطابقة…':'🔎 عرض العدد والأسماء')+'</button></div>';
   if(C.err)h+='<p style="color:#B23A48"><b>⚠️ '+esc(C.err)+'</b></p>';
@@ -760,7 +775,7 @@ function brCheckBox(){if(BR.who!=='vp'||!BR.data)return '';const C=BR.chk||{};
 document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-brcheck]');if(t&&!t.disabled)brCheck()});
 function render(){try{if(BR.who==='pr'){$('#nav').innerHTML='<button type="button" aria-current="page">اعتماد التقارير</button><a class="backlink" href="./">العودة إلى سبع سنابل ←</a>';$('#view').innerHTML=vPr();paginateSoon();$('#marq').textContent='التقرير الأكاديمي السلوكي · اعتماد مديرة المدرسة · «إِنَّا لَا نُضِيعُ أَجْرَ مَنْ أَحْسَنَ عَمَلًا»';return}
   $('#nav').innerHTML=TABS.map(([id,l])=>'<button type="button" data-tab="'+id+'"'+(UI.tab===id?' aria-current="page"':'')+'>'+l+'</button>').join('')+'<a class="backlink" href="./">العودة إلى سبع سنابل ←</a>';
-  $('#view').innerHTML=(UI.tab==='status'?brPanel(brInfo())+brCheckBox():'')+{status:vStatus,reports:vReports,files:vFiles}[UI.tab]();if(UI.tab==='reports')paginateSoon();
+  $('#view').innerHTML=(UI.tab==='status'?brPanel(brInfo())+brAfterBox()+brCheckBox():'')+{status:vStatus,reports:vReports,files:vFiles}[UI.tab]();if(UI.tab==='reports')paginateSoon();
   const T=teacherStatus();$('#marq').textContent='التقرير الأكاديمي السلوكي · '+REPORTS[R.rep].n+' · '+T.filter(t=>t.st==='done').length+' معلمة أنهت الرصد من '+T.length+' · «إِنَّا لَا نُضِيعُ أَجْرَ مَنْ أَحْسَنَ عَمَلًا»'}catch(e){console.error(e);$('#view').innerHTML='<div class="box"><div class="empty">حدث خطأ: '+esc(e.message)+'</div></div>'}}
 function toast(m){const t=document.createElement('div');t.className='toast';t.textContent=m;$('#toastRoot').appendChild(t);setTimeout(()=>t.remove(),4500)}
 function openMsg(t){const k=t.st==='done'?'thanks':'remind';const m=mailParts(t,k);const q=s=>encodeURIComponent(s);
