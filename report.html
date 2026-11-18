@@ -649,9 +649,12 @@ function vFiles(){const fs=Object.values(R.files).sort((a,b)=>a.teacher.localeCo
    '<label>بريدكِ (نسخة رسائل الأقسام التي ليس لها منسقة)<input data-set="vpMail" value="'+esc(R.set.vpMail)+'" placeholder="name@education.qa" dir="ltr"></label>'+
    '<label>بريد مديرة المدرسة (نسخة رسائل الأقسام التي ليس لها منسقة)<input data-set="prMail" value="'+esc(R.set.prMail)+'" placeholder="name@education.qa" dir="ltr"></label>'+
    '<label>معلمات في إجازة (لا يُطلب منهن الرصد)<input data-set="leave" value="'+esc(R.set.leave)+'"></label></div></div>'+
-  '<div class="box"><h3>الملفات المستلمة ('+fs.length+(R.sw?' + ملف الأخصائيتين':'')+')</h3>'+(fs.length?'<div class="tw"><table class="gt"><thead><tr><th>المعلمة</th><th>الأوراق</th><th>تاريخ الرفع</th></tr></thead><tbody>'+fs.map(f=>'<tr><td class="nm">'+esc(f.teacher)+'</td><td>'+f.sheets.map(s=>s.sec).join('، ')+'</td><td>'+new Date(f.at).toLocaleString('ar-QA',{dateStyle:'medium',timeStyle:'short'})+'</td></tr>').join('')+'</tbody></table></div>':'<p class="stl">لا توجد ملفات بعد.</p>')+
+  '<div class="box"><h3>الملفات المستلمة ('+fs.length+(R.sw?' + ملف الأخصائيتين':'')+')</h3>'+(fs.length?'<div class="tw"><table class="gt"><thead><tr><th>المعلمة</th><th>الشعب وآخر حفظ لكل شعبة <small style="font-weight:400">(🟪 = عُدّلت بعد اعتماد التقرير)</small></th><th>آخر حفظ للمعلمة</th></tr></thead><tbody>'+fs.map(f=>'<tr><td class="nm">'+esc(f.teacher)+'</td><td>'+f.sheets.map(s=>s.at?shAt(s):esc(s.sec)).join(' ')+'</td><td>'+new Date(f.at).toLocaleString('ar-QA',{dateStyle:'medium',timeStyle:'short'})+'</td></tr>').join('')+'</tbody></table></div>':'<p class="stl">لا توجد ملفات بعد.</p>')+
   '<div class="chips"><button class="btn" data-wipe="1" style="color:var(--bad)">مسح ملفات هذا التقرير</button></div></div>'}
 
+/* آخر حفظ لكل شعبة ومادة، ويُظلَّل بالبنفسجي ما حُفظ بعد اعتماد التقرير */
+function shAt(x){const t=new Date(x.at);if(isNaN(t))return esc(x.sec);let va='';try{va=brInfo().vpAt||''}catch(_){}const aft=!!va&&t>new Date(va);
+  return '<span style="display:inline-block;margin:2px;padding:2px 8px;border-radius:8px;white-space:nowrap;font-size:12px;background:'+(aft?'#EFE6FB;border:1px solid #B79BE0':'#F6F1EA')+'"'+(aft?' title="عُدّلت بعد اعتماد التقرير"':'')+'><bdi dir="ltr">'+esc(x.sec)+'</bdi> '+esc(String(x.subj||'').slice(0,18))+' · '+t.toLocaleString('ar-QA',{day:'numeric',month:'numeric',hour:'numeric',minute:'2-digit'})+(aft?' ✎':'')+'</span>'}
 /* ---------- shell ---------- */
 /* ===== اعتماد التقرير: النائب الأكاديمي (توقيعها) ← مديرة المدرسة (توقيعها) ← جاهز للطباعة لديهما، ويظهر للمعلمات «تم إصدار ميثاق الشراكة» ===== */
 const BR={who:'',uid:'',meta:null,dec:{},data:null,dataK:'',vpSig:'',prSig:'',busy:false,ready:false};
@@ -811,7 +814,7 @@ function skKeep(sec,subj,H){if(!(String(sec).startsWith('12')&&/مهارات/.te
 function cloudSheets(docs){const a=A();const reg={};Object.entries(a.reg||{}).forEach(([pid,r])=>{reg[r.s+'|'+norm(r.n)]=pid});const byT={};
   docs.forEach(d=>{if(!d||!d.sec||!Array.isArray(d.stu))return;const H=skKeep(d.sec,d.subj,d.H||[]);const stu=d.stu.map(x=>({pid:reg[d.sec+'|'+norm(x.n)]||x.n,n:x.n,v:x.v||{}}));
     let blanks=0,total=0;stu.forEach(x=>{total++;if(x.v[H[0]]==='لا')return;H.slice(1).forEach(h=>{total++;if(x.v[h]===''||x.v[h]==null)blanks++})});
-    const k=norm(d.teacher);(byT[k]=byT[k]||{teacher:d.teacher,file:'من المنصة',at:d.at,sheets:[],cloud:1}).sheets.push({sec:d.sec,subj:d.subj,choose:true,H,stu,blanks,total});if(d.at>byT[k].at)byT[k].at=d.at});
+    const k=norm(d.teacher);(byT[k]=byT[k]||{teacher:d.teacher,file:'من المنصة',at:d.at,sheets:[],cloud:1}).sheets.push({sec:d.sec,subj:d.subj,choose:true,H,stu,blanks,total,at:d.at||''});if(d.at>byT[k].at)byT[k].at=d.at});
   return byT}
 async function cloudPull(u){try{const fb=firebase.firestore();const q=await fb.collection('beh').get();const docs=[];q.forEach(x=>docs.push(x.data()));const byT=cloudSheets(docs);
   Object.entries(byT).forEach(([k,f])=>{const old=R.files[k];if(old&&!old.cloud){const keep=old.sheets.filter(s=>!f.sheets.some(c=>c.sec===s.sec&&c.subj===s.subj));f.sheets=keep.concat(f.sheets);f.file='من المنصة + '+old.file}R.files[k]=f});
