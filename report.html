@@ -627,9 +627,10 @@ function repsUI(secs,reps,info,i){
 async function brPrintSecs(list){const i=brInfo();const ok=list.filter(sc=>i.okSecs.includes(sc)).sort(secSort);const skip=list.length-ok.length;
   if(!ok.length){toast(list.length?'الشعب المحددة لم تعتمدها مديرة المدرسة بعد':'حدّدي الشعب أولًا');return}
   const n=ok.reduce((a,sc)=>a+((BR.data.secs[sc]||[]).length),0);toast('جارٍ تجهيز '+n+' تقريرًا للطباعة…'+(skip?' (استُبعدت '+skip+' شعبة غير معتمدة)':''),6000);
-  UI.printList=ok;UI.stu='';render();await (window.__pg||Promise.resolve());await new Promise(r=>setTimeout(r,300));
+  UI.printList=ok;UI.stu='';UI.tab='reports';render();await (window.__pg||Promise.resolve());await new Promise(r=>setTimeout(r,300));
   const done=()=>{window.removeEventListener('afterprint',done);UI.printList=null;render()};window.addEventListener('afterprint',done);window.print()}
-document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-pickall],[data-brall],[data-brsel],[data-prall],[data-prsel]');if(!t||t.disabled)return;const i=brInfo();
+document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-pickall],[data-brall],[data-brsel],[data-prall],[data-prsel],[data-goreps]');if(!t||t.disabled)return;const i=brInfo();
+  if(t.dataset.goreps){UI.tab='reports';render();const x=document.querySelector('.pickrow');if(x)x.scrollIntoView({behavior:'smooth',block:'center'});return}
   const secs=BR.data&&['pend','part','ok'].includes(i.st)?Object.keys(BR.data.secs):[...new Set(Object.values(R.files).flatMap(f=>f.sheets.map(s=>s.sec)))];
   if(t.dataset.pickall!=null){UI.pick=t.dataset.pickall==='1'?secs.slice():[];render()}
   else if(t.dataset.brall&&BR.who==='pr'&&!BR.busy)brDecide(true,null);
@@ -672,7 +673,8 @@ async function brLoad(){try{const db=DB();
   try{if(BR.who==='pr'){const d=await db.collection('prcm').doc(BR.uid).get();BR.dec=d.exists?(d.data().brq||{}):{}}
     else{const q=await db.collection('prcm').get();let dec={};q.forEach(d=>{const x=d.data();if(x&&x.w==='pr'&&x.brq)dec=Object.assign(dec,x.brq)});BR.dec=dec}}catch(e){BR.dec={}}
   if(BR.who==='pr'){const ks=Object.entries(BR.meta.reps||{}).sort((x,y)=>String(y[1].vpAt).localeCompare(String(x[1].vpAt)));if(ks.length)R.rep=+ks[0][0].slice(1)||0}
-  const i=brInfo();if(i.st!=='none')await brData(i);if(BR.who==='pr')UI.pick=[]}catch(e){console.warn(e);toast('تعذّر تحميل حالة الاعتماد: '+(e&&e.message||e))}BR.ready=true;render()}
+  const i=brInfo();if(i.st!=='none')await brData(i);if(BR.who==='pr')UI.pick=[]}catch(e){console.warn(e);toast('تعذّر تحميل حالة الاعتماد: '+(e&&e.message||e))}BR.ready=true;render();
+  if(/[?&]print=1/.test(location.search)){history.replaceState(null,'',location.pathname);const j=brInfo();if(j.okSecs.length)brPrintSecs(j.okSecs.slice());else{UI.tab='reports';render();toast('لا توجد شعب معتمدة للطباعة بعد')}}}
 async function brData(i){if(BR.data&&BR.dataK===i.k+i.vpAt)return;const db=DB();const ps=await Promise.all([...Array(i.parts||0).keys()].map(j=>db.collection('adm').doc('br_'+i.k+'_'+j).get()));
   BR.data=JSON.parse(ps.map(p=>p.exists?p.data().t:'').join('')||'null');BR.dataK=i.k+i.vpAt}
 function brPanel(i){if(BR.noAuth)return '<section class="brp noprint" style="background:#FBEDEF;border:1.5px solid #E8A9B3"><h3>📜 اعتماد التقارير</h3><p>لم يتم تسجيل الدخول. افتحي سبع سنابل وسجّلي الدخول، ثم ارجعي لهذه الصفحة واضغطي Ctrl + F5.</p></section>';
@@ -681,13 +683,14 @@ function brPanel(i){if(BR.noAuth)return '<section class="brp noprint" style="bac
   const steps='<div class="brsteps">'+step('١. اعتماد النائب الأكاديمي',['pend','part','ok'].includes(i.st),i.st==='none'||i.st==='ret')+step('٢. اعتماد مديرة المدرسة'+(i.st==='part'?' ('+i.okSecs.length+'/'+i.all.length+')':''),i.st==='ok',i.st==='pend'||i.st==='part')+step('٣. جاهز للطباعة',i.st==='ok',i.st==='part')+'</div>';
   const box=(bg,bd,h)=>'<section class="brp noprint" style="background:'+bg+';border:1.5px solid '+bd+'"><h3>📜 اعتماد '+esc(REPORTS[R.rep].n)+'</h3>'+steps+h+'</section>';
   const B=BR.busy?' disabled':'';
+  const PB='<div class="chips"><button class="btn pri" data-prall="1">🖨️ طباعة جميع الشعب المعتمدة</button><button class="btn" data-goreps="1">🖨️ اختيار شعب أو طالبة للطباعة</button></div>';
   if(BR.who==='pr'){
-    if(i.st==='ok')return box('#EAF6EE','#9FD3B0','<p>✅ اعتمدتِ التقارير في <b>'+dAr(i.prAt)+'</b>، وهي جاهزة للطباعة لديكِ ولدى نائب المديرة للشؤون الأكاديمية.</p>');
+    if(i.st==='ok')return box('#EAF6EE','#9FD3B0','<p>✅ اعتمدتِ التقارير في <b>'+dAr(i.prAt)+'</b>، وهي جاهزة للطباعة لديكِ ولدى النائبة الأكاديمية.</p>'+PB);
     if(i.st==='ret')return box('#FBEDEF','#E8A9B3','<p>↩️ أعدتِ التقارير بملاحظة: '+esc(i.note)+'</p><p class="stl">تصلكِ مجددًا بعد تعديلها واعتماد النائب الأكاديمي لها.</p>');
-    return box('#FFF8E1','#E3C77A','<p>اعتمدت النائبة الأكاديمية التقارير ('+(i.n||0)+' طالبة) في <b>'+dAr(i.vpAt)+'</b>، وأُرسلت لاعتمادكِ.'+(i.st==='part'?' اعتمدتِ <b>'+i.okSecs.length+'</b> من <b>'+i.all.length+'</b> شعبة.':'')+'</p><p class="stl">من «اختيار الشعب» تحت: اضغطي «✅ اعتماد جميع الشعب»، أو حدّدي شعبًا واضغطي «✅ اعتماد الشعب المحددة».</p><div class="chips"><button class="btn pri" data-brall="1"'+B+'>✅ اعتماد جميع الشعب</button></div>')}
+    return box('#FFF8E1','#E3C77A','<p>اعتمدت النائبة الأكاديمية التقارير ('+(i.n||0)+' طالبة) في <b>'+dAr(i.vpAt)+'</b>، وأُرسلت لاعتمادكِ.'+(i.st==='part'?' اعتمدتِ <b>'+i.okSecs.length+'</b> من <b>'+i.all.length+'</b> شعبة.':'')+'</p>'+(i.okSecs.length?PB:'')+'<p class="stl">من «اختيار الشعب» تحت: اضغطي «✅ اعتماد جميع الشعب»، أو حدّدي شعبًا واضغطي «✅ اعتماد الشعب المحددة».</p><div class="chips"><button class="btn pri" data-brall="1"'+B+'>✅ اعتماد جميع الشعب</button></div>')}
   const app='<button class="btn pri" data-brvp="1"'+B+'>✍️ اعتماد النائب الأكاديمي وإرسال للمديرة</button>';
-  if(i.st==='ok')return box('#EAF6EE','#9FD3B0','<p>✅ اعتمدت مديرة المدرسة التقارير في <b>'+dAr(i.prAt)+'</b>، وهي جاهزة للطباعة لديكِ ولديها، وظهر للمعلمات أنه تم إصدار ميثاق الشراكة.</p><div class="chips"><button class="btn sm" data-brvp="2"'+B+'>تحديث التقارير وإعادة إرسالها للمديرة</button></div>');
-  if(i.st==='part')return box('#FFF8E1','#E3C77A','<p>⏳ اعتمدت مديرة المدرسة <b>'+i.okSecs.length+'</b> من <b>'+i.all.length+'</b> شعبة، والشعب المعتمدة جاهزة للطباعة: '+i.okSecs.join('، ')+'</p>');
+  if(i.st==='ok')return box('#EAF6EE','#9FD3B0','<p>✅ اعتمدت مديرة المدرسة التقارير في <b>'+dAr(i.prAt)+'</b>، وهي جاهزة للطباعة لديكِ ولديها، وظهر للمعلمات أنه تم إصدار ميثاق الشراكة.</p>'+PB+'<div class="chips"><button class="btn sm" data-brvp="2"'+B+'>تحديث التقارير وإعادة إرسالها للمديرة</button></div>');
+  if(i.st==='part')return box('#FFF8E1','#E3C77A','<p>⏳ اعتمدت مديرة المدرسة <b>'+i.okSecs.length+'</b> من <b>'+i.all.length+'</b> شعبة، والشعب المعتمدة جاهزة للطباعة: '+i.okSecs.join('، ')+'</p>'+PB);
   if(i.st==='pend')return box('#FFF8E1','#E3C77A','<p>⏳ اعتمدتِ التقارير ('+(i.n||0)+' طالبة) في <b>'+dAr(i.vpAt)+'</b>، وأُرسلت لمديرة المدرسة، وبانتظار اعتمادها.</p><div class="chips"><button class="btn sm" data-brcancel="1"'+B+'>إلغاء الاعتماد للتعديل</button></div>');
   if(i.st==='ret')return box('#FBEDEF','#E8A9B3','<p>↩️ أعادت مديرة المدرسة التقارير بملاحظة: <b>'+esc(i.note)+'</b></p><p class="stl">عدّلي المطلوب، ثم اعتمديها مجددًا.</p><div class="chips">'+app+'</div>');
   return box('#FBF6EC','#EADBB8','<p>بعد مراجعة التقارير اعتمديها بتوقيعكِ، فتُرسل مباشرة لمديرة المدرسة لاعتمادها، ثم تصبح جاهزة للطباعة.</p><div class="chips">'+app+'</div>')}
