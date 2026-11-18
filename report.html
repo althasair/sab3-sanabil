@@ -286,8 +286,7 @@ td.num,th.num{font-variant-numeric:tabular-nums;text-align:center}
 .tl{position:relative;padding:4px 18px 12px 0}
 .tl::before{content:"";position:absolute;right:-7px;top:10px;width:12px;height:12px;border-radius:50%;background:var(--maroon);border:2px solid var(--paper);box-shadow:0 0 0 2px var(--gold-soft)}
 .tl .when{font-size:12.5px;color:var(--muted)}
-#toastRoot{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);z-index:60;display:flex;flex-direction:column;gap:8px;align-items:center;max-width:92vw;pointer-events:none}
-.toast{position:static;background:#16233F;color:#F3DDA0;padding:10px 18px;border-radius:14px;font-size:14px;font-weight:700;z-index:60;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.toast{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:#16233F;color:#F3DDA0;padding:10px 18px;border-radius:14px;font-size:14px;font-weight:700;z-index:60;box-shadow:0 8px 24px rgba(0,0,0,.25)}
 .drop{border:1.5px dashed color-mix(in srgb,var(--gold) 60%,transparent);border-radius:22px;padding:18px;display:flex;flex-direction:column;gap:8px;background:color-mix(in srgb,var(--cream) 45%,var(--paper))}
 .drop.over{background:var(--cream)}
 .drop h4{margin:0;font-size:17px;font-weight:900;color:var(--maroon)}
@@ -415,7 +414,6 @@ pre.spec{white-space:pre-wrap;background:color-mix(in srgb,var(--cream) 35%,var(
 .brp{border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:10px}.brp h3{margin:0;font-size:16px;color:var(--maroon)}.brp p{margin:0;font-size:14px;line-height:1.8}
 .brsteps{display:flex;gap:8px;flex-wrap:wrap}.brsteps span{border-radius:999px;padding:4px 12px;font-size:13px;font-weight:800;background:#F1ECE4;color:#8A7A80;border:1px solid #E4DACB}.brsteps span.on{background:#EAF6EE;color:#1F6B3A;border-color:#9FD3B0}.brsteps span.cur{background:#FFF6DC;color:#7A5A0B;border-color:#E3C77A}
 .btn[disabled]{opacity:.45;cursor:not-allowed}
-/* المعدَّل بعد التدقيق: بنفسجي فاتح */.pt tr.fx td{background:#EFE6FB}.rbox.fx{background:#F3ECFC;border-color:#C9B3EC}.rbox.fx .rh{background:#E6D9F8}
 .pickrow{gap:6px}.pick{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;border:1px solid #E4DACB;background:#fff;font-size:13px;font-weight:800;cursor:pointer}.pick.ok{background:#EAF6EE;border-color:#9FD3B0;color:#1F6B3A}.pick input{accent-color:#62102A}
 @media print{
  @page{size:A4;margin:0}
@@ -479,9 +477,7 @@ const short=n=>String(n||'').split(' ').filter(Boolean).slice(0,2).join(' ');
 
 function blank(){return{rep:0,files:{},sw:null,set:{vpMail:'',prMail:'',due:'',leave:'وضحى سعد فيصل بن شبعان الهاجرى، لينا محمود شقير'}}}
 let R=blank();try{const x=JSON.parse(localStorage.getItem(RK)||'null');if(x)R=Object.assign(blank(),x,{set:Object.assign(blank().set,x.set||{})})}catch(e){}
-/* رصد المعلمات المجلوب من المنصة لا يُخزَّن في المتصفح (يُجلب من جديد عند كل فتح)، فلا تمتلئ مساحة المتصفح */
-function save(){const strip=()=>{const files={};Object.entries(R.files||{}).forEach(([k,f])=>{if(!f.cloud)files[k]=f});return JSON.stringify(Object.assign({},R,{files}))};
-  try{localStorage.setItem(RK,strip())}catch(e){try{localStorage.setItem(RK,JSON.stringify(Object.assign({},R,{files:{}})))}catch(_){console.warn('report save skipped',e)}}}
+function save(){try{localStorage.setItem(RK,JSON.stringify(R))}catch(e){toast('تعذّر الحفظ: الملفات كثيرة على مساحة المتصفح')}}
 function A(){try{return JSON.parse(localStorage.getItem(AK)||'null')||{}}catch(e){return{}}}
 function staff(){const a=A();if(a.staff&&a.staff.length)return{list:a.staff,coord:a.coord||{}};try{const s=JSON.parse(localStorage.getItem(SAN)||'null');if(s&&s.staff)return{list:s.staff,coord:{}}}catch(e){}return{list:[],coord:{}}}
 const UI={tab:'status',sec:'',stu:''};
@@ -525,16 +521,7 @@ function commit(subj,v){const g=k=>v[Object.keys(v).find(h=>h.startsWith(k))||'_
   let s=books+(beh==='ملتزمة'?2:0)+(part==null?1:part>=4?2:part>=2.5?1:0)+(hwMax?(hwS/hwMax>=.75?2:hwS/hwMax>=.5?1:0):1);
   const c=s>=7?'ملتزمة':s>=4?'ملتزمة إلى حد ما':'غير ملتزمة';return beh!=='ملتزمة'&&c==='ملتزمة'?'ملتزمة إلى حد ما':c}
 function assessPct(v){let g=0,t=0;Object.keys(v).forEach(h=>{const m=h.match(/^التقييم.*\(من ([\d.]+)\)/);if(!m)return;const x=num(v[h]);if(x==null)return;g+=x;t+=+m[1]});return t?g/t*100:null}
-/* مطابقة اسم المادة في ملف المعلمة مع اسمها في كشف الدرجات (مثل «العلوم (عاشر)» ↔ «العلوم»، «الحوسبة + الفنون» ↔ «الحوسبة وتكنولوجيا المعلومات») — نفس قاموس لوحة التحليل */
-function canonR(x){const n=norm(x);if(!n)return'';
-  if(/اجتماعي/.test(n))return'الدراسات الاجتماعية';if(/حوسب/.test(n))return'الحوسبة وتكنولوجيا المعلومات';if(/علوم الحاسب/.test(n))return'علوم الحاسب';if(/^تكنولوجيا المعلومات/.test(n))return'تكنولوجيا المعلومات';
-  if(/العلوم المتكامل/.test(n)||n==='العلوم'||n==='علوم')return'العلوم';if(/العلوم العامه/.test(n))return'العلوم العامة';if(/الرياضيات العامه/.test(n))return'الرياضيات العامة';if(/رياضيات/.test(n))return'الرياضيات';
-  if(/اداره/.test(n))return'إدارة الأعمال';if(/انجليز/.test(n))return'اللغة الإنجليزية';if(/عربيه/.test(n))return'اللغة العربية';if(/اسلامي/.test(n))return'التربية الإسلامية';if(/بدني/.test(n))return'التربية البدنية';
-  if(/مهارات/.test(n))return'المهارات الحياتية والمهنية';if(/فنون/.test(n))return'الفنون';if(/فيزياء/.test(n))return'الفيزياء';if(/كيمياء/.test(n))return'الكيمياء';if(/احياء/.test(n))return'الأحياء';
-  if(/تاريخ/.test(n))return'التاريخ';if(/جغرافيا/.test(n))return'الجغرافيا';return String(x).trim()}
-function midOf(g,s){if(!g)return null;if(typeof g[s]==='number')return g[s];const base=String(s).replace(/\([^)]*\)/g,'').trim();
-  for(const t of [base,...base.split('+').map(x=>x.trim())]){if(!t)continue;if(typeof g[t]==='number')return g[t];const c=canonR(t);if(typeof g[c]==='number')return g[c]}return null}
-function studentReport(st,sec,EO){const E=EO||entries()[st.pid]||{subs:{}};const a=A();const per=REPORTS[R.rep].mid;const cur=((a.cur||{})[per]||{})[st.pid];const g12=sec.startsWith('12');
+function studentReport(st,sec){const E=entries()[st.pid]||{subs:{}};const a=A();const per=REPORTS[R.rep].mid;const cur=((a.cur||{})[per]||{})[st.pid];const g12=sec.startsWith('12');
   const h=hash(st.pid);const filled=v=>Object.entries(v||{}).some(([k,x])=>k!=='هل تدرس الطالبة المادة لديكِ؟'&&x!=null&&String(x).trim()!=='');
   /* المادة التي لم تُعبّأ خاناتها تُستبعد من التقرير كاملة */
   const subs=Object.keys(E.subs).filter(s=>filled(E.subs[s].v)).sort(subjSort);
@@ -558,7 +545,7 @@ function chart(items,g12){const it=items.filter(x=>x.ap!=null||x.mid!=null);if(!
   const bar=v=>'<div class="pb"><i class="'+catOf(v)[1]+'" style="width:'+Math.max(0,Math.min(100,v))+'%"></i></div>';
   const cell=(v,paper)=>v==null?'<td class="na">—</td>':'<td><b><bdi>'+fmt(v)+'%</bdi></b>'+(paper?' <small class="p30">(<bdi>'+fmt(Math.round(v*.3*10)/10)+'</bdi> من 30)</small>':'')+bar(v)+'</td>';
   const rows=it.map(x=>{const vs=[x.ap,g12?null:x.mid].filter(v=>v!=null);const m=vs.reduce((a,b)=>a+b,0)/vs.length;const c=catOf(m);return{x,m,c}});
-  const t='<table class="pt">'+(g12?'<colgroup><col style="width:40%"><col style="width:30%"><col style="width:30%"></colgroup>':'<colgroup><col style="width:33%"><col style="width:20%"><col style="width:25%"><col style="width:22%"></colgroup>')+'<tr><th>المادة</th><th>التقييمات القصيرة</th>'+(g12?'':'<th>اختبار منتصف الفصل</th>')+'<th>الفئة</th></tr>'+rows.map(({x,c})=>'<tr'+(x.fx?' class="fx"':'')+'><td class="sn">'+esc(x.s)+'</td>'+cell(x.ap)+(g12?'':cell(x.mid,!/بدني/.test(x.s)))+'<td><span class="cat '+c[1]+'">'+(c[1]==='c5'?'':'من ')+c[0]+'</span><small class="lvw">'+c[2]+'</small></td></tr>').join('')+'</table>';
+  const t='<table class="pt">'+(g12?'<colgroup><col style="width:40%"><col style="width:30%"><col style="width:30%"></colgroup>':'<colgroup><col style="width:33%"><col style="width:20%"><col style="width:25%"><col style="width:22%"></colgroup>')+'<tr><th>المادة</th><th>التقييمات القصيرة</th>'+(g12?'':'<th>اختبار منتصف الفصل</th>')+'<th>الفئة</th></tr>'+rows.map(({x,c})=>'<tr><td class="sn">'+esc(x.s)+'</td>'+cell(x.ap)+(g12?'':cell(x.mid,!/بدني/.test(x.s)))+'<td><span class="cat '+c[1]+'">'+(c[1]==='c5'?'':'من ')+c[0]+'</span><small class="lvw">'+c[2]+'</small></td></tr>').join('')+'</table>';
   const weak=rows.filter(r=>r.m<70).map(r=>r.x.s),mid=rows.filter(r=>r.m>=70&&r.m<80).map(r=>r.x.s);
   const say=weak.length?'ابنتي بحاجة إلى بذل مزيد من الجهد في '+(weak.length>2?'مواد ':weak.length===2?'مادتي ':'مادة ')+joinS(weak)+'، ولكنها قادرة بإذن الله على تحقيق درجات أعلى، وأنا على ثقة تامة بأنها ستكون على قدر المسؤولية.'
     :mid.length?'ابنتي على طريق التميز، وبمزيد من المراجعة في '+joinS(mid)+' ستصل إلى مستويات أعلى، وأنا على ثقة تامة بقدرتها على ذلك.'
@@ -568,7 +555,7 @@ function subjBox(x,g12){const v=x.v;
   /* المهارات الحياتية للثاني عشر: بنود الالتزام فقط (بلا درجات ولا واجبات)، وما لم تعبّئه المعلمة لا يظهر */
   if(g12&&/مهارات/.test(x.s)){const ks=Object.keys(v).filter(k=>!/\(من [\d.]+\)|^واجب|^التقييم|المستوى الأكاديمي العام|هل تدرس الطالبة/.test(k)&&v[k]!=null&&String(v[k]).trim()!==''&&!/^[\d.]+$/.test(String(v[k]).trim()));
     if(!ks.length)return '';
-    return'<div class="rbox'+(x.fx?' fx':'')+'"><div class="rh"><span><b>'+esc(x.s)+'</b></span><span class="tch">أ. '+esc(x.teacher)+'</span></div><table><tr>'+ks.map(k=>'<th>'+esc(k)+'</th>').join('')+'</tr><tr>'+ks.map(k=>'<td>'+esc(v[k])+'</td>').join('')+'</tr></table>'+(x.ph?'<div class="ph">'+esc(x.ph)+'</div>':'')+'</div>'}
+    return'<div class="rbox"><div class="rh"><span><b>'+esc(x.s)+'</b></span><span class="tch">أ. '+esc(x.teacher)+'</span></div><table><tr>'+ks.map(k=>'<th>'+esc(k)+'</th>').join('')+'</tr><tr>'+ks.map(k=>'<td>'+esc(v[k])+'</td>').join('')+'</tr></table>'+(x.ph?'<div class="ph">'+esc(x.ph)+'</div>':'')+'</div>'}
   const head='<div class="rh"><span><b>'+esc(x.s)+'</b></span><span class="tch">أ. '+esc(x.teacher)+'</span></div>';
   /* موجز مضغوط: كل بند في شارة صغيرة (القيمة/الدرجة الكاملة)، والواجبات مجموعة في شارة واحدة */
   const ch=(k,val)=>'<span class="kv"><i>'+esc(k)+'</i> <b>'+esc(val)+'</b></span>';const parts=[];
@@ -578,7 +565,7 @@ function subjBox(x,g12){const v=x.v;
   nums.filter(h=>/^المشاركة/.test(h)&&has(h)).forEach(h=>parts.push(ch('المشاركة',fmt(+v[h])+'/'+mx(h))));
   [['الالتزام بالزي الرياضي','الزي الرياضي'],['التفاعل أثناء الحصة','التفاعل'],['السلوك في القاعة الرياضية','السلوك'],['إحضار الأدوات والكتاب المدرسي والدفاتر','الأدوات والكتاب'],['سلوك الطالبة في الصف','السلوك'],['المستوى الأكاديمي العام','المستوى العام']].forEach(([k,l])=>{if(has(k))parts.push(ch(l,v[k]))});
   const acad='<div class="kvs">'+parts.join('')+'</div>';
-  return'<div class="rbox'+(x.fx?' fx':'')+'">'+head+acad+(x.ph||x.mis?'<div class="ph">'+esc(x.ph)+(x.mis?' '+esc(x.mis):'')+'</div>':'')+'</div>'}
+  return'<div class="rbox">'+head+acad+(x.ph||x.mis?'<div class="ph">'+esc(x.ph)+(x.mis?' '+esc(x.mis):'')+'</div>':'')+'</div>'}
 function reportHTML(r){const rep=REPORTS[R.rep];const g12=r.g12;
   return'<article class="rep'+(g12?' g12':'')+'"><div class="flow">'+
   (g12?CAP:'')+'<h1>التقرير الأكاديمي السلوكي — '+rep.n+' 2026-2027</h1>'+
@@ -635,95 +622,7 @@ function repsUI(secs,reps,info,i){
     (canCur?'<p class="stl">في نافذة الطباعة: حجم الورق A4، والهوامش «بلا»، وفعّلي «رسومات الخلفية» (Background graphics).</p>':'<p class="stl">تُطبع الشعبة بعد اعتماد مديرة المدرسة لها، ويمكنكِ معاينة التقارير الآن.</p>')+'</div>';
   let show=UI.stu?reps.filter(r=>r.st.pid===UI.stu):reps;
   if(UI.printList&&BR.data){show=UI.printList.flatMap(sc=>BR.data.secs[sc]||[])}
-  if(UI.printPids&&BR.data){const P=new Set(UI.printPids);show=Object.keys(BR.data.secs).sort(secSort).flatMap(sc=>BR.data.secs[sc].filter(r=>P.has(sc+'|'+r.st.pid)))}
   return h+'<div class="reps">'+show.map(reportHTML).join('')+'</div>'}
-/* مراجعة الرصد: مقارنة رصد المعلمات الحالي بالنسخة التي اعتمدتها النائبة، مع كشف إزاحة الدرجات طالبةً واحدة */
-function brDiff(){if(!BR.data)return null;const E=entries();const G={};
-  Object.entries(BR.data.secs).forEach(([sec,reps])=>reps.forEach((r,idx)=>{const cur=(E[r.st.pid]||{subs:{}}).subs;
-    r.items.forEach(it=>{const k=sec+'|'+it.s;const g=G[k]=G[k]||{sec,s:it.s,t:it.teacher,rows:[]};const nv=(cur[it.s]||{}).v;if(cur[it.s])g.t=cur[it.s].teacher||g.t;g.rows.push({n:r.st.n,ov:it.v||{},nv})})}));
-  const sheetAt={};Object.values(R.files).forEach(f=>f.sheets.forEach(sh=>{sheetAt[sh.sec+'|'+sh.subj]=sh.at||f.at||''}));
-  const same=(a,b)=>{if(!a||!b)return false;const ks=Object.keys(a).filter(k=>!/تدرس/.test(k)&&String(a[k]??'')!=='');return ks.length>1&&ks.every(k=>String(a[k]??'')===String(b[k]??''))};
-  return Object.values(G).map(g=>{const ch=[];g.rows.forEach(x=>{if(!x.nv)return;const keys=new Set([...Object.keys(x.ov),...Object.keys(x.nv)]);const d=[];keys.forEach(k=>{const a=x.ov[k]==null?'':String(x.ov[k]),b=x.nv[k]==null?'':String(x.nv[k]);if(a!==b)d.push([k,a,b])});if(d.length)ch.push({n:x.n,d})});
-    let up=0,dn=0;g.rows.forEach((x,j)=>{if(!x.nv)return;if(j>0&&same(g.rows[j-1].ov,x.nv)&&!same(x.ov,x.nv))up++;if(j<g.rows.length-1&&same(g.rows[j+1].ov,x.nv)&&!same(x.ov,x.nv))dn++});
-    return Object.assign(g,{ch,shift:Math.max(up,dn)>=2?(up>=dn?'up':'down'):'',at:sheetAt[g.sec+'|'+g.s]||''})}).filter(g=>g.ch.length||g.shift)}
-function brDiffBox(){if(BR.who!=='vp')return '';const i=brInfo();if(!BR.data||!['pend','part','ok'].includes(i.st))return '';
-  let h='<section class="brp noprint" style="background:#fff;border:1.5px solid #EADBB8"><h3>🔍 مراجعة الرصد بعد الاعتماد</h3><p class="stl">تقارن الرصد الحالي للمعلمات بالنسخة التي اعتمدتِها في '+dAr(i.vpAt)+'، وتكشف أي تعديل بعد الاعتماد، وأي إزاحة للدرجات بين طالبة والتي قبلها.</p>'+(!brNeedRevert()&&(i.corr||[]).length?'<p style="font-size:16px"><b style="color:#5B2A86">🟪 الطالبات اللي كان في رصد درجاتهن خطأ وصُحّح: '+i.corr.length+' طالبة</b> — الخانة المصححة ملونة بالبنفسجي، واطبعيهن من «طباعة التقارير المعدلة».</p>':'')+'<div class="chips">'+'<button class="btn pri" data-prfixed="1"'+((i.fixed||[]).length?'':' disabled title="اضغطي «مقارنة التقرير المعتمد بالمرصود» ثم «تصحيح» أولًا"')+'>🖨️ طباعة التقارير المعدلة فقط ('+(i.fixed||[]).length+')</button>'+(brNeedRevert()?'<button class="btn pri" data-brrevert="1">↩️ الرجوع للنسخة المعتمدة (إلغاء تعديل منتصف الفصل)</button>':'')+'<button class="btn pri" data-braudit="1">🔎 مقارنة التقرير المعتمد بالمرصود عند المعلمات</button><button class="btn" data-brdiff="1">🔍 مقارنة الآن</button></div>'+brAuditHTML();
-  if(UI.diff){const D=brDiff()||[];
-    if(!D.length)h+='<p>✅ لا يوجد أي اختلاف: الرصد الحالي مطابق تمامًا للنسخة المعتمدة.</p>';
-    else{const sh=D.filter(g=>g.shift);h+='<p><b>'+D.length+'</b> مادة/شعبة فيها اختلاف'+(sh.length?' · <b style="color:#B23A48">'+sh.length+'</b> يُشتبه فيها بإزاحة الدرجات':'')+'.</p>';
-      h+=D.map(g=>'<details style="border:1px solid #EFE6D8;border-radius:10px;padding:6px 10px;margin:4px 0"><summary><b>'+esc(g.s)+'</b> — '+esc(g.sec)+' — '+esc(short(g.t||''))+' · '+g.ch.length+' طالبة تغيّر رصدها'+(g.at?' · آخر حفظ للمعلمة: '+esc(new Date(g.at).toLocaleString('ar-QA',{day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'})):'')+(String(g.at)>String(i.vpAt)?' <span style="color:#B23A48">(بعد الاعتماد)</span>':'')+(g.shift?' <b style="color:#B23A48">⚠️ إزاحة محتملة: درجات كل طالبة صارت درجات الطالبة '+(g.shift==='up'?'التي قبلها':'التي بعدها')+'</b>':'')+'</summary>'+
-        '<table style="width:100%;font-size:13px;margin-top:6px"><tr><th>الطالبة</th><th>البند</th><th>في النسخة المعتمدة</th><th>الآن</th></tr>'+g.ch.map(c=>c.d.map((d,j)=>'<tr>'+(j?'<td></td>':'<td><b>'+esc(c.n)+'</b></td>')+'<td>'+esc(d[0])+'</td><td>'+esc(d[1]||'—')+'</td><td>'+esc(d[2]||'—')+'</td></tr>').join('')).join('')+'</table></details>').join('')}}
-  return h+'</section>'}
-/* تدقيق: مطابقة كل طالبة في التقرير المعتمد مع رصدها عند المعلمة (بالاسم مباشرة من قاعدة البيانات)، وكشف من أين جاءت القيمة الخاطئة */
-async function brAudit(){if(!BR.data){toast('لا توجد نسخة معتمدة');return}toast('جارٍ جلب رصد المعلمات والمطابقة…');
-  let docs=[];BR.auditErr='';try{const q=await DB().collection('beh').get();q.forEach(x=>docs.push(x.data()))}catch(e){BR.auditErr='تعذّر جلب رصد المعلمات: '+(e&&e.message||e);UI.tab='status';render();return}
-  const vs=v=>{const o={};Object.keys(v||{}).forEach(k=>{if(!/تدرس/.test(k)&&String(v[k]??'')!=='')o[k]=String(v[k])});return o};
-  const eq=(a,b)=>{const ka=Object.keys(a),kb=Object.keys(b);return ka.length>0&&ka.length===kb.length&&ka.every(k=>a[k]===b[k])};
-  const out=[];let checked=0;
-  docs.forEach(d=>{if(!d||!d.sec||!Array.isArray(d.stu))return;const reps=(BR.data.secs||{})[d.sec];if(!reps)return;
-    const raw=d.stu.filter(x=>(x.v||{})['هل تدرس الطالبة المادة لديكِ؟']!=='لا').map(x=>({n:x.n,v:vs(x.v),full:x.v||{}}));const bad=[];
-    raw.forEach(x=>{const r=reps.find(r=>norm(r.st.n)===norm(x.n));const it=r&&r.items.find(i=>i.s===d.subj);checked++;
-      if(!r){bad.push({n:x.n,why:'الطالبة غير موجودة في التقرير المعتمد بهذا الاسم'});return}
-      if(!it){if(Object.keys(x.v).length)bad.push({n:x.n,pid:r.st.pid,full:x.full,why:'المادة غير ظاهرة في تقريرها رغم وجود رصد'});return}
-      const rv=vs(it.v);if(eq(rv,x.v))return;
-      const src=raw.find(y=>y!==x&&eq(rv,y.v));const diff=[...new Set([...Object.keys(x.v),...Object.keys(rv)])].filter(k=>x.v[k]!==rv[k]).map(k=>[k,x.v[k]||'—',rv[k]||'—']);
-      bad.push({n:x.n,pid:r.st.pid,full:x.full,from:src?src.n:'',diff})});
-    if(bad.length)out.push({t:d.teacher,s:d.subj,sec:d.sec,at:d.at,bad,tot:raw.length})});
-  BR.audit={at:new Date().toISOString(),out,checked,docs:docs.length};UI.tab='status';render()}
-/* تصحيح النسخة المعتمدة: تُعاد تقارير الطالبات المتأثرات من رصد معلماتهن الصحيح، دون مساس برصد المعلمات، ويبقى اعتماد المديرة */
-async function brFix(){const A0=BR.audit;if(!A0||!BR.data)return;const T=new Map();
-  A0.out.forEach(g=>g.bad.forEach(b=>{if(!b.pid)return;const reps=BR.data.secs[g.sec];const r=reps&&reps.find(x=>x.st.pid===b.pid);if(!r)return;const key=g.sec+'|'+b.pid;
-    const E=T.get(key)||{r,sec:g.sec,fx:new Set(r.items.filter(it=>it.fx).map(it=>it.s)),subs:Object.fromEntries(r.items.map(it=>[it.s,{teacher:it.teacher,v:it.v}]))};E.subs[g.s]={teacher:g.t,v:b.full};E.fx.add(g.s);T.set(key,E)}));
-  if(!T.size){toast('لا توجد تقارير قابلة للتصحيح');return}
-  if(!confirm('سيُصحَّح تقرير '+T.size+' طالبة في النسخة المعتمدة من رصد معلماتهن، دون أي تعديل على رصد المعلمات، ويبقى اعتماد المديرة. متابعة؟'))return;
-  BR.busy=true;render();try{T.forEach(E=>{const reps=BR.data.secs[E.sec];const j=reps.indexOf(E.r);const nr=studentReport(E.r.st,E.sec,{subs:E.subs});nr.items.forEach(it=>{if(E.fx.has(it.s))it.fx=1});reps[j]=nr});
-    const k=brK(),db=DB(),txt=JSON.stringify(BR.data),CH=300000,parts=Math.max(1,Math.ceil(txt.length/CH));
-    for(let j=0;j<parts;j++)await db.collection('adm').doc('br_'+k+'_'+j).set({t:txt.slice(j*CH,(j+1)*CH)});
-    const x=BR.meta.reps[k];const corr=[...new Set([...(x.corr||[]),...T.keys()])];const up={parts,fixed:corr,corr,fixedAt:new Date().toISOString()};
-    await db.collection('adm').doc('brmeta').set({reps:{[k]:up}},{merge:true});Object.assign(x,up);BR.audit=null;BR.busy=false;
-    /* تحقق تلقائي بعد التصحيح: إعادة المطابقة كاملة من قاعدة البيانات */
-    await brAudit();const left=(BR.audit&&BR.audit.out||[]).reduce((a,g)=>a+g.bad.filter(b=>b.pid).length,0);
-    toast(left?'⚠️ بقي '+left+' اختلافًا بعد التصحيح، راجعي القائمة':'✅ تم تصحيح '+T.size+' تقريرًا، وتحققت المطابقة 100% مع رصد المعلمات. اضغطي «طباعة التقارير المعدلة».',9000);return}catch(e){console.warn(e);toast('تعذّر التصحيح: '+(e&&e.message||e))}BR.busy=false;render()}
-/* إضافة درجات منتصف الفصل الناقصة إلى النسخة المعتمدة من كشف الدرجات (دون مساس برصد المعلمات)، وتلوين المضاف بالبنفسجي */
-async function brAddMid(){if(!BR.data)return;const a=A();const per=REPORTS[R.rep].mid;if(!((a.cur||{})[per])){toast('كشف درجات «منتصف الفصل الأول» غير مرفوع في لوحة تحليل النتائج على هذا الجهاز',8000);return}
-  const add=[];const D=JSON.parse(JSON.stringify(BR.data));Object.entries(D.secs).forEach(([sec,reps])=>{if(sec.startsWith('12'))return;reps.forEach((r,j)=>{const before={};r.items.forEach(it=>before[it.s]=it.mid);
-    const subs=Object.fromEntries(r.items.map(it=>[it.s,{teacher:it.teacher,v:it.v}]));const nr=studentReport(r.st,sec,{subs});let n=0;
-    nr.items.forEach(it=>{const o=r.items.find(x=>x.s===it.s);if(o&&o.fx)it.fx=1;if(before[it.s]==null&&it.mid!=null)n++});
-    if(n){reps[j]=nr;add.push(sec+'|'+r.st.pid)}})});
-  if(!add.length){toast('لا توجد درجات منتصف فصل ناقصة يمكن إضافتها من الكشف المرفوع',7000);return}
-  if(!confirm('ستُضاف درجات منتصف الفصل الأول الناقصة إلى تقارير '+add.length+' طالبة من كشف الدرجات، ولا تُحتسب ضمن التقارير المعدلة. متابعة؟'))return;
-  BR.busy=true;render();try{const k=brK(),db=DB(),txt=JSON.stringify(D),CH=300000,parts=Math.max(1,Math.ceil(txt.length/CH));
-    for(let j=0;j<parts;j++)await db.collection('adm').doc('br_'+k+'_'+j).set({t:txt.slice(j*CH,(j+1)*CH)});
-    const x=BR.meta.reps[k];const up={parts,midAdded:[...new Set([...(x.midAdded||[]),...add])],midAt:new Date().toISOString()};
-    await db.collection('adm').doc('brmeta').set({reps:{[k]:up}},{merge:true});Object.assign(x,up);BR.data=D;toast('✅ أُضيفت درجات منتصف الفصل الأول إلى تقارير '+add.length+' طالبة',9000)}catch(e){console.warn(e);toast('تعذّر الحفظ: '+(e&&e.message||e))}BR.busy=false;render()}
-document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-braddmid]');if(!t||t.disabled||BR.busy||BR.who!=='vp')return;brAddMid()});
-/* إلغاء إضافة درجات منتصف الفصل: إعادة بناء كل تقرير من رصده في النسخة المعتمدة بمنتصف الفصل الأصلي كما اعتُمد، مع الإبقاء على التصحيحات فقط */
-function brNeedRevert(){const x=BR.meta&&BR.meta.reps&&BR.meta.reps[brK()];return !!(x&&((x.midAdded&&x.midAdded.length)||(x.fixed&&x.fixed.length&&!x.corr)))}
-async function brRevertMid(){const k=brK();const x=BR.meta.reps[k];if(!BR.data||!x)return;
-  /* النسخة السابقة كانت تضيف طالبات منتصف الفصل إلى نهاية قائمة المعدلة نفسها؛ فالتصحيحات هي أول القائمة بترتيبها */
-  let keepL=x.corr;if(!keepL){const L=x.fixed||[];const ans=prompt('قائمة التقارير المعدلة الآن فيها '+L.length+' تقريرًا (التصحيحات أولًا ثم طالبات منتصف الفصل).\nاكتبي عدد التقارير التي صُحّحت فعلًا (قبل إضافة منتصف الفصل):','186');if(ans==null)return;const n=parseInt(ans,10);if(!(n>=0&&n<=L.length)){toast('العدد غير صحيح');return}keepL=L.slice(0,n)}
-  if(!confirm('سترجع درجات منتصف الفصل الأول في كل التقارير كما كانت عند الاعتماد، ويبقى '+keepL.length+' تقريرًا معدلًا فقط (اللي كان فيها خطأ). متابعة؟'))return;
-  const keep=new Set(keepL);const D=JSON.parse(JSON.stringify(BR.data));
-  Object.entries(D.secs).forEach(([sec,reps])=>reps.forEach((r,j)=>{const key=sec+'|'+r.st.pid;const fxS=new Set(keep.has(key)?r.items.filter(it=>it.fx).map(it=>it.s):[]);
-    const nr=studentReport(r.st,sec,{subs:Object.fromEntries(r.items.map(it=>[it.s,{teacher:it.teacher,v:it.v}]))});nr.items.forEach(it=>{if(fxS.has(it.s))it.fx=1});reps[j]=nr}));
-  BR.busy=true;render();try{const db=DB(),txt=JSON.stringify(D),CH=300000,parts=Math.max(1,Math.ceil(txt.length/CH));
-    for(let j=0;j<parts;j++)await db.collection('adm').doc('br_'+k+'_'+j).set({t:txt.slice(j*CH,(j+1)*CH)});
-    const up={parts,fixed:[...keep],corr:[...keep],midAdded:[]};await db.collection('adm').doc('brmeta').set({reps:{[k]:up}},{merge:true});Object.assign(x,up);BR.data=D;
-    toast('✅ رجعت درجات منتصف الفصل الأول كما كانت. اضغطي الآن «مقارنة التقرير المعتمد بالمرصود عند المعلمات» لمعرفة عدد التقارير التي فيها خطأ.',10000)}catch(e){console.warn(e);toast('تعذّر الحفظ: '+(e&&e.message||e))}BR.busy=false;render()}
-document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-brrevert]');if(!t||t.disabled||BR.busy||BR.who!=='vp')return;brRevertMid()});
-async function brPrintFixed(){const i=brInfo();const L=(i.fixed||[]).filter(key=>i.okSecs.includes(key.split('|')[0]));
-  if(!L.length){toast((i.fixed||[]).length?'شعب التقارير المعدلة لم تعتمدها مديرة المدرسة بعد':'لا توجد تقارير معدلة');return}
-  toast('جارٍ تجهيز '+L.length+' تقريرًا معدلًا للطباعة…',6000);UI.printPids=L;UI.printList=null;UI.stu='';UI.tab='reports';render();await (window.__pg||Promise.resolve());await new Promise(r=>setTimeout(r,300));
-  const done=()=>{window.removeEventListener('afterprint',done);UI.printPids=null;render()};window.addEventListener('afterprint',done);window.print()}
-document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.closest('[data-brfix],[data-prfixed],[data-brfixprint]');if(!t||t.disabled||BR.busy)return;if(t.dataset.brfix&&BR.who==='vp')brFix();else if(t.dataset.brfixprint&&BR.who==='vp'){await brFix();if((brInfo().fixed||[]).length)brPrintFixed()}else if(t.dataset.prfixed)brPrintFixed()});
-function brAuditHTML(){if(BR.auditErr)return '<p style="color:#B23A48"><b>⚠️ '+esc(BR.auditErr)+'</b></p>';const A0=BR.audit;if(!A0)return '';if(!A0.out.length)return '<p>✅ تمت مطابقة <b>'+A0.checked+'</b> رصدًا في <b>'+A0.docs+'</b> ملف معلمة: التقرير المعتمد مطابق تمامًا لما رصدته المعلمات.</p>';
-  const nb=A0.out.reduce((a,g)=>a+g.bad.length,0);const nf=A0.out.reduce((a,g)=>a+g.bad.filter(b=>b.pid).length,0);
-  return '<div class="chips" style="margin:6px 0"><button class="btn pri" data-brfix="1"'+(BR.busy?' disabled':'')+'>✅ تصحيح التقرير المعتمد من رصد المعلمات</button><button class="btn pri" data-brfixprint="1"'+(BR.busy?' disabled':'')+'>✅🖨️ تصحيح ثم طباعة المعدلة فقط ('+nf+')</button></div><p style="color:#B23A48;font-size:16px"><b>⚠️ عدد التقارير التي فيها خطأ: '+new Set(A0.out.flatMap(g=>g.bad.map(b=>g.sec+'|'+(b.pid||b.n)))).size+' تقريرًا</b> — في '+A0.out.length+' مادة/شعبة، و'+nb+' خانة مادة مختلفة عن رصد المعلمة:</p>'+A0.out.map(g=>{const sh=g.bad.filter(b=>b.from).length;
-    return '<details open style="border:1px solid #EFE6D8;border-radius:10px;padding:6px 10px;margin:4px 0"><summary><b>'+esc(g.s)+'</b> — '+esc(g.sec)+' — '+esc(short(g.t||''))+' · '+g.bad.length+' من '+g.tot+' طالبة'+(sh?' · <b style="color:#B23A48">'+sh+' منها أخذت درجات طالبة أخرى</b>':'')+'</summary>'+
-    '<table style="width:100%;font-size:13px;margin-top:6px"><tr><th>الطالبة</th><th>الخطأ</th><th>البند</th><th>المرصود عند المعلمة</th><th>في التقرير المعتمد</th></tr>'+
-    g.bad.map(b=>b.diff?b.diff.map((d,j)=>'<tr>'+(j?'<td></td><td></td>':'<td><b>'+esc(b.n)+'</b></td><td>'+(b.from?'أخذت درجات <b>'+esc(b.from)+'</b>':'قيم مختلفة')+'</td>')+'<td>'+esc(d[0])+'</td><td>'+esc(d[1])+'</td><td>'+esc(d[2])+'</td></tr>').join(''):'<tr><td><b>'+esc(b.n)+'</b></td><td colspan="4">'+esc(b.why)+'</td></tr>').join('')+'</table></details>'}).join('')}
-document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-braudit]');if(t)brAudit()});
-document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-brdiff]');if(!t)return;UI.diff=1;render();toast('تمت المقارنة بآخر رصد جُلب من المنصة')});
 /* طباعة عدة شعب دفعة واحدة (المعتمد منها فقط) */
 async function brPrintSecs(list){const i=brInfo();const ok=list.filter(sc=>i.okSecs.includes(sc)).sort(secSort);const skip=list.length-ok.length;
   if(!ok.length){toast(list.length?'الشعب المحددة لم تعتمدها مديرة المدرسة بعد':'حدّدي الشعب أولًا');return}
@@ -784,7 +683,7 @@ function brPanel(i){if(BR.noAuth)return '<section class="brp noprint" style="bac
   const steps='<div class="brsteps">'+step('١. اعتماد النائب الأكاديمي',['pend','part','ok'].includes(i.st),i.st==='none'||i.st==='ret')+step('٢. اعتماد مديرة المدرسة'+(i.st==='part'?' ('+i.okSecs.length+'/'+i.all.length+')':''),i.st==='ok',i.st==='pend'||i.st==='part')+step('٣. جاهز للطباعة',i.st==='ok',i.st==='part')+'</div>';
   const box=(bg,bd,h)=>'<section class="brp noprint" style="background:'+bg+';border:1.5px solid '+bd+'"><h3>📜 اعتماد '+esc(REPORTS[R.rep].n)+'</h3>'+steps+h+'</section>';
   const B=BR.busy?' disabled':'';
-  const PB='<div class="chips">'+'<button class="btn pri" data-prfixed="1"'+((i.fixed||[]).length?'':' disabled title="اضغطي «مقارنة التقرير المعتمد بالمرصود» ثم «تصحيح» أولًا"')+'>🖨️ طباعة التقارير المعدلة فقط ('+(i.fixed||[]).length+')</button>'+'<button class="btn" data-prall="1">🖨️ طباعة جميع الشعب المعتمدة</button><button class="btn" data-goreps="1">🖨️ اختيار شعب أو طالبة للطباعة</button></div>';
+  const PB='<div class="chips"><button class="btn pri" data-prall="1">🖨️ طباعة جميع الشعب المعتمدة</button><button class="btn" data-goreps="1">🖨️ اختيار شعب أو طالبة للطباعة</button></div>';
   if(BR.who==='pr'){
     if(i.st==='ok')return box('#EAF6EE','#9FD3B0','<p>✅ اعتمدتِ التقارير في <b>'+dAr(i.prAt)+'</b>، وهي جاهزة للطباعة لديكِ ولدى النائبة الأكاديمية.</p>'+PB);
     if(i.st==='ret')return box('#FBEDEF','#E8A9B3','<p>↩️ أعدتِ التقارير بملاحظة: '+esc(i.note)+'</p><p class="stl">تصلكِ مجددًا بعد تعديلها واعتماد النائب الأكاديمي لها.</p>');
@@ -839,9 +738,9 @@ function paginate(){document.querySelectorAll('.rep>.flow').forEach(fl=>{const a
 function paginateSoon(){window.__pg=new Promise(res=>{const go=()=>requestAnimationFrame(()=>{try{paginate()}catch(e){console.warn(e)}res()});(document.fonts&&document.fonts.ready)?document.fonts.ready.then(go):go()});return window.__pg}
 function render(){try{if(BR.who==='pr'){$('#nav').innerHTML='<button type="button" aria-current="page">اعتماد التقارير</button><a class="backlink" href="./">العودة إلى سبع سنابل ←</a>';$('#view').innerHTML=vPr();paginateSoon();$('#marq').textContent='التقرير الأكاديمي السلوكي · اعتماد مديرة المدرسة · «إِنَّا لَا نُضِيعُ أَجْرَ مَنْ أَحْسَنَ عَمَلًا»';return}
   $('#nav').innerHTML=TABS.map(([id,l])=>'<button type="button" data-tab="'+id+'"'+(UI.tab===id?' aria-current="page"':'')+'>'+l+'</button>').join('')+'<a class="backlink" href="./">العودة إلى سبع سنابل ←</a>';
-  $('#view').innerHTML=(UI.tab==='status'?brPanel(brInfo())+brDiffBox():'')+{status:vStatus,reports:vReports,files:vFiles}[UI.tab]();if(UI.tab==='reports')paginateSoon();
+  $('#view').innerHTML=(UI.tab==='status'?brPanel(brInfo()):'')+{status:vStatus,reports:vReports,files:vFiles}[UI.tab]();if(UI.tab==='reports')paginateSoon();
   const T=teacherStatus();$('#marq').textContent='التقرير الأكاديمي السلوكي · '+REPORTS[R.rep].n+' · '+T.filter(t=>t.st==='done').length+' معلمة أنهت الرصد من '+T.length+' · «إِنَّا لَا نُضِيعُ أَجْرَ مَنْ أَحْسَنَ عَمَلًا»'}catch(e){console.error(e);$('#view').innerHTML='<div class="box"><div class="empty">حدث خطأ: '+esc(e.message)+'</div></div>'}}
-function toast(m,ms){const t=document.createElement('div');t.className='toast';t.textContent=m;$('#toastRoot').appendChild(t);setTimeout(()=>t.remove(),ms||5000)}
+function toast(m){const t=document.createElement('div');t.className='toast';t.textContent=m;$('#toastRoot').appendChild(t);setTimeout(()=>t.remove(),4500)}
 function openMsg(t){const k=t.st==='done'?'thanks':'remind';const m=mailParts(t,k);const q=s=>encodeURIComponent(s);
   const mailto='mailto:'+m.to+'?'+(m.cc?'cc='+q(m.cc)+'&':'')+'subject='+q(m.subj)+'&body='+q(m.body);
   const owa='https://outlook.office.com/mail/deeplink/compose?to='+q(m.to)+(m.cc?'&cc='+q(m.cc):'')+'&subject='+q(m.subj)+'&body='+q(m.body);
@@ -875,7 +774,7 @@ function skKeep(sec,subj,H){if(!(String(sec).startsWith('12')&&/مهارات/.te
 function cloudSheets(docs){const a=A();const reg={};Object.entries(a.reg||{}).forEach(([pid,r])=>{reg[r.s+'|'+norm(r.n)]=pid});const byT={};
   docs.forEach(d=>{if(!d||!d.sec||!Array.isArray(d.stu))return;const H=skKeep(d.sec,d.subj,d.H||[]);const stu=d.stu.map(x=>({pid:reg[d.sec+'|'+norm(x.n)]||x.n,n:x.n,v:x.v||{}}));
     let blanks=0,total=0;stu.forEach(x=>{total++;if(x.v[H[0]]==='لا')return;H.slice(1).forEach(h=>{total++;if(x.v[h]===''||x.v[h]==null)blanks++})});
-    const k=norm(d.teacher);(byT[k]=byT[k]||{teacher:d.teacher,file:'من المنصة',at:d.at,sheets:[],cloud:1}).sheets.push({sec:d.sec,subj:d.subj,choose:true,H,stu,blanks,total,at:d.at||''});if(d.at>byT[k].at)byT[k].at=d.at});
+    const k=norm(d.teacher);(byT[k]=byT[k]||{teacher:d.teacher,file:'من المنصة',at:d.at,sheets:[],cloud:1}).sheets.push({sec:d.sec,subj:d.subj,choose:true,H,stu,blanks,total});if(d.at>byT[k].at)byT[k].at=d.at});
   return byT}
 async function cloudPull(u){try{const fb=firebase.firestore();const q=await fb.collection('beh').get();const docs=[];q.forEach(x=>docs.push(x.data()));const byT=cloudSheets(docs);
   Object.entries(byT).forEach(([k,f])=>{const old=R.files[k];if(old&&!old.cloud){const keep=old.sheets.filter(s=>!f.sheets.some(c=>c.sec===s.sec&&c.subj===s.subj));f.sheets=keep.concat(f.sheets);f.file='من المنصة + '+old.file}R.files[k]=f});
