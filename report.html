@@ -521,11 +521,20 @@ function commit(subj,v){const g=k=>v[Object.keys(v).find(h=>h.startsWith(k))||'_
   let s=books+(beh==='ملتزمة'?2:0)+(part==null?1:part>=4?2:part>=2.5?1:0)+(hwMax?(hwS/hwMax>=.75?2:hwS/hwMax>=.5?1:0):1);
   const c=s>=7?'ملتزمة':s>=4?'ملتزمة إلى حد ما':'غير ملتزمة';return beh!=='ملتزمة'&&c==='ملتزمة'?'ملتزمة إلى حد ما':c}
 function assessPct(v){let g=0,t=0;Object.keys(v).forEach(h=>{const m=h.match(/^التقييم.*\(من ([\d.]+)\)/);if(!m)return;const x=num(v[h]);if(x==null)return;g+=x;t+=+m[1]});return t?g/t*100:null}
+/* مطابقة اسم المادة في ملف المعلمة مع اسمها في كشف الدرجات (مثل «العلوم (عاشر)» ↔ «العلوم»، «الحوسبة + الفنون» ↔ «الحوسبة وتكنولوجيا المعلومات») — نفس قاموس لوحة التحليل */
+function canonR(x){const n=norm(x);if(!n)return'';
+  if(/اجتماعي/.test(n))return'الدراسات الاجتماعية';if(/حوسب/.test(n))return'الحوسبة وتكنولوجيا المعلومات';if(/علوم الحاسب/.test(n))return'علوم الحاسب';if(/^تكنولوجيا المعلومات/.test(n))return'تكنولوجيا المعلومات';
+  if(/العلوم المتكامل/.test(n)||n==='العلوم'||n==='علوم')return'العلوم';if(/العلوم العامه/.test(n))return'العلوم العامة';if(/الرياضيات العامه/.test(n))return'الرياضيات العامة';if(/رياضيات/.test(n))return'الرياضيات';
+  if(/اداره/.test(n))return'إدارة الأعمال';if(/انجليز/.test(n))return'اللغة الإنجليزية';if(/عربيه/.test(n))return'اللغة العربية';if(/اسلامي/.test(n))return'التربية الإسلامية';if(/بدني/.test(n))return'التربية البدنية';
+  if(/مهارات/.test(n))return'المهارات الحياتية والمهنية';if(/فنون/.test(n))return'الفنون';if(/فيزياء/.test(n))return'الفيزياء';if(/كيمياء/.test(n))return'الكيمياء';if(/احياء/.test(n))return'الأحياء';
+  if(/تاريخ/.test(n))return'التاريخ';if(/جغرافيا/.test(n))return'الجغرافيا';return String(x).trim()}
+function midOf(g,s){if(!g)return null;if(typeof g[s]==='number')return g[s];const base=String(s).replace(/\([^)]*\)/g,'').trim();
+  for(const t of [base,...base.split('+').map(x=>x.trim())]){if(!t)continue;if(typeof g[t]==='number')return g[t];const c=canonR(t);if(typeof g[c]==='number')return g[c]}return null}
 function studentReport(st,sec){const E=entries()[st.pid]||{subs:{}};const a=A();const per=REPORTS[R.rep].mid;const cur=((a.cur||{})[per]||{})[st.pid];const g12=sec.startsWith('12');
   const h=hash(st.pid);const filled=v=>Object.entries(v||{}).some(([k,x])=>k!=='هل تدرس الطالبة المادة لديكِ؟'&&x!=null&&String(x).trim()!=='');
   /* المادة التي لم تُعبّأ خاناتها تُستبعد من التقرير كاملة */
   const subs=Object.keys(E.subs).filter(s=>filled(E.subs[s].v)).sort(subjSort);
-  const items=subs.map((s,i)=>{const e=E.subs[s];const c=commit(s,e.v);const ap=assessPct(e.v);const mid=cur&&typeof cur.g[s]==='number'?cur.g[s]:null;
+  const items=subs.map((s,i)=>{const e=E.subs[s];const c=commit(s,e.v);const ap=assessPct(e.v);const mid=cur?midOf(cur.g,s):null;
     let ph=c?PH[c][(h+i*3)%10]:'';let mis='';if(!g12&&mid!=null&&ap!=null){if(mid-ap>=20)mis=MIS_HI;else if(ap-mid>=20)mis=MIS_LO}
     const skg=g12&&/مهارات/.test(s);return{s,teacher:e.teacher,v:e.v,c,ap:skg?null:ap,mid:skg?null:mid,ph,mis:skg?'':mis}});
   const sw=R.sw&&R.sw.secs[sec]?(R.sw.secs[sec].notes[st.pid]||[]):null;
