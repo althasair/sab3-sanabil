@@ -645,7 +645,7 @@ function brDiff(){if(!BR.data)return null;const E=entries();const G={};
     let up=0,dn=0;g.rows.forEach((x,j)=>{if(!x.nv)return;if(j>0&&same(g.rows[j-1].ov,x.nv)&&!same(x.ov,x.nv))up++;if(j<g.rows.length-1&&same(g.rows[j+1].ov,x.nv)&&!same(x.ov,x.nv))dn++});
     return Object.assign(g,{ch,shift:Math.max(up,dn)>=2?(up>=dn?'up':'down'):'',at:sheetAt[g.sec+'|'+g.s]||''})}).filter(g=>g.ch.length||g.shift)}
 function brDiffBox(){if(BR.who!=='vp')return '';const i=brInfo();if(!BR.data||!['pend','part','ok'].includes(i.st))return '';
-  let h='<section class="brp noprint" style="background:#fff;border:1.5px solid #EADBB8"><h3>🔍 مراجعة الرصد بعد الاعتماد</h3><p class="stl">تقارن الرصد الحالي للمعلمات بالنسخة التي اعتمدتِها في '+dAr(i.vpAt)+'، وتكشف أي تعديل بعد الاعتماد، وأي إزاحة للدرجات بين طالبة والتي قبلها.</p><div class="chips">'+((i.fixed||[]).length?'<button class="btn pri" data-prfixed="1">🖨️ طباعة التقارير المعدلة ('+i.fixed.length+')</button>':'')+'<button class="btn pri" data-braudit="1">🔎 مقارنة التقرير المعتمد بالمرصود عند المعلمات</button><button class="btn" data-brdiff="1">🔍 مقارنة الآن</button></div>'+brAuditHTML();
+  let h='<section class="brp noprint" style="background:#fff;border:1.5px solid #EADBB8"><h3>🔍 مراجعة الرصد بعد الاعتماد</h3><p class="stl">تقارن الرصد الحالي للمعلمات بالنسخة التي اعتمدتِها في '+dAr(i.vpAt)+'، وتكشف أي تعديل بعد الاعتماد، وأي إزاحة للدرجات بين طالبة والتي قبلها.</p><div class="chips">'+((i.fixed||[]).length?'<button class="btn pri" data-prfixed="1">🖨️ طباعة التقارير المعدلة ('+i.fixed.length+')</button>':'')+'<button class="btn" data-braddmid="1">➕ إضافة درجات منتصف الفصل الأول الناقصة</button><button class="btn pri" data-braudit="1">🔎 مقارنة التقرير المعتمد بالمرصود عند المعلمات</button><button class="btn" data-brdiff="1">🔍 مقارنة الآن</button></div>'+brAuditHTML();
   if(UI.diff){const D=brDiff()||[];
     if(!D.length)h+='<p>✅ لا يوجد أي اختلاف: الرصد الحالي مطابق تمامًا للنسخة المعتمدة.</p>';
     else{const sh=D.filter(g=>g.shift);h+='<p><b>'+D.length+'</b> مادة/شعبة فيها اختلاف'+(sh.length?' · <b style="color:#B23A48">'+sh.length+'</b> يُشتبه فيها بإزاحة الدرجات':'')+'.</p>';
@@ -682,6 +682,19 @@ async function brFix(){const A0=BR.audit;if(!A0||!BR.data)return;const T=new Map
     /* تحقق تلقائي بعد التصحيح: إعادة المطابقة كاملة من قاعدة البيانات */
     await brAudit();const left=(BR.audit&&BR.audit.out||[]).reduce((a,g)=>a+g.bad.filter(b=>b.pid).length,0);
     toast(left?'⚠️ بقي '+left+' اختلافًا بعد التصحيح، راجعي القائمة':'✅ تم تصحيح '+T.size+' تقريرًا، وتحققت المطابقة 100% مع رصد المعلمات. اضغطي «طباعة التقارير المعدلة».',9000);return}catch(e){console.warn(e);toast('تعذّر التصحيح: '+(e&&e.message||e))}BR.busy=false;render()}
+/* إضافة درجات منتصف الفصل الناقصة إلى النسخة المعتمدة من كشف الدرجات (دون مساس برصد المعلمات)، وتلوين المضاف بالبنفسجي */
+async function brAddMid(){if(!BR.data)return;const a=A();const per=REPORTS[R.rep].mid;if(!((a.cur||{})[per])){toast('كشف درجات «منتصف الفصل الأول» غير مرفوع في لوحة تحليل النتائج على هذا الجهاز',8000);return}
+  const add=[];const D=JSON.parse(JSON.stringify(BR.data));Object.entries(D.secs).forEach(([sec,reps])=>{if(sec.startsWith('12'))return;reps.forEach((r,j)=>{const before={};r.items.forEach(it=>before[it.s]=it.mid);
+    const subs=Object.fromEntries(r.items.map(it=>[it.s,{teacher:it.teacher,v:it.v}]));const nr=studentReport(r.st,sec,{subs});let n=0;
+    nr.items.forEach(it=>{const o=r.items.find(x=>x.s===it.s);if(o&&o.fx)it.fx=1;if(before[it.s]==null&&it.mid!=null){it.fx=1;n++}});
+    if(n){reps[j]=nr;add.push(sec+'|'+r.st.pid)}})});
+  if(!add.length){toast('لا توجد درجات منتصف فصل ناقصة يمكن إضافتها من الكشف المرفوع',7000);return}
+  if(!confirm('ستُضاف درجات منتصف الفصل الأول الناقصة إلى تقارير '+add.length+' طالبة من كشف الدرجات، وتُلوَّن بالبنفسجي. متابعة؟'))return;
+  BR.busy=true;render();try{const k=brK(),db=DB(),txt=JSON.stringify(D),CH=300000,parts=Math.max(1,Math.ceil(txt.length/CH));
+    for(let j=0;j<parts;j++)await db.collection('adm').doc('br_'+k+'_'+j).set({t:txt.slice(j*CH,(j+1)*CH)});
+    const x=BR.meta.reps[k];const fixed=[...new Set([...(x.fixed||[]),...add])];const up={parts,fixed,fixedAt:new Date().toISOString()};
+    await db.collection('adm').doc('brmeta').set({reps:{[k]:up}},{merge:true});Object.assign(x,up);BR.data=D;toast('✅ أُضيفت درجات منتصف الفصل الأول إلى تقارير '+add.length+' طالبة. اضغطي «طباعة التقارير المعدلة».',9000)}catch(e){console.warn(e);toast('تعذّر الحفظ: '+(e&&e.message||e))}BR.busy=false;render()}
+document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-braddmid]');if(!t||t.disabled||BR.busy||BR.who!=='vp')return;brAddMid()});
 async function brPrintFixed(){const i=brInfo();const L=(i.fixed||[]).filter(key=>i.okSecs.includes(key.split('|')[0]));
   if(!L.length){toast((i.fixed||[]).length?'شعب التقارير المعدلة لم تعتمدها مديرة المدرسة بعد':'لا توجد تقارير معدلة');return}
   toast('جارٍ تجهيز '+L.length+' تقريرًا معدلًا للطباعة…',6000);UI.printPids=L;UI.printList=null;UI.stu='';UI.tab='reports';render();await (window.__pg||Promise.resolve());await new Promise(r=>setTimeout(r,300));
