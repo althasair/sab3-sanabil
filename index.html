@@ -962,14 +962,18 @@ function chAppPanel(L,n){const x=chIss(L),T=esc(S.settings.tests[L]||'');const b
 /* شريط أعلى الصفحات: المعلمات يرين أنه تم الإصدار، والمديرة ترى طلب الاعتماد */
 /* ===== اعتماد التقرير الأكاديمي السلوكي (report.html): النائب ← المديرة ← جاهز للطباعة ===== */
 function brState(){const M=window.__BRM;if(!M||!M.reps)return [];const P=chPrDoc();const Q=P?(P[1].brq||{}):{};
-  return Object.entries(M.reps).map(([k,x])=>{const d=Q[k]||{};const fr=!!d.at&&String(d.at)>=String(x.vpAt||'');return {k,x,st:fr?(d.ok?'ok':d.ret?'ret':'pend'):'pend',at:fr?d.at:'',note:fr?(d.note||''):''}}).sort((a,b)=>String(b.x.vpAt).localeCompare(String(a.x.vpAt)))}
+  return Object.entries(M.reps).map(([k,x])=>{const d=Q[k]||{};const v=String(x.vpAt||''),fr=t=>!!t&&String(t)>=v;const allAt=d.allAt||(d.ok&&d.at)||'';const S2=d.secs||{};
+    const all=x.secs||[];const okN=fr(allAt)?all.length:all.filter(sc=>fr(S2[sc])).length;const last=[allAt,...Object.values(S2)].filter(fr).sort().pop()||'';const retAt=d.retAt||(d.ret&&d.at)||'';
+    const st=(fr(retAt)&&String(retAt)>String(last))?'ret':(fr(allAt)||(all.length&&okN===all.length))?'ok':okN?'part':'pend';
+    return {k,x,st,at:last,okN,tot:all.length,note:st==='ret'?(d.note||''):''}}).sort((a,b)=>String(b.x.vpAt).localeCompare(String(a.x.vpAt)))}
 function brBar(){if(!AUTH)return '';const L=brState();if(!L.length)return '';const s=L[0],nm=esc(s.x.name||'التقرير الأكاديمي السلوكي');
   const bar=(bg,bd,h)=>'<div class="noprint" style="margin:0 0 14px;padding:10px 14px;background:'+bg+';border:1.5px solid '+bd+';border-radius:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">'+h+'<span style="flex:1"></span><a class="btn sm pri" href="report.html">فتح التقارير</a></div>';
   const recent=s.at&&(Date.now()-new Date(s.at).getTime())<7*864e5;
-  if(prLead()==='pr'){if(s.st==='pend')return bar('#FFF8E1','#E3C77A','<b>📄 '+nm+' بانتظار اعتمادكِ</b><span class="small">اعتمدته نائب المديرة للشؤون الأكاديمية في '+esc(String(s.x.vpAt).slice(0,10))+' ('+(s.x.n||0)+' طالبة)</span>');
+  if(prLead()==='pr'){if(s.st==='part')return bar('#FFF8E1','#E3C77A','<b>📄 '+nm+': اعتمدتِ '+s.okN+' من '+s.tot+' شعبة</b><span class="small">بقية الشعب بانتظار اعتمادكِ</span>');if(s.st==='pend')return bar('#FFF8E1','#E3C77A','<b>📄 '+nm+' بانتظار اعتمادكِ</b><span class="small">اعتمدته نائب المديرة للشؤون الأكاديمية في '+esc(String(s.x.vpAt).slice(0,10))+' ('+(s.x.n||0)+' طالبة)</span>');
     if(s.st==='ok'&&recent)return bar('#EAF6EE','#9FD3B0','<b>✅ اعتمدتِ '+nm+'</b><span class="small">جاهز للطباعة</span>');return ''}
   if(AUTH.role==='admin'){if(s.st==='ok'&&recent)return bar('#EAF6EE','#9FD3B0','<b>✅ اعتمدت مديرة المدرسة '+nm+' — جاهز للطباعة</b><span class="small">'+esc(String(s.at).slice(0,10))+' · وظهر للمعلمات أنه تم إصدار ميثاق الشراكة</span>');
     if(s.st==='ret')return bar('#FBEDEF','#E8A9B3','<b>↩️ أعادت مديرة المدرسة '+nm+'</b><span class="small">'+esc(s.note)+'</span>');
+    if(s.st==='part')return bar('#FFF8E1','#E3C77A','<b>⏳ اعتمدت مديرة المدرسة '+s.okN+' من '+s.tot+' شعبة من '+nm+'</b><span class="small">الشعب المعتمدة جاهزة للطباعة</span>');
     if(s.st==='pend')return bar('#FFF8E1','#E3C77A','<b>⏳ '+nm+' بانتظار اعتماد مديرة المدرسة</b>')}
   return ''}
 function chIssBar(){return brBar()+chIssBar0()}

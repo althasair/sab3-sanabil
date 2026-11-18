@@ -414,6 +414,7 @@ pre.spec{white-space:pre-wrap;background:color-mix(in srgb,var(--cream) 35%,var(
 .brp{border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:10px}.brp h3{margin:0;font-size:16px;color:var(--maroon)}.brp p{margin:0;font-size:14px;line-height:1.8}
 .brsteps{display:flex;gap:8px;flex-wrap:wrap}.brsteps span{border-radius:999px;padding:4px 12px;font-size:13px;font-weight:800;background:#F1ECE4;color:#8A7A80;border:1px solid #E4DACB}.brsteps span.on{background:#EAF6EE;color:#1F6B3A;border-color:#9FD3B0}.brsteps span.cur{background:#FFF6DC;color:#7A5A0B;border-color:#E3C77A}
 .btn[disabled]{opacity:.45;cursor:not-allowed}
+.pickrow{gap:6px}.pick{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;border:1px solid #E4DACB;background:#fff;font-size:13px;font-weight:800;cursor:pointer}.pick.ok{background:#EAF6EE;border-color:#9FD3B0;color:#1F6B3A}.pick input{accent-color:#62102A}
 @media print{
  @page{size:A4;margin:0}
  html,body{background:transparent!important;margin:0!important;padding:0!important}#view,.rep,.reps{margin:0!important;padding:0!important}
@@ -573,7 +574,7 @@ function reportHTML(r){const rep=REPORTS[R.rep];const g12=r.g12;
   chart(r.items,g12)+(()=>{const bx=r.items.map(x=>subjBox(x,g12)).filter(Boolean);let o='';for(let i=0;i<bx.length;i+=2)o+='<div class="sbrow">'+bx[i]+(bx[i+1]||'')+'</div>';return o})()+
   '<div class="rbox sw"><div class="rh">ملاحظات الأخصائية الاجتماعية — رصد المخالفات السلوكية</div>'+(r.sw==null?'<div class="ph muted">لم يُستلم رصد الأخصائيات لهذه الشعبة بعد.</div>':r.sw.length?'<ul>'+r.sw.map(n=>'<li>'+esc(n)+'</li>').join('')+'</ul><div class="ph">'+SW_BAD+'</div>':'<div class="ph">لا توجد أي ملاحظات سلوكية على الطالبة. '+SW_OK+'</div>')+'</div>'+
   '<div class="endrow"><div class="rbox close"><div class="ph">'+esc(r.closing)+'</div></div><div class="qr"><img src="'+QR+'" alt=""><span>الفاضل ولي الأمر، في حال اطلاعك على التقرير يرجى إبلاغنا بملاحظاتك ومقترحاتك من خلال مسح الباركود.</span></div></div>'+
-  sigsHTML()+
+  sigsHTML(r.sec)+
   '</div></article>'}
 
 /* ---------- views ---------- */
@@ -594,7 +595,7 @@ function vStatus(){const T=teacherStatus();if(!T.length)return head('حالة ا
    T.sort((a,b)=>({none:0,part:1,done:2}[a.st]-{none:0,part:1,done:2}[b.st])||a.dept.localeCompare(b.dept,'ar')).map((t,i)=>'<tr><td class="nm">'+esc(t.name)+'</td><td>'+esc(t.subject)+'</td><td>'+(t.st==='done'?'<span class="pill ok">شكراً لكِ لإنهاء التقرير</span>':t.st==='part'?'<span class="pill warn">ما زال التقرير بحاجة إلى استكمال</span>':'<span class="pill bad">لم يُستلم الملف</span>')+'</td><td style="white-space:normal;text-align:right;font-size:12px">'+(t.st==='part'?t.sheets.filter(s=>s.blanks).map(s=>s.sec+': متبقٍ '+s.blanks).join('، '):t.st==='done'?t.sheets.map(s=>s.sec).join('، '):(t.sections||[]).join('، '))+'</td><td style="font-size:12px">'+esc(t.isCoord?'النائبة (المعلمة منسقة)':t.coordName?short(t.coordName):'النائبة والمديرة')+'</td><td><button class="btn sm" data-msg="'+esc(t.name)+'">'+(t.st==='done'?'رسالة شكر':'رسالة تذكير')+'</button></td></tr>').join('')+'</tbody></table></div></div>';
   if(R.sw){h+='<div class="box"><h3>الأخصائيتان الاجتماعيتان</h3><div class="chips">'+Object.entries(R.sw.secs).sort((a,b)=>secSort(a[0],b[0])).map(([s,x])=>'<span class="pill '+(x.done?'ok':'warn')+'">'+s+': '+(x.done?'تم الانتهاء':'لم تؤكَّد')+' · '+Object.keys(x.notes).length+' ملاحظة</span>').join(' ')+'</div></div>'}
   return h}
-function vReports(){if(BR.who==='pr')return vPr();const i=brInfo();const snap=(i.st==='pend'||i.st==='ok')&&BR.data&&BR.dataK===i.k+i.vpAt;
+function vReports(){if(BR.who==='pr')return vPr();const i=brInfo();const snap=['pend','part','ok'].includes(i.st)&&BR.data&&BR.dataK===i.k+i.vpAt;
   const secs=snap?Object.keys(BR.data.secs).sort(secSort):[...new Set(Object.values(R.files).flatMap(f=>f.sheets.map(s=>s.sec)))].sort(secSort);
   if(!secs.length)return head('تقارير أولياء الأمور')+'<div class="box"><div class="empty">ارفعي ملفات رصد المعلمات من صفحة «الملفات» أولاً.</div></div>';
   if(!UI.sec||!secs.includes(UI.sec))UI.sec=secs[0];
@@ -603,15 +604,39 @@ function vReports(){if(BR.who==='pr')return vPr();const i=brInfo();const snap=(i
   else{const list=students(UI.sec);const cov=new Set(Object.values(R.files).flatMap(f=>f.sheets.filter(s=>s.sec===UI.sec).map(s=>s.subj)));const miss=teacherStatus().filter(t=>t.st!=='done'&&(t.sections||[]).includes(UI.sec));
     info='عدد الطالبات: <b>'+list.length+'</b> · المواد المستلمة: <b>'+cov.size+'</b>'+(miss.length?' · <span class="warn-t">لم يكتمل رصد: '+miss.map(t=>short(t.name)+' ('+esc(t.subject)+')').join('، ')+'</span>':' · <span class="ok-t">رصد الشعبة مكتمل</span>')}
   const reps=snap?BR.data.secs[UI.sec]:students(UI.sec).map(st=>studentReport(st,UI.sec));
-  return head('تقارير أولياء الأمور','راجعي التقارير، ثم اعتمديها بتوقيعكِ لتُرسل لمديرة المدرسة، وبعد اعتمادها تصبح جاهزة للطباعة.')+brPanel(i)+repsUI(secs,reps,info,i.st==='ok')}
+  return head('تقارير أولياء الأمور','راجعي التقارير، ثم اعتمديها بتوقيعكِ لتُرسل لمديرة المدرسة، وبعد اعتمادها تصبح جاهزة للطباعة.')+brPanel(i)+repsUI(secs,reps,info,snap?i:null)}
 /* واجهة الشعب والطالبات والطباعة (مشتركة بين النائب والمديرة) */
-function repsUI(secs,reps,info,canPrint){
-  let h='<div class="box noprint"><div class="toolbar"><div class="chips">'+secs.map(s=>'<button class="chip" data-sec="'+s+'" aria-pressed="'+(s===UI.sec)+'">'+s+'</button>').join('')+'</div></div>'+
+function repsUI(secs,reps,info,i){
+  const okS=i?i.okSecs:[];const pr=BR.who==='pr';UI.pick=(UI.pick||[]).filter(x=>secs.includes(x));
+  const canCur=okS.includes(UI.sec);const B=BR.busy?' disabled':'';
+  const sel='<div class="box noprint"><div class="toolbar"><div class="stl"><b>اختيار الشعب</b> — حدّدي الشعب، أو استخدمي «جميع الشعب».'+(i?' المعتمد: <b>'+okS.length+'</b> من <b>'+secs.length+'</b>':'')+'</div>'+
+    '<div class="chips"><button class="btn sm" data-pickall="1">تحديد الكل</button><button class="btn sm" data-pickall="0">إلغاء التحديد</button></div></div>'+
+    '<div class="chips pickrow">'+secs.map(sc=>'<label class="pick'+(okS.includes(sc)?' ok':'')+'"><input type="checkbox" data-pick="'+sc+'"'+(UI.pick.includes(sc)?' checked':'')+'> '+sc+(okS.includes(sc)?' ✓':'')+'</label>').join('')+'</div>'+
+    '<div class="chips" style="margin-top:10px">'+
+      (pr&&i&&i.st!=='ok'&&i.st!=='ret'?'<button class="btn pri" data-brall="1"'+B+'>✅ اعتماد جميع الشعب</button><button class="btn" data-brsel="1"'+B+'>✅ اعتماد الشعب المحددة ('+UI.pick.length+')</button><button class="btn" data-brret="1"'+B+'>↩️ إعادة بملاحظة</button>':'')+
+      '<button class="btn'+(pr?'':' pri')+'" data-prall="1"'+(okS.length?'':' disabled title="تُطبع التقارير بعد اعتماد مديرة المدرسة"')+'>🖨️ طباعة جميع الشعب المعتمدة</button>'+
+      '<button class="btn" data-prsel="1"'+(okS.length?'':' disabled')+'>🖨️ طباعة الشعب المحددة ('+UI.pick.length+')</button></div></div>';
+  let h=sel+'<div class="box noprint"><div class="toolbar"><div class="chips">'+secs.map(sc=>'<button class="chip" data-sec="'+sc+'" aria-pressed="'+(sc===UI.sec)+'">'+sc+(okS.includes(sc)?' ✓':'')+'</button>').join('')+'</div></div>'+
     '<div class="toolbar"><div class="stl">'+info+'</div>'+
-    '<div class="chips"><select data-stu="1"><option value="">جميع طالبات الشعبة</option>'+reps.map(r=>'<option value="'+esc(r.st.pid)+'"'+(UI.stu===r.st.pid?' selected':'')+'>'+esc(r.st.n)+'</option>').join('')+'</select><button class="btn pri" data-print="1"'+(canPrint?'':' disabled title="تُطبع التقارير بعد اعتماد مديرة المدرسة"')+'>🖨️ طباعة / حفظ PDF</button></div></div>'+
-    (canPrint?'<p class="stl">في نافذة الطباعة: حجم الورق A4، والهوامش «بلا»، وفعّلي «رسومات الخلفية» (Background graphics).</p>':'<p class="stl">الطباعة متاحة بعد اعتماد مديرة المدرسة، ويمكنكِ معاينة التقارير الآن.</p>')+'</div>';
-  const show=UI.stu?reps.filter(r=>r.st.pid===UI.stu):reps;
+    '<div class="chips"><select data-stu="1"><option value="">جميع طالبات الشعبة</option>'+reps.map(r=>'<option value="'+esc(r.st.pid)+'"'+(UI.stu===r.st.pid?' selected':'')+'>'+esc(r.st.n)+'</option>').join('')+'</select><button class="btn" data-print="1"'+(canCur?'':' disabled title="تُطبع الشعبة بعد اعتماد مديرة المدرسة لها"')+'>🖨️ طباعة هذه الشعبة / الطالبة</button></div></div>'+
+    (canCur?'<p class="stl">في نافذة الطباعة: حجم الورق A4، والهوامش «بلا»، وفعّلي «رسومات الخلفية» (Background graphics).</p>':'<p class="stl">تُطبع الشعبة بعد اعتماد مديرة المدرسة لها، ويمكنكِ معاينة التقارير الآن.</p>')+'</div>';
+  let show=UI.stu?reps.filter(r=>r.st.pid===UI.stu):reps;
+  if(UI.printList&&BR.data){show=UI.printList.flatMap(sc=>BR.data.secs[sc]||[])}
   return h+'<div class="reps">'+show.map(reportHTML).join('')+'</div>'}
+/* طباعة عدة شعب دفعة واحدة (المعتمد منها فقط) */
+async function brPrintSecs(list){const i=brInfo();const ok=list.filter(sc=>i.okSecs.includes(sc)).sort(secSort);const skip=list.length-ok.length;
+  if(!ok.length){toast(list.length?'الشعب المحددة لم تعتمدها مديرة المدرسة بعد':'حدّدي الشعب أولًا');return}
+  const n=ok.reduce((a,sc)=>a+((BR.data.secs[sc]||[]).length),0);toast('جارٍ تجهيز '+n+' تقريرًا للطباعة…'+(skip?' (استُبعدت '+skip+' شعبة غير معتمدة)':''),6000);
+  UI.printList=ok;UI.stu='';render();await (window.__pg||Promise.resolve());await new Promise(r=>setTimeout(r,300));
+  const done=()=>{window.removeEventListener('afterprint',done);UI.printList=null;render()};window.addEventListener('afterprint',done);window.print()}
+document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-pickall],[data-brall],[data-brsel],[data-prall],[data-prsel]');if(!t||t.disabled)return;const i=brInfo();
+  const secs=BR.data&&['pend','part','ok'].includes(i.st)?Object.keys(BR.data.secs):[...new Set(Object.values(R.files).flatMap(f=>f.sheets.map(s=>s.sec)))];
+  if(t.dataset.pickall!=null){UI.pick=t.dataset.pickall==='1'?secs.slice():[];render()}
+  else if(t.dataset.brall&&BR.who==='pr'&&!BR.busy)brDecide(true,null);
+  else if(t.dataset.brsel&&BR.who==='pr'&&!BR.busy){if(!UI.pick.length){toast('حدّدي الشعب أولًا');return}brDecide(true,UI.pick.slice())}
+  else if(t.dataset.prall)brPrintSecs(i.okSecs.slice());
+  else if(t.dataset.prsel)brPrintSecs(UI.pick.slice())});
+document.addEventListener('change',e=>{const t=e.target;if(!t.dataset||t.dataset.pick==null)return;const sc=t.dataset.pick;UI.pick=(UI.pick||[]).filter(x=>x!==sc);if(t.checked)UI.pick.push(sc);render()});
 function vFiles(){const fs=Object.values(R.files).sort((a,b)=>a.teacher.localeCompare(b.teacher,'ar'));
   return head('الملفات','ارفعي ملفات رصد المعلمات وملف الأخصائيتين كما وصلتكِ من التيمز، دفعة واحدة أو على مراحل. الملف الجديد للمعلمة نفسها يحل محل القديم.')+
   '<label class="drop" data-drop="1"><h4>ملفات الرصد</h4><div class="stl">اسحبي الملفات هنا (يمكن اختيار عشرات الملفات مرة واحدة).</div><input type="file" accept=".xlsx" multiple><span class="btn">اختيار الملفات</span></label>'+
@@ -629,9 +654,16 @@ function vFiles(){const fs=Object.values(R.files).sort((a,b)=>a.teacher.localeCo
 const BR={who:'',uid:'',meta:null,dec:{},data:null,dataK:'',vpSig:'',prSig:'',busy:false,ready:false};
 const brK=()=>'r'+R.rep;const DB=()=>firebase.firestore();
 const dAr=x=>String(x||'').slice(0,10);
-function brInfo(k){k=k||brK();const x=BR.meta&&BR.meta.reps&&BR.meta.reps[k];if(!x)return{k,st:'none'};const d=(BR.dec||{})[k]||{};const fresh=!!d.at&&String(d.at)>=String(x.vpAt||'');
-  return Object.assign({k},x,{st:fresh?(d.ok?'ok':d.ret?'ret':'pend'):'pend',prAt:fresh?d.at:'',note:fresh?(d.note||''):''})}
-function sigsHTML(){const i=brInfo();const im=[(i.st==='pend'||i.st==='ok')?BR.vpSig:'',i.st==='ok'?BR.prSig:''];
+/* اعتماد المديرة لكل شعبة: secs{شعبة:وقت}، أو allAt لجميع الشعب؛ ولا يُحتسب إلا ما بعد آخر اعتماد للنائب */
+function brSecsOf(x){return (x&&x.secs)||(BR.data&&BR.data.secs?Object.keys(BR.data.secs):[])}
+function brInfo(k){k=k||brK();const x=BR.meta&&BR.meta.reps&&BR.meta.reps[k];if(!x)return{k,st:'none',okSecs:[],all:[]};const d=(BR.dec||{})[k]||{};const v=String(x.vpAt||'');
+  const allAt=d.allAt||(d.ok&&d.at)||'';const fr=t=>!!t&&String(t)>=v;const all=brSecsOf(x).slice().sort(secSort);
+  const okSecs=fr(allAt)?all.slice():all.filter(sc=>fr((d.secs||{})[sc]));
+  const last=[allAt,...Object.values(d.secs||{})].filter(fr).sort().pop()||'';const retAt=d.retAt||(d.ret&&d.at)||'';
+  const st=(fr(retAt)&&String(retAt)>String(last))?'ret':(all.length&&okSecs.length===all.length)?'ok':okSecs.length?'part':'pend';
+  return Object.assign({k},x,{st,okSecs,all,prAt:last,note:st==='ret'?(d.note||''):''})}
+const brSecOk=(sec,i)=>{i=i||brInfo();return i.okSecs.includes(sec)};
+function sigsHTML(sec){const i=brInfo();const im=[['pend','part','ok'].includes(i.st)?BR.vpSig:'',brSecOk(sec,i)?BR.prSig:''];
   return '<div class="sigs">'+SIG.map(([t,n],j)=>'<div><b>'+t+'</b><span class="sn2">'+(im[j]?'<img class="sgi" src="'+im[j]+'" alt="">':'')+n+'</span></div>').join('')+'</div>'}
 async function brLoad(){try{const db=DB();
   const [m,a,b]=await Promise.all(['adm/brmeta','csig/vp','csig/pr'].map(x=>{const [c,d]=x.split('/');return db.collection(c).doc(d).get().catch(()=>null)}));
@@ -640,21 +672,22 @@ async function brLoad(){try{const db=DB();
   try{if(BR.who==='pr'){const d=await db.collection('prcm').doc(BR.uid).get();BR.dec=d.exists?(d.data().brq||{}):{}}
     else{const q=await db.collection('prcm').get();let dec={};q.forEach(d=>{const x=d.data();if(x&&x.w==='pr'&&x.brq)dec=Object.assign(dec,x.brq)});BR.dec=dec}}catch(e){BR.dec={}}
   if(BR.who==='pr'){const ks=Object.entries(BR.meta.reps||{}).sort((x,y)=>String(y[1].vpAt).localeCompare(String(x[1].vpAt)));if(ks.length)R.rep=+ks[0][0].slice(1)||0}
-  const i=brInfo();if(i.st!=='none')await brData(i)}catch(e){console.warn(e);toast('تعذّر تحميل حالة الاعتماد: '+(e&&e.message||e))}BR.ready=true;render()}
+  const i=brInfo();if(i.st!=='none')await brData(i);if(BR.who==='pr')UI.pick=[]}catch(e){console.warn(e);toast('تعذّر تحميل حالة الاعتماد: '+(e&&e.message||e))}BR.ready=true;render()}
 async function brData(i){if(BR.data&&BR.dataK===i.k+i.vpAt)return;const db=DB();const ps=await Promise.all([...Array(i.parts||0).keys()].map(j=>db.collection('adm').doc('br_'+i.k+'_'+j).get()));
   BR.data=JSON.parse(ps.map(p=>p.exists?p.data().t:'').join('')||'null');BR.dataK=i.k+i.vpAt}
 function brPanel(i){if(BR.noAuth)return '<section class="brp noprint" style="background:#FBEDEF;border:1.5px solid #E8A9B3"><h3>📜 اعتماد التقارير</h3><p>لم يتم تسجيل الدخول. افتحي سبع سنابل وسجّلي الدخول، ثم ارجعي لهذه الصفحة واضغطي Ctrl + F5.</p></section>';
   if(!BR.who||!BR.ready)return '<section class="brp noprint" style="background:#FBF6EC;border:1.5px solid #EADBB8"><h3>📜 اعتماد التقارير</h3><p>جارٍ تحميل حالة الاعتماد…</p></section>';
   const step=(t,on,cur)=>'<span class="'+(on?'on':cur?'cur':'')+'">'+(on?'✓ ':'')+t+'</span>';
-  const steps='<div class="brsteps">'+step('١. اعتماد النائب الأكاديمي',i.st==='pend'||i.st==='ok',i.st==='none'||i.st==='ret')+step('٢. اعتماد مديرة المدرسة',i.st==='ok',i.st==='pend')+step('٣. جاهز للطباعة',i.st==='ok',false)+'</div>';
+  const steps='<div class="brsteps">'+step('١. اعتماد النائب الأكاديمي',['pend','part','ok'].includes(i.st),i.st==='none'||i.st==='ret')+step('٢. اعتماد مديرة المدرسة'+(i.st==='part'?' ('+i.okSecs.length+'/'+i.all.length+')':''),i.st==='ok',i.st==='pend'||i.st==='part')+step('٣. جاهز للطباعة',i.st==='ok',i.st==='part')+'</div>';
   const box=(bg,bd,h)=>'<section class="brp noprint" style="background:'+bg+';border:1.5px solid '+bd+'"><h3>📜 اعتماد '+esc(REPORTS[R.rep].n)+'</h3>'+steps+h+'</section>';
   const B=BR.busy?' disabled':'';
   if(BR.who==='pr'){
     if(i.st==='ok')return box('#EAF6EE','#9FD3B0','<p>✅ اعتمدتِ التقارير في <b>'+dAr(i.prAt)+'</b>، وهي جاهزة للطباعة لديكِ ولدى نائب المديرة للشؤون الأكاديمية.</p>');
     if(i.st==='ret')return box('#FBEDEF','#E8A9B3','<p>↩️ أعدتِ التقارير بملاحظة: '+esc(i.note)+'</p><p class="stl">تصلكِ مجددًا بعد تعديلها واعتماد النائب الأكاديمي لها.</p>');
-    return box('#FFF8E1','#E3C77A','<p>اعتمدت نائب المديرة للشؤون الأكاديمية التقارير ('+(i.n||0)+' طالبة) في <b>'+dAr(i.vpAt)+'</b>، وأُرسلت لاعتمادكِ. اطّلعي عليها، ثم اعتمديها لتُطبع بتوقيعكِ.</p><div class="chips"><button class="btn pri" data-brok="1"'+B+'>✅ اعتماد مديرة المدرسة وتوقيعها</button><button class="btn" data-brret="1"'+B+'>↩️ إعادة بملاحظة</button></div>')}
+    return box('#FFF8E1','#E3C77A','<p>اعتمدت النائبة الأكاديمية التقارير ('+(i.n||0)+' طالبة) في <b>'+dAr(i.vpAt)+'</b>، وأُرسلت لاعتمادكِ.'+(i.st==='part'?' اعتمدتِ <b>'+i.okSecs.length+'</b> من <b>'+i.all.length+'</b> شعبة.':'')+'</p><p class="stl">من «اختيار الشعب» تحت: اضغطي «✅ اعتماد جميع الشعب»، أو حدّدي شعبًا واضغطي «✅ اعتماد الشعب المحددة».</p><div class="chips"><button class="btn pri" data-brall="1"'+B+'>✅ اعتماد جميع الشعب</button></div>')}
   const app='<button class="btn pri" data-brvp="1"'+B+'>✍️ اعتماد النائب الأكاديمي وإرسال للمديرة</button>';
   if(i.st==='ok')return box('#EAF6EE','#9FD3B0','<p>✅ اعتمدت مديرة المدرسة التقارير في <b>'+dAr(i.prAt)+'</b>، وهي جاهزة للطباعة لديكِ ولديها، وظهر للمعلمات أنه تم إصدار ميثاق الشراكة.</p><div class="chips"><button class="btn sm" data-brvp="2"'+B+'>تحديث التقارير وإعادة إرسالها للمديرة</button></div>');
+  if(i.st==='part')return box('#FFF8E1','#E3C77A','<p>⏳ اعتمدت مديرة المدرسة <b>'+i.okSecs.length+'</b> من <b>'+i.all.length+'</b> شعبة، والشعب المعتمدة جاهزة للطباعة: '+i.okSecs.join('، ')+'</p>');
   if(i.st==='pend')return box('#FFF8E1','#E3C77A','<p>⏳ اعتمدتِ التقارير ('+(i.n||0)+' طالبة) في <b>'+dAr(i.vpAt)+'</b>، وأُرسلت لمديرة المدرسة، وبانتظار اعتمادها.</p><div class="chips"><button class="btn sm" data-brcancel="1"'+B+'>إلغاء الاعتماد للتعديل</button></div>');
   if(i.st==='ret')return box('#FBEDEF','#E8A9B3','<p>↩️ أعادت مديرة المدرسة التقارير بملاحظة: <b>'+esc(i.note)+'</b></p><p class="stl">عدّلي المطلوب، ثم اعتمديها مجددًا.</p><div class="chips">'+app+'</div>');
   return box('#FBF6EC','#EADBB8','<p>بعد مراجعة التقارير اعتمديها بتوقيعكِ، فتُرسل مباشرة لمديرة المدرسة لاعتمادها، ثم تصبح جاهزة للطباعة.</p><div class="chips">'+app+'</div>')}
@@ -664,23 +697,27 @@ async function brApprove(){const secs=[...new Set(Object.values(R.files).flatMap
   BR.busy=true;render();try{const data={secs:{}};let n=0;secs.forEach(sc=>{data.secs[sc]=students(sc).map(st=>studentReport(st,sc));n+=data.secs[sc].length});
     const txt=JSON.stringify(data),CH=300000,parts=Math.max(1,Math.ceil(txt.length/CH)),k=brK(),db=DB();
     for(let j=0;j<parts;j++)await db.collection('adm').doc('br_'+k+'_'+j).set({t:txt.slice(j*CH,(j+1)*CH)});
-    const x={vpAt:new Date().toISOString(),parts,n,name:'التقرير الأكاديمي السلوكي — '+REPORTS[R.rep].n};
+    const x={vpAt:new Date().toISOString(),parts,n,secs,name:'التقرير الأكاديمي السلوكي — '+REPORTS[R.rep].n};
     await db.collection('adm').doc('brmeta').set({reps:{[k]:x}},{merge:true});BR.meta.reps=Object.assign(BR.meta.reps||{},{[k]:x});BR.data=data;BR.dataK=k+x.vpAt;
     toast('✅ تم اعتمادكِ للتقارير ('+n+' طالبة)، وأُرسلت لمديرة المدرسة')}catch(e){console.warn(e);toast('تعذّر الاعتماد: '+(e&&e.message||e))}BR.busy=false;render()}
 async function brCancel(){const k=brK();BR.busy=true;render();try{await DB().collection('adm').doc('brmeta').update({['reps.'+k]:firebase.firestore.FieldValue.delete()});delete BR.meta.reps[k];BR.data=null;BR.dataK='';toast('أُلغي الاعتماد، ويمكنكِ التعديل ثم الاعتماد مجددًا')}catch(e){toast('تعذّر الإلغاء: '+(e&&e.message||e))}BR.busy=false;render()}
-async function brDecide(ok){const i=brInfo();let note='';if(!ok){note=(prompt('ملاحظتكِ على التقارير (تصل لنائب المديرة للشؤون الأكاديمية):','')||'').trim();if(!note)return}
+async function brDecide(ok,list){const i=brInfo();let note='';if(!ok){note=(prompt('ملاحظتكِ على التقارير (تصل لنائب المديرة للشؤون الأكاديمية):','')||'').trim();if(!note)return}
   if(ok&&!BR.prSig&&!confirm('لم يُعثر على صورة توقيعكِ في المنصة، فيُطبع التقرير باسمكِ دون صورة التوقيع. متابعة الاعتماد؟'))return;
-  const d={ok:ok?1:0,ret:ok?0:1,at:new Date().toISOString(),note};BR.busy=true;render();
-  try{await DB().collection('prcm').doc(BR.uid).set({w:'pr',brq:{[i.k]:d}},{merge:true});BR.dec[i.k]=d;toast(ok?'✅ تم اعتماد التقارير، وهي جاهزة للطباعة لديكِ ولدى نائب المديرة':'أُعيدت التقارير بملاحظتكِ')}catch(e){toast('تعذّر الحفظ: '+(e&&e.message||e))}BR.busy=false;render()}
+  const now=new Date().toISOString();let d;
+  if(!ok)d={retAt:now,note};else if(!list)d={allAt:now};else{const m={};list.forEach(sc=>{m[sc]=now});d={secs:m}}
+  BR.busy=true;render();
+  try{await DB().collection('prcm').doc(BR.uid).set({w:'pr',brq:{[i.k]:d}},{merge:true});const c=BR.dec[i.k]=BR.dec[i.k]||{};
+    if(d.secs)c.secs=Object.assign({},c.secs||{},d.secs);else Object.assign(c,d);const j=brInfo();
+    toast(!ok?'أُعيدت التقارير بملاحظتكِ':j.st==='ok'?'✅ تم اعتماد جميع الشعب، وهي جاهزة للطباعة لديكِ ولدى النائبة الأكاديمية':'✅ تم اعتماد '+(list?list.length:j.okSecs.length)+' شعبة، وهي جاهزة للطباعة');UI.pick=[]}catch(e){toast('تعذّر الحفظ: '+(e&&e.message||e))}BR.busy=false;render()}
 function vPr(){const i=brInfo();const h=head('اعتماد التقرير الأكاديمي السلوكي','اطّلعي على تقارير الشعب، ثم اعتمديها بتوقيعكِ لتصبح جاهزة للطباعة.');
   if(!BR.ready)return h+'<div class="box"><div class="empty">جارٍ التحميل…</div></div>';
   if(i.st==='none'||!BR.data)return h+'<div class="box"><div class="empty">لا توجد تقارير مرسلة لاعتمادكِ حاليًا.</div></div>';
   const secs=Object.keys(BR.data.secs).sort(secSort);if(!UI.sec||!secs.includes(UI.sec))UI.sec=secs[0];
-  return h+brPanel(i)+repsUI(secs,BR.data.secs[UI.sec],'عدد الطالبات: <b>'+BR.data.secs[UI.sec].length+'</b>',i.st==='ok')}
+  return h+brPanel(i)+repsUI(secs,BR.data.secs[UI.sec],'عدد الطالبات: <b>'+BR.data.secs[UI.sec].length+'</b>',i)}
 document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-brvp],[data-brok],[data-brret],[data-brcancel]');if(!t||t.disabled||BR.busy)return;
   if(t.dataset.brvp&&BR.who==='vp'){if(t.dataset.brvp==='2'&&!confirm('تُحدَّث التقارير المعتمدة بآخر رصد، وتُرسل لمديرة المدرسة لاعتمادها من جديد. متابعة؟'))return;brApprove()}
   else if(t.dataset.brcancel&&BR.who==='vp')brCancel();
-  else if(t.dataset.brok&&BR.who==='pr')brDecide(true);
+  else if(t.dataset.brok&&BR.who==='pr')brDecide(true,null);
   else if(t.dataset.brret&&BR.who==='pr')brDecide(false)});
 const TABS=[['status','حالة الرصد'],['reports','تقارير أولياء الأمور'],['files','الملفات والإعدادات']];
 
@@ -695,7 +732,7 @@ function paginate(){document.querySelectorAll('.rep>.flow').forEach(fl=>{const a
   if(n>2){const P=[...art.querySelectorAll('.pgx')],p2=P[1];P.slice(2).forEach(p=>{[...p.children].forEach(c=>p2.appendChild(c));p.remove()});
     const pad=parseFloat(getComputedStyle(p2).paddingTop)+parseFloat(getComputedStyle(p2).paddingBottom),r=(p2.clientHeight-pad)/(p2.scrollHeight-pad)*.98;
     [...p2.children].forEach(c=>{c.style.zoom=(parseFloat(c.style.zoom)||1)*r})}})}
-function paginateSoon(){const go=()=>requestAnimationFrame(()=>{try{paginate()}catch(e){console.warn(e)}});(document.fonts&&document.fonts.ready)?document.fonts.ready.then(go):go()}
+function paginateSoon(){window.__pg=new Promise(res=>{const go=()=>requestAnimationFrame(()=>{try{paginate()}catch(e){console.warn(e)}res()});(document.fonts&&document.fonts.ready)?document.fonts.ready.then(go):go()});return window.__pg}
 function render(){try{if(BR.who==='pr'){$('#nav').innerHTML='<button type="button" aria-current="page">اعتماد التقارير</button><a class="backlink" href="./">العودة إلى سبع سنابل ←</a>';$('#view').innerHTML=vPr();paginateSoon();$('#marq').textContent='التقرير الأكاديمي السلوكي · اعتماد مديرة المدرسة · «إِنَّا لَا نُضِيعُ أَجْرَ مَنْ أَحْسَنَ عَمَلًا»';return}
   $('#nav').innerHTML=TABS.map(([id,l])=>'<button type="button" data-tab="'+id+'"'+(UI.tab===id?' aria-current="page"':'')+'>'+l+'</button>').join('')+'<a class="backlink" href="./">العودة إلى سبع سنابل ←</a>';
   $('#view').innerHTML=(UI.tab==='status'?brPanel(brInfo()):'')+{status:vStatus,reports:vReports,files:vFiles}[UI.tab]();if(UI.tab==='reports')paginateSoon();
@@ -718,7 +755,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-tab],[data
   else if(b.dataset.msg){const t=teacherStatus().find(x=>x.name===b.dataset.msg);if(t)openMsg(t)}
   else if(b.dataset.bulk)bulk(b.dataset.bulk);
   else if(b.dataset.copy!=null){navigator.clipboard.writeText(b.dataset.copy).then(()=>toast('تم النسخ'),()=>toast('تعذّر النسخ'))}
-  else if(b.dataset.print){if(brInfo().st!=='ok'){toast('تُطبع التقارير بعد اعتماد مديرة المدرسة');return}window.print()}
+  else if(b.dataset.print){if(!brSecOk(UI.sec)){toast('تُطبع الشعبة بعد اعتماد مديرة المدرسة لها');return}window.print()}
   else if(b.dataset.wipe){if(confirm('مسح جميع ملفات الرصد المرفوعة لهذا التقرير؟')){R.files={};R.sw=null;save();render()}}});
 document.addEventListener('change',e=>{const t=e.target;
   if(t.dataset.set){R.set[t.dataset.set]=t.value;if(t.dataset.set==='rep'){R.rep=+t.value}save();if(t.dataset.set==='rep')render()}
