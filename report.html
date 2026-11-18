@@ -632,6 +632,24 @@ function repsUI(secs,reps,info,i){
   let show=UI.stu?reps.filter(r=>r.st.pid===UI.stu):reps;
   if(UI.printList&&BR.data){show=UI.printList.flatMap(sc=>BR.data.secs[sc]||[])}
   return h+'<div class="reps">'+show.map(reportHTML).join('')+'</div>'}
+/* مراجعة الرصد: مقارنة رصد المعلمات الحالي بالنسخة التي اعتمدتها النائبة، مع كشف إزاحة الدرجات طالبةً واحدة */
+function brDiff(){if(!BR.data)return null;const E=entries();const G={};
+  Object.entries(BR.data.secs).forEach(([sec,reps])=>reps.forEach((r,idx)=>{const cur=(E[r.st.pid]||{subs:{}}).subs;
+    r.items.forEach(it=>{const k=sec+'|'+it.s;const g=G[k]=G[k]||{sec,s:it.s,t:it.teacher,rows:[]};const nv=(cur[it.s]||{}).v;if(cur[it.s])g.t=cur[it.s].teacher||g.t;g.rows.push({n:r.st.n,ov:it.v||{},nv})})}));
+  const sheetAt={};Object.values(R.files).forEach(f=>f.sheets.forEach(sh=>{sheetAt[sh.sec+'|'+sh.subj]=sh.at||f.at||''}));
+  const same=(a,b)=>{if(!a||!b)return false;const ks=Object.keys(a).filter(k=>!/تدرس/.test(k)&&String(a[k]??'')!=='');return ks.length>1&&ks.every(k=>String(a[k]??'')===String(b[k]??''))};
+  return Object.values(G).map(g=>{const ch=[];g.rows.forEach(x=>{if(!x.nv)return;const keys=new Set([...Object.keys(x.ov),...Object.keys(x.nv)]);const d=[];keys.forEach(k=>{const a=x.ov[k]==null?'':String(x.ov[k]),b=x.nv[k]==null?'':String(x.nv[k]);if(a!==b)d.push([k,a,b])});if(d.length)ch.push({n:x.n,d})});
+    let up=0,dn=0;g.rows.forEach((x,j)=>{if(!x.nv)return;if(j>0&&same(g.rows[j-1].ov,x.nv)&&!same(x.ov,x.nv))up++;if(j<g.rows.length-1&&same(g.rows[j+1].ov,x.nv)&&!same(x.ov,x.nv))dn++});
+    return Object.assign(g,{ch,shift:Math.max(up,dn)>=2?(up>=dn?'up':'down'):'',at:sheetAt[g.sec+'|'+g.s]||''})}).filter(g=>g.ch.length||g.shift)}
+function brDiffBox(){if(BR.who!=='vp')return '';const i=brInfo();if(!BR.data||!['pend','part','ok'].includes(i.st))return '';
+  let h='<section class="brp noprint" style="background:#fff;border:1.5px solid #EADBB8"><h3>🔍 مراجعة الرصد بعد الاعتماد</h3><p class="stl">تقارن الرصد الحالي للمعلمات بالنسخة التي اعتمدتِها في '+dAr(i.vpAt)+'، وتكشف أي تعديل بعد الاعتماد، وأي إزاحة للدرجات بين طالبة والتي قبلها.</p><div class="chips"><button class="btn pri" data-brdiff="1">🔍 مقارنة الآن</button></div>';
+  if(UI.diff){const D=brDiff()||[];
+    if(!D.length)h+='<p>✅ لا يوجد أي اختلاف: الرصد الحالي مطابق تمامًا للنسخة المعتمدة.</p>';
+    else{const sh=D.filter(g=>g.shift);h+='<p><b>'+D.length+'</b> مادة/شعبة فيها اختلاف'+(sh.length?' · <b style="color:#B23A48">'+sh.length+'</b> يُشتبه فيها بإزاحة الدرجات':'')+'.</p>';
+      h+=D.map(g=>'<details style="border:1px solid #EFE6D8;border-radius:10px;padding:6px 10px;margin:4px 0"><summary><b>'+esc(g.s)+'</b> — '+esc(g.sec)+' — '+esc(short(g.t||''))+' · '+g.ch.length+' طالبة تغيّر رصدها'+(g.at?' · آخر حفظ للمعلمة: '+esc(new Date(g.at).toLocaleString('ar-QA',{day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'})):'')+(String(g.at)>String(i.vpAt)?' <span style="color:#B23A48">(بعد الاعتماد)</span>':'')+(g.shift?' <b style="color:#B23A48">⚠️ إزاحة محتملة: درجات كل طالبة صارت درجات الطالبة '+(g.shift==='up'?'التي قبلها':'التي بعدها')+'</b>':'')+'</summary>'+
+        '<table style="width:100%;font-size:13px;margin-top:6px"><tr><th>الطالبة</th><th>البند</th><th>في النسخة المعتمدة</th><th>الآن</th></tr>'+g.ch.map(c=>c.d.map((d,j)=>'<tr>'+(j?'<td></td>':'<td><b>'+esc(c.n)+'</b></td>')+'<td>'+esc(d[0])+'</td><td>'+esc(d[1]||'—')+'</td><td>'+esc(d[2]||'—')+'</td></tr>').join('')).join('')+'</table></details>').join('')}}
+  return h+'</section>'}
+document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-brdiff]');if(!t)return;UI.diff=1;render();toast('تمت المقارنة بآخر رصد جُلب من المنصة')});
 /* طباعة عدة شعب دفعة واحدة (المعتمد منها فقط) */
 async function brPrintSecs(list){const i=brInfo();const ok=list.filter(sc=>i.okSecs.includes(sc)).sort(secSort);const skip=list.length-ok.length;
   if(!ok.length){toast(list.length?'الشعب المحددة لم تعتمدها مديرة المدرسة بعد':'حدّدي الشعب أولًا');return}
@@ -747,7 +765,7 @@ function paginate(){document.querySelectorAll('.rep>.flow').forEach(fl=>{const a
 function paginateSoon(){window.__pg=new Promise(res=>{const go=()=>requestAnimationFrame(()=>{try{paginate()}catch(e){console.warn(e)}res()});(document.fonts&&document.fonts.ready)?document.fonts.ready.then(go):go()});return window.__pg}
 function render(){try{if(BR.who==='pr'){$('#nav').innerHTML='<button type="button" aria-current="page">اعتماد التقارير</button><a class="backlink" href="./">العودة إلى سبع سنابل ←</a>';$('#view').innerHTML=vPr();paginateSoon();$('#marq').textContent='التقرير الأكاديمي السلوكي · اعتماد مديرة المدرسة · «إِنَّا لَا نُضِيعُ أَجْرَ مَنْ أَحْسَنَ عَمَلًا»';return}
   $('#nav').innerHTML=TABS.map(([id,l])=>'<button type="button" data-tab="'+id+'"'+(UI.tab===id?' aria-current="page"':'')+'>'+l+'</button>').join('')+'<a class="backlink" href="./">العودة إلى سبع سنابل ←</a>';
-  $('#view').innerHTML=(UI.tab==='status'?brPanel(brInfo()):'')+{status:vStatus,reports:vReports,files:vFiles}[UI.tab]();if(UI.tab==='reports')paginateSoon();
+  $('#view').innerHTML=(UI.tab==='status'?brPanel(brInfo())+brDiffBox():'')+{status:vStatus,reports:vReports,files:vFiles}[UI.tab]();if(UI.tab==='reports')paginateSoon();
   const T=teacherStatus();$('#marq').textContent='التقرير الأكاديمي السلوكي · '+REPORTS[R.rep].n+' · '+T.filter(t=>t.st==='done').length+' معلمة أنهت الرصد من '+T.length+' · «إِنَّا لَا نُضِيعُ أَجْرَ مَنْ أَحْسَنَ عَمَلًا»'}catch(e){console.error(e);$('#view').innerHTML='<div class="box"><div class="empty">حدث خطأ: '+esc(e.message)+'</div></div>'}}
 function toast(m){const t=document.createElement('div');t.className='toast';t.textContent=m;$('#toastRoot').appendChild(t);setTimeout(()=>t.remove(),4500)}
 function openMsg(t){const k=t.st==='done'?'thanks':'remind';const m=mailParts(t,k);const q=s=>encodeURIComponent(s);
@@ -783,7 +801,7 @@ function skKeep(sec,subj,H){if(!(String(sec).startsWith('12')&&/مهارات/.te
 function cloudSheets(docs){const a=A();const reg={};Object.entries(a.reg||{}).forEach(([pid,r])=>{reg[r.s+'|'+norm(r.n)]=pid});const byT={};
   docs.forEach(d=>{if(!d||!d.sec||!Array.isArray(d.stu))return;const H=skKeep(d.sec,d.subj,d.H||[]);const stu=d.stu.map(x=>({pid:reg[d.sec+'|'+norm(x.n)]||x.n,n:x.n,v:x.v||{}}));
     let blanks=0,total=0;stu.forEach(x=>{total++;if(x.v[H[0]]==='لا')return;H.slice(1).forEach(h=>{total++;if(x.v[h]===''||x.v[h]==null)blanks++})});
-    const k=norm(d.teacher);(byT[k]=byT[k]||{teacher:d.teacher,file:'من المنصة',at:d.at,sheets:[],cloud:1}).sheets.push({sec:d.sec,subj:d.subj,choose:true,H,stu,blanks,total});if(d.at>byT[k].at)byT[k].at=d.at});
+    const k=norm(d.teacher);(byT[k]=byT[k]||{teacher:d.teacher,file:'من المنصة',at:d.at,sheets:[],cloud:1}).sheets.push({sec:d.sec,subj:d.subj,choose:true,H,stu,blanks,total,at:d.at||''});if(d.at>byT[k].at)byT[k].at=d.at});
   return byT}
 async function cloudPull(u){try{const fb=firebase.firestore();const q=await fb.collection('beh').get();const docs=[];q.forEach(x=>docs.push(x.data()));const byT=cloudSheets(docs);
   Object.entries(byT).forEach(([k,f])=>{const old=R.files[k];if(old&&!old.cloud){const keep=old.sheets.filter(s=>!f.sheets.some(c=>c.sec===s.sec&&c.subj===s.subj));f.sheets=keep.concat(f.sheets);f.file='من المنصة + '+old.file}R.files[k]=f});
