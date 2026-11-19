@@ -830,7 +830,7 @@ function vValue(){if(!M.stu.length)return noData();const prev=UI.per-1;const P=S
   window.__goals=G;return h}
 const short2=n=>String(n||'').split(' و')[0].split(' ').slice(0,2).join(' ');
 /* ---------- shell ---------- */
-const TABS=[['overview','الملخص'],['class','الشعبة'],['sections','مقارنة الشعب'],['subjects','مقارنة المواد'],['teachers','المعلمات'],['last','العام الماضي'],['cats','الفئات بالأسماء'],['top','الأوائل والفئات'],['value','القيمة المضافة'],['reading','القراءة'],['data','البيانات']];
+const TABS=[['overview','الملخص'],['class','الشعبة'],['sections','مقارنة الشعب'],['subjects','مقارنة المواد'],['teachers','المعلمات'],['last','العام الماضي'],['sci','مشروع العلوم'],['cats','الفئات بالأسماء'],['top','الأوائل والفئات'],['value','القيمة المضافة'],['reading','القراءة'],['data','البيانات']];
 function sidebar(){const lv=[...new Set(M.stu.map(x=>x.l))].sort();const secs=Object.keys(M.secs).filter(s=>!UI.lvl||lvlOf(s)===UI.lvl).sort(secSort);
   const subs=subjectsIn(M.stu.filter(x=>(!UI.lvl||x.l===UI.lvl)&&(!UI.sec||x.s===UI.sec)));
   const opt=(v,t,cur)=>'<option value="'+esc(v)+'"'+(v===cur?' selected':'')+'>'+esc(t)+'</option>';
@@ -844,12 +844,97 @@ function sidebar(){const lv=[...new Set(M.stu.map(x=>x.l))].sort();const secs=Ob
   '<label>الجنسية</label><select data-f="nat">'+opt('','الكل',UI.nat)+opt('q','القطريات',UI.nat)+opt('n','غير القطريات',UI.nat)+'</select>'+
   '<label>الفئة (حسب درجة المادة المختارة، أو النسبة العامة)</label><select data-f="cat">'+opt('','جميع الفئات',UI.cat)+CATS.map(c=>opt(c.k,c.t,UI.cat)).join('')+'</select>'+
   '<button class="btn reset" data-reset="1">إلغاء التصفية</button>'+(M.stu.length&&!Object.keys(S.reg).length?'<p class="hint">ارفعي سجل القيد لتظهر الجنسيات.</p>':'')+'</div></details></aside>'}
+/* ===== مشروع العلوم: طالبات الحادي عشر هذا العام مقارنةً بدرجاتهن في العاشر العام الماضي ===== */
+function sciHash(t){let h=5381;for(let i=0;i<t.length;i++)h=(h*33)^t.charCodeAt(i);return (h>>>0).toString(36)+'.'+t.length}
+function sciKey(x){const n=norm(x);if(/فيزياء/.test(n))return'phy';if(/كيمياء/.test(n))return'chem';if(/احياء/.test(n))return'bio';if(/تاريخ/.test(n))return'hist';if(/جغراف/.test(n))return'geo';
+  if(/اجتماع/.test(n))return'soc';if(/حوسب|حاسب|تكنولوج/.test(n))return'comp';if(/علوم/.test(n))return'sci';if(/رياضيات/.test(n))return'math';if(/عربي/.test(n))return'ar';if(/انجليز/.test(n))return'en';if(/اسلامي/.test(n))return'isl';return''}
+/* مقابلة المواد بين العاشر والحادي عشر: العلوم ← متوسط الفيزياء والكيمياء والأحياء، والاجتماعيات ← متوسط التاريخ والجغرافيا */
+const SCI_G=[['sci','العلوم',['sci'],['phy','chem','bio']],['phy','الفيزياء',['sci'],['phy']],['chem','الكيمياء',['sci'],['chem']],['bio','الأحياء',['sci'],['bio']],
+  ['math','الرياضيات',['math'],['math']],['ar','اللغة العربية',['ar'],['ar']],['en','اللغة الإنجليزية',['en'],['en']],['isl','التربية الإسلامية',['isl'],['isl']],['soc','الاجتماعيات',['soc'],['hist','geo']],['comp','الحوسبة وتكنولوجيا المعلومات',['comp'],['comp']]];
+const SCI_MAIN=['sci','math','ar','en','isl','soc','comp'];
+function sciData(){let L={};try{L=JSON.parse(localStorage.getItem('sab3_sanabil_v1')||'{}')||{}}catch(_){}
+  const H=L.hist||{};const py=Object.keys(H).filter(y=>/^\d{4}-\d{4}$/.test(y)&&y<'2026-2027').sort().pop();const rows=py?(H[py]||[]):[];
+  const byId=new Map(),byNm=new Map();rows.forEach(r=>{const sec=String(r.section||'');if(!/^10\s*[-–\/]/.test(sec)&&!/عاشر/.test(sec))return;const k=r.idh||'n:'+norm(r.name);let o=byId.get(k);
+    if(!o){o={name:r.name,sec:secKey(sec),v:{}};byId.set(k,o);byNm.set(norm(r.name),o)}const key=sciKey(r.subject);if(key)(o.v[key]=o.v[key]||[]).push(r)});
+  return{py,byId,byNm,n:byId.size}}
+function sciVal(o,keys,rep,curDen){/* يعيد {p:النسبة، t:نص الورقة} */if(!o)return null;const L=[];keys.forEach(k=>{const v=o[k];if(v==null)return;
+    if(Array.isArray(v))v.forEach(r=>{const p=r.scores&&r.scores[rep];if(p!=null&&p!=='')L.push({k,p:+p,raw:r.raw&&r.raw[rep]!=null?+r.raw[rep]:null,den:(r.den&&r.den[rep])||DEN[rep]})});
+    else if(typeof v==='number')L.push({k,p:v,raw:r1(v*curDen/100),den:curDen})});
+  if(!L.length)return null;const p=mean(L.map(x=>x.p));const nm={phy:'فيزياء',chem:'كيمياء',bio:'أحياء',hist:'تاريخ',geo:'جغرافيا'};
+  const t=L.map(x=>(L.length>1?nm[x.k]+' ':'')+fmt(x.raw!=null?x.raw:x.p*x.den/100)+' من '+x.den).join(' · ');return{p,t}}
+function vSci(){if(!M.stu.length)return noData();
+  UI.sc=UI.sc||{pt:UI.per,g:'sci',tr:'',q:''};const sc=UI.sc;const D=sciData();
+  let h=head('مشروع العلوم','متابعة طالبات الحادي عشر هذا العام اللواتي كنّ في العاشر العام الماضي: درجاتهن الحالية مقارنةً بدرجاتهن السابقة، مادةً مادة، مع المتوسط والتحليل. تُطابَق الطالبة بين العامين بالرقم الشخصي، وإلا بالاسم.');
+  if(!D.n)return h+'<div class="box"><div class="empty">لم تُرفع درجات العاشر للعام الماضي بالأسماء بعد.<br>ارفعيها من الصفحة الرئيسية لسنابل: «البيانات والنماذج» ← «2. الدرجات» (كشف العام 2025–2026)، ثم افتحي هذه الصفحة.</div></div>';
+  const curDen=DEN[UI.per];const now=M.stu.filter(x=>x.l==='11');
+  const C=[];let miss=0;now.forEach(x=>{const o=D.byId.get(sciHash(String(x.pid||'').trim()))||D.byNm.get(norm(x.n));if(!o){miss++;return}
+    const cg={};Object.entries(x.g).forEach(([s,v])=>{const k=sciKey(s);if(k&&typeof v==='number')cg[k]=v});C.push({x,o,cg,tr:trackOf(x.s)})});
+  const val=(c,g,side)=>{const G=SCI_G.find(z=>z[0]===g);return side==='a'?sciVal(c.cg,G[3],UI.per,curDen):sciVal(c.o.v,G[2],+sc.pt,0)};
+  const avgOf=(c,side)=>{const v=SCI_MAIN.map(g=>val(c,g,side)).filter(Boolean).map(z=>z.p);return v.length?{p:mean(v)}:null};
+  const get=(c,g,side)=>g==='avg'?avgOf(c,side):val(c,g,side);
+  const P=C.filter(c=>(!sc.tr||c.tr===sc.tr));
+  const GS=SCI_G.filter(G=>P.some(c=>val(c,G[0],'a')&&val(c,G[0],'b')));
+  /* إحصاء كل مادة */
+  const stat=g=>{const pr=P.map(c=>({c,a:get(c,g,'a'),b:get(c,g,'b')})).filter(z=>z.a&&z.b);if(!pr.length)return null;const d=pr.map(z=>z.a.p-z.b.p);
+    return{g,n:pr.length,a:mean(pr.map(z=>z.a.p)),b:mean(pr.map(z=>z.b.p)),up:d.filter(v=>v>=1).length,dn:d.filter(v=>v<=-1).length,eq:d.filter(v=>v>-1&&v<1).length,
+      a90:pr.filter(z=>z.a.p>=90).length,b90:pr.filter(z=>z.b.p>=90).length,a70:pr.filter(z=>z.a.p<70).length,b70:pr.filter(z=>z.b.p<70).length,pr}};
+  const ST=GS.map(G=>Object.assign(stat(G[0]),{l:G[1]})).filter(Boolean);const AV=stat('avg');
+  const nm=g=>g==='avg'?'المعدل العام':(SCI_G.find(z=>z[0]===g)||[0,g])[1];const SCI=ST.find(s=>s.g==='sci');
+  const arr=d=>Math.abs(d)<0.05?'<b>= 0</b>':'<b class="'+(d>=0?'up':'dn')+'">'+(d>=0?'▲ ':'▼ ')+fmt(Math.abs(d))+'</b>';
+  const trs=[...new Set(C.map(c=>c.tr).filter(Boolean))];
+  h+='<div class="box noprint"><div class="row" style="display:flex;flex-wrap:wrap;gap:14px;align-items:end">'+
+    '<label class="small">درجات الحادي عشر (هذا العام)<br><select data-f="per">'+PERIODS.map((p,i)=>'<option value="'+i+'"'+(i===UI.per?' selected':'')+(S.cur[i]?'':' disabled')+'>'+p+' 2026–2027</option>').join('')+'</select></label>'+
+    '<label class="small">درجات العاشر (العام الماضي)<br><select data-sc="pt">'+PERIODS.map((p,i)=>'<option value="'+i+'"'+(i===+sc.pt?' selected':'')+'>'+p+' '+yLbl(D.py)+'</option>').join('')+'</select></label>'+
+    '<label class="small">المسار<br><select data-sc="tr"><option value="">الكل</option>'+trs.map(t=>'<option'+(t===sc.tr?' selected':'')+'>'+esc(t)+'</option>').join('')+'</select></label></div></div>';
+  if(!P.length)return h+'<div class="box"><div class="empty">لا توجد طالبات مشتركات بين الحادي عشر هذا العام والعاشر العام الماضي.</div></div>';
+  /* المؤشرات */
+  h+='<div class="box"><h3>المؤشرات العامة<small>'+P.length+' طالبة كنّ في العاشر العام الماضي'+(miss&&!sc.tr?' · '+miss+' طالبة جديدة لا درجات لها في العاشر':'')+'</small></h3><div class="kpis">'+
+    [['الطالبات المتتبَّعات',P.length,'في الحادي عشر الآن'],['متوسط العلوم في العاشر',SCI?fmt(SCI.b)+'%':'—',PERIODS[+sc.pt]],['متوسط العلوم في الحادي عشر',SCI?fmt(SCI.a)+'%':'—','الفيزياء والكيمياء والأحياء'],
+     ['تغيّر العلوم',SCI?(SCI.a>=SCI.b?'▲ ':'▼ ')+fmt(Math.abs(SCI.a-SCI.b)):'—','نقطة مئوية'],['المعدل العام',AV?fmt(AV.b)+'% ← '+fmt(AV.a)+'%':'—','العاشر ← الحادي عشر']].map(([l,v,d])=>'<div class="kpi"><span class="l">'+l+'</span><span class="v">'+v+'</span><span class="d eq">'+d+'</span></div>').join('')+'</div></div>';
+  /* مادة مادة: جدول ثم رسم ثم تعليق */
+  const leg='<div class="legend2"><span><i style="background:#0ABAB5"></i>الحادي عشر 2026–2027</span><span><i style="background:#1F3A5F"></i>العاشر '+yLbl(D.py)+'</span></div>';
+  h+='<div class="box"><h3>المقارنة مادةً مادة<small>متوسط الطالبات أنفسهن في العامين</small></h3><div class="tw"><table class="gt"><thead><tr><th>المادة</th><th>الطالبات</th><th>العاشر</th><th>الحادي عشر</th><th>التغير</th><th>تحسّنت</th><th>ثبتت</th><th>انخفضت</th><th>90 فأعلى (العاشر ← الحادي عشر)</th><th>دون 70 (العاشر ← الحادي عشر)</th></tr></thead><tbody>'+
+    ST.concat(AV?[Object.assign(AV,{l:'المعدل العام'})]:[]).map(s=>'<tr'+(s.g==='sci'||s.g==='avg'?' style="font-weight:800"':'')+'><td class="nm">'+esc(s.l)+'</td><td>'+s.n+'</td>'+cellH(s.b)+cellH(s.a)+'<td>'+arr(s.a-s.b)+'</td><td>'+s.up+'</td><td>'+s.eq+'</td><td>'+s.dn+'</td><td>'+s.b90+' ← '+s.a90+'</td><td>'+s.b70+' ← '+s.a70+'</td></tr>').join('')+
+    '</tbody></table></div>'+leg+hbars(ST.map(s=>({l:s.l,a:s.a,b:s.b})),{title:'المقارنة مادة مادة'});
+  /* التحليل */
+  const up=ST.filter(s=>s.a-s.b>=1).sort((a,b)=>(b.a-b.b)-(a.a-a.b)),dn=ST.filter(s=>s.a-s.b<=-1).sort((a,b)=>(a.a-a.b)-(b.a-b.b));const T=[];
+  if(SCI){const d=SCI.a-SCI.b;T.push('العلوم: انتقل متوسط الطالبات من '+fmt(SCI.b)+'% في العاشر إلى '+fmt(SCI.a)+'% في الحادي عشر ('+(d>=0?'ارتفاع ':'انخفاض ')+fmt(Math.abs(d))+' نقطة)، وتحسّنت '+SCI.up+' طالبة من '+SCI.n+' ('+fmt(SCI.up/SCI.n*100)+'%)، وانخفضت '+SCI.dn+'.');
+    ['phy','chem','bio'].forEach(g=>{const s=ST.find(z=>z.g===g);if(s)T.push(s.l+': '+fmt(s.b)+'% ← '+fmt(s.a)+'% ('+(s.a>=s.b?'+':'−')+fmt(Math.abs(s.a-s.b))+').')});
+    T.push('الرائدات (90 فأعلى) في العلوم: '+SCI.b90+' في العاشر ← '+SCI.a90+' الآن، ودون 70: '+SCI.b70+' ← '+SCI.a70+'.')}
+  if(up.length)T.push('أعلى ارتفاع: '+up.slice(0,3).map(s=>s.l+' (+'+fmt(s.a-s.b)+')').join('، ')+'.');
+  if(dn.length)T.push('أعلى انخفاض: '+dn.slice(0,3).map(s=>s.l+' (−'+fmt(s.b-s.a)+')').join('، ')+'.');
+  if(!sc.tr&&trs.length>1)trs.forEach(t=>{const Q=P.filter(c=>c.tr===t);const pr=Q.map(c=>({a:get(c,'sci','a'),b:get(c,'sci','b')})).filter(z=>z.a&&z.b);if(pr.length)T.push('المسار ال'+t+' ('+pr.length+' طالبة): العلوم '+fmt(mean(pr.map(z=>z.b.p)))+'% ← '+fmt(mean(pr.map(z=>z.a.p)))+'%.')});
+  if(AV)T.push('المعدل العام للطالبات أنفسهن: '+fmt(AV.b)+'% ← '+fmt(AV.a)+'%.');
+  h+='<div class="stl" style="margin-top:10px"><b>التحليل</b><ul style="margin:6px 0 0;padding-inline-start:18px">'+T.map(t=>'<li>'+esc(t)+'</li>').join('')+'</ul><p class="small muted" style="margin:6px 0 0">العلوم في الحادي عشر = متوسط الفيزياء والكيمياء والأحياء، والاجتماعيات = متوسط التاريخ والجغرافيا. المقارنة بالنسبة المئوية لاختلاف الدرجة الكاملة بين الاختبارات.</p></div></div>';
+  /* درجات الطالبات في المادة المختارة */
+  const opts=[['avg','المعدل العام']].concat(GS.map(G=>[G[0],G[1]]));if(!opts.some(o=>o[0]===sc.g))sc.g=opts[1]?opts[1][0]:'avg';
+  const R=P.map(c=>({c,a:get(c,sc.g,'a'),b:get(c,sc.g,'b')})).filter(z=>z.a).map(z=>Object.assign(z,{d:z.a&&z.b?z.a.p-z.b.p:null})).filter(z=>!sc.q||norm(z.c.x.n).includes(norm(sc.q)))
+    .sort((p,q)=>(p.d==null)-(q.d==null)||(q.d||0)-(p.d||0));
+  const cell=v=>v?'<td class="'+catOf(v.p).k+'"><b>'+fmt(v.p)+'%</b>'+(v.t?'<div class="small" style="opacity:.8;white-space:nowrap">'+esc(v.t)+'</div>':'')+'</td>':'<td class="cna">—</td>';
+  h+='<div class="box"><h3>درجات الطالبات: '+esc(nm(sc.g))+'<small>'+R.length+' طالبة · مرتبة من الأعلى تحسّنًا</small></h3>'+
+    '<div class="noprint" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">'+opts.map(([v,l])=>'<button type="button" class="btn'+(v===sc.g?'':' ghost')+' sm" data-scg="'+v+'">'+esc(l)+'</button>').join('')+
+    '<input data-scq placeholder="بحث باسم الطالبة" value="'+esc(sc.q)+'" style="margin-inline-start:auto;border:1px solid var(--line);border-radius:10px;padding:6px 10px"></div>'+
+    '<div class="tw"><table class="gt"><thead><tr><th>#</th><th>الطالبة</th><th>الشعبة الآن</th><th>شعبة العاشر</th><th>المسار</th><th>العاشر '+esc(PERIODS[+sc.pt])+'</th><th>الحادي عشر '+esc(PERIODS[UI.per])+'</th><th>التغير</th></tr></thead><tbody>'+
+    R.map((z,i)=>'<tr><td>'+(i+1)+'</td><td class="nm" style="white-space:nowrap">'+esc(sNm(z.c.x.n))+'</td><td><bdi dir="ltr">'+esc(z.c.x.s)+'</bdi></td><td><bdi dir="ltr">'+esc(z.c.o.sec)+'</bdi></td><td>'+esc(z.c.tr||'')+'</td>'+cell(z.b)+cell(z.a)+'<td>'+(z.d==null?'—':arr(z.d))+'</td></tr>').join('')+'</tbody></table></div></div>';
+  /* كل المواد لكل طالبة */
+  const MG=SCI_MAIN.filter(g=>GS.some(G=>G[0]===g));
+  h+='<div class="box"><h3>كل المواد لكل طالبة<small>النسبة في العاشر ← الحادي عشر</small></h3><div class="tw"><table class="gt"><thead><tr><th>الطالبة</th><th>الشعبة</th>'+MG.map(g=>'<th>'+esc(nm(g))+'</th>').join('')+'<th>المعدل</th><th>التغير</th></tr></thead><tbody>'+
+    P.map(c=>({c,b:avgOf(c,'b'),a:avgOf(c,'a')})).sort((p,q)=>((q.a&&q.b?q.a.p-q.b.p:-999)-(p.a&&p.b?p.a.p-p.b.p:-999))).map(z=>'<tr><td class="nm" style="white-space:nowrap">'+esc(sNm(z.c.x.n))+'</td><td><bdi dir="ltr">'+esc(z.c.x.s)+'</bdi></td>'+
+      MG.map(g=>{const a=val(z.c,g,'a'),b=val(z.c,g,'b');if(!a)return'<td class="cna">—</td>';const d=a&&b?a.p-b.p:0;return'<td style="white-space:nowrap;background:'+(a&&b?(d>=1?'#E8F5EC':d<=-1?'#FBEAEA':'transparent'):'transparent')+'">'+(b?fmt(b.p):'—')+' ← <b>'+(a?fmt(a.p):'—')+'</b></td>'}).join('')+
+      '<td style="white-space:nowrap">'+(z.b?fmt(z.b.p):'—')+' ← <b>'+(z.a?fmt(z.a.p):'—')+'</b></td><td>'+(z.a&&z.b?arr(z.a.p-z.b.p):'—')+'</td></tr>').join('')+'</tbody></table></div>'+
+    '<p class="small muted" style="margin:8px 0 0">الخلفية الخضراء الفاتحة: تحسّن نقطة فأكثر، والوردية الفاتحة: انخفاض نقطة فأكثر.</p></div>';
+  return h}
+function yLbl(y){return String(y||'').replace('-','–')}
+function sNm(n){n=String(n||'').replace(/\s+/g,' ').trim();const w=n.split(' ');if(w.length<=3)return n;const pre=['ابو','أبو','بن','بنت','آل','عبد','ال'];const k=pre.includes(w[w.length-2])?2:1;return w[0]+' '+w[1]+' '+w.slice(-k).join(' ')}
+document.addEventListener('change',e=>{const t=e.target;if(!t||!t.dataset||t.dataset.sc==null||!UI.sc)return;UI.sc[t.dataset.sc]=t.value;render()});
+document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-scg]');if(!b||!UI.sc)return;UI.sc.g=b.dataset.scg;render()});
+document.addEventListener('keydown',e=>{const t=e.target;if(t&&t.dataset&&t.dataset.scq!=null&&e.key==='Enter'&&UI.sc){UI.sc.q=t.value;render()}});
 function render(){try{
   if(CLD.wait){$('#nav').innerHTML='<a class="backlink homebtn" href="./">الصفحة الرئيسية</a>';$('#view').innerHTML='<div class="box"><div class="empty">'+(CLD.msg||'جارٍ تحميل النتائج…')+'</div></div>';return}
   if(!tabOKA(UI.tab))UI.tab=CLD.role==='teacher'?'class':'overview';
   $('#nav').innerHTML='<a class="backlink homebtn" href="./"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg>الصفحة الرئيسية</a>'+TABS.filter(([id])=>tabOKA(id)).map(([id,l])=>'<button type="button" data-tab="'+id+'"'+(UI.tab===id?' aria-current="page"':'')+'>'+l+'</button>').join('');
-  const v={overview:vOverview,class:vClass,sections:vSections,subjects:vSubjects,teachers:vTeachers,last:vLast,top:()=>unlocked()?vTop():lockView(),cats:vCats,value:vValue,reading:vReading,data:vData,treading:()=>vTRead(),creading:()=>vCRead(),rfollow:()=>vRFollow(),bfollow:()=>vBFollow()}[UI.tab]||vOverview;
-  $('#view').innerHTML=UI.tab==='data'?'<div class="content">'+v()+'</div>':'<div class="an-layout">'+sidebar()+'<div class="content">'+v()+'</div></div>';
+  const v={overview:vOverview,class:vClass,sections:vSections,subjects:vSubjects,teachers:vTeachers,last:vLast,sci:vSci,top:()=>unlocked()?vTop():lockView(),cats:vCats,value:vValue,reading:vReading,data:vData,treading:()=>vTRead(),creading:()=>vCRead(),rfollow:()=>vRFollow(),bfollow:()=>vBFollow()}[UI.tab]||vOverview;
+  $('#view').innerHTML=UI.tab==='data'||UI.tab==='sci'?'<div class="content">'+v()+'</div>':'<div class="an-layout">'+sidebar()+'<div class="content">'+v()+'</div></div>';
   setTimeout(()=>bxTools('#view .box'),60);
   const n=M.stu.length;$('#marq').textContent='تحليل النتائج · '+(n?n+' طالبة في '+PERIODS[UI.per]+' · '+Object.keys(M.secs).length+' شعبة · المقارنة بالعام الماضي · الأوائل وفئات الدعم':'ارفعي كشف الدرجات من صفحة البيانات')+' · «وَقُل رَّبِّ زِدْنِي عِلْمًا»';
 }catch(e){console.error(e);$('#view').innerHTML='<div class="box"><div class="empty">حدث خطأ أثناء العرض: '+esc(e.message)+'</div></div>'}}
@@ -957,7 +1042,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.target.id==='pin1
 
 /* ---------- قاعدة البيانات: المنسقات والتوجيه يرون التحليل كاملًا، والمعلمة شعبها بجميع المواد ---------- */
 const CLD={wait:typeof firebase!=='undefined'&&!!firebase.initializeApp,ro:false,role:'',msg:'',db:null,admin:false,timer:null};
-function tabOKA(id){if(id==='rfollow'||id==='bfollow')return !!(CLD.admin&&!CLD.cloudAdminX)||CLD.role==='coord'||CLD.role==='principal';if(!CLD.ro)return !['treading','creading'].includes(id);if(id==='data')return false;if(id==='reading')return CLD.role==='principal';if(CLD.role==='principal')return !['treading','creading'].includes(id);if(CLD.role==='teacher')return ['class','subjects','cats','last','value','overview','treading'].includes(id);if(id==='treading')return false;if(id==='creading')return CLD.role==='coord';return true}
+function tabOKA(id){if(id==='sci')return !CLD.ro||CLD.role==='principal';if(id==='rfollow'||id==='bfollow')return !!(CLD.admin&&!CLD.cloudAdminX)||CLD.role==='coord'||CLD.role==='principal';if(!CLD.ro)return !['treading','creading'].includes(id);if(id==='data')return false;if(id==='reading')return CLD.role==='principal';if(CLD.role==='principal')return !['treading','creading'].includes(id);if(CLD.role==='teacher')return ['class','subjects','cats','last','value','overview','treading'].includes(id);if(id==='treading')return false;if(id==='creading')return CLD.role==='coord';return true}
 const nkA0=s=>String(s==null?'':s).replace(/[ً-ٰٟـ]/g,'').replace(/[أإآ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي').replace(/\s+/g,' ').trim().toLowerCase();
 const __M_nkA=new Map();const nkA=s=>{if(s==null)return '';const k=typeof s==='string'?s:String(s);let v=__M_nkA.get(k);if(v===undefined){v=nkA0(k);if(__M_nkA.size>60000)__M_nkA.clear();__M_nkA.set(k,v)}return v};
 function hstr(t){let h=5381;for(let i=0;i<t.length;i++)h=(h*33)^t.charCodeAt(i);return (h>>>0).toString(36)+'.'+t.length}
