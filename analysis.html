@@ -830,7 +830,7 @@ function vValue(){if(!M.stu.length)return noData();const prev=UI.per-1;const P=S
   window.__goals=G;return h}
 const short2=n=>String(n||'').split(' و')[0].split(' ').slice(0,2).join(' ');
 /* ---------- shell ---------- */
-const TABS=[['overview','الملخص'],['class','الشعبة'],['sections','مقارنة الشعب'],['subjects','مقارنة المواد'],['teachers','المعلمات'],['last','العام الماضي'],['sci','مشروع العلوم'],['cats','الفئات بالأسماء'],['top','الأوائل والفئات'],['value','القيمة المضافة'],['reading','القراءة'],['data','البيانات']];
+const TABS=[['overview','الملخص'],['class','الشعبة'],['sections','مقارنة الشعب'],['subjects','مقارنة المواد'],['teachers','المعلمات'],['last','العام الماضي'],['cats','الفئات بالأسماء'],['top','الأوائل والفئات'],['value','القيمة المضافة'],['reading','القراءة'],['data','البيانات']];
 function sidebar(){const lv=[...new Set(M.stu.map(x=>x.l))].sort();const secs=Object.keys(M.secs).filter(s=>!UI.lvl||lvlOf(s)===UI.lvl).sort(secSort);
   const subs=subjectsIn(M.stu.filter(x=>(!UI.lvl||x.l===UI.lvl)&&(!UI.sec||x.s===UI.sec)));
   const opt=(v,t,cur)=>'<option value="'+esc(v)+'"'+(v===cur?' selected':'')+'>'+esc(t)+'</option>';
