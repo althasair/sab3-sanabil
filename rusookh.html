@@ -256,7 +256,7 @@ document.addEventListener('click',e=>{const a=e.target.closest('a[href^="#"]');i
  const b=e.target.closest('#trs button');if(b){document.querySelectorAll('#trs button').forEach(x=>x.classList.toggle('on',x===b));s5();setTimeout(postH,60)}
  if(e.target.closest('[data-print]'))doPrint()});
 function doPrint(){const c=document.documentElement.cloneNode(true);c.querySelectorAll('script,nav,#lb,footer,.flt,.go,.noprint').forEach(x=>x.remove());
- const hb=c.querySelector('#heroBox');hb.outerHTML='<div class="ttl"><h1>رسوخ</h1><p>متابعة مشروع العلوم: التحقق من عدم حدوث فاقد تعليمي أو تراجع بعد الانتقال من العاشر إلى الحادي عشر</p><p class="sub" style="font-family:Amiri Quran,serif;font-weight:400">﴿ وَالرَّاسِخُونَ فِي الْعِلْمِ ﴾</p><p class="sub">'+TN+' '+PY+' ← '+TN+' '+CY+'</p></div>';
+ const hb=c.querySelector('#heroBox');hb.outerHTML='<div class="ttl"><h1>رسوخ</h1><p>متابعة مشروع العلوم: التحقق من عدم حدوث فاقد تعليمي أو تراجع بعد الانتقال من العاشر إلى الحادي عشر</p><p class="sub" style="font-family:Amiri Quran,serif;font-weight:400">﴿ وَالرَّاسِخُونَ فِي الْعِلْمِ ﴾ <span style="font-family:Tajawal;font-size:9pt;color:#7D6E73">[آل عمران: 7]</span></p><p class="sub">'+TN+' '+PY+' ← '+TN+' '+CY+'</p></div>';
  const app=c.querySelector('#app');app.prepend(c.querySelector('.ttl'));
  const SH={'العلوم':'علوم','الرياضيات':'رياضيات','اللغة العربية':'عربي','اللغة الإنجليزية':'إنجليزي','التربية الإسلامية':'إسلامية','الاجتماعيات':'اجتماعيات','الحوسبة وتكنولوجيا المعلومات':'حوسبة','العاشر':'10','الحادي عشر':'11','المعدل %':'المعدل'};
  c.querySelectorAll('#s7b th').forEach(th=>{const t=th.textContent.trim();if(SH[t])th.textContent=SH[t];if(/^علوم الحادي عشر/.test(t))th.textContent='علوم 11 من '+DENT});
