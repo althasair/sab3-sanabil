@@ -1502,7 +1502,7 @@ async function rqApprove(on){if(!on){RD.doc=Object.assign(RD.doc||{},{approved:f
 document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-rqapp]');if(b)rqApprove(b.dataset.rqapp==='1')});
 /* اعتماد المنسقة لقراءة القسم: تُحفظ مؤشرات مختصرة (التحصيل والراسبات ودون 70 و70 فأعلى و90 فأعلى) ومقترحات الفترة القادمة، فيقرؤها الميزان في التقرير الشهري */
 function cSum(){const R=[],so=[];cGroups().forEach(g=>{const st=totStat(M.stu.filter(x=>g.secs.includes(x.s)),g.sub);const it=rdItem(g.sub+'|'+g.l);
-  if(st)R.push({sub:g.sub,l:+g.l||g.l,n:st.n,ach:Math.round(st.ach*10)/10,pass:Math.round(st.pass*10)/10,nf:st.nf,n70:st.n70,n90:st.n90,a70:Math.round(st.a70*10)/10,a90:Math.round(st.a90*10)/10});
+  if(st)R.push({sub:g.sub,l:+g.l||g.l,n:st.n,ach:Math.round(st.ach*10)/10,pass:Math.round(st.pass*10)/10,nf:st.nf,n70:st.n70,n90:st.n90,a70:Math.round(st.a70*10)/10,a90:Math.round(st.a90*10)/10,c:(st.c||[]).slice(0,5)});
   (it.so||[]).forEach(x=>{if(x&&!so.includes(x))so.push(x)})});
   return JSON.stringify({per:UI.per,pn:PERIODS[UI.per]||'',rows:R,so})}
 document.addEventListener('click',async e=>{const b=e.target.closest&&e.target.closest('[data-crqapp]');if(!b)return;
