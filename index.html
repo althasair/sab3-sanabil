@@ -671,9 +671,9 @@ addEventListener('message',e=>{if(e.origin!==location.origin||!e.data)return;con
 /* إجراءات رفع التحصيل الأكاديمي حسب الأرباع: صفحة مستقلة داخل إطار، تُبنى من الإجراءات الحية في كل فتح وتصدّر PDF محدثًا */
 UI.ijr=UI.ijr||{d:0,q:'1'};
 function vIjraa(){if(!['admin','viewer'].includes(AUTH.role))return '<section class="panel"><p>هذا القسم للنائبة الأكاديمية والإدارة فقط.</p></section>';
-  return '<iframe id="ijrf" src="ijraa.html?v=20261121#d='+UI.ijr.d+'&q='+UI.ijr.q+'" title="إجراءات رفع التحصيل الأكاديمي" style="width:100%;min-height:900px;border:0;display:block;border-radius:18px;background:#FBF8F2"></iframe>'}
+  return '<iframe id="ijrf" src="ijraa.html?v=20261121b#d='+UI.ijr.d+'&q='+UI.ijr.q+'" title="إجراءات رفع التحصيل الأكاديمي" style="width:100%;min-height:900px;border:0;display:block;border-radius:18px;background:#FBF8F2"></iframe>'}
 addEventListener('message',e=>{if(e.origin!==location.origin||!e.data)return;const f=document.getElementById('ijrf');if(!f||e.source!==f.contentWindow)return;
-  if(e.data.type==='ijr-ready')f.contentWindow.postMessage({type:'ijr',savedAt:new Date().toISOString(),actions:S.actions||[],evals:(S.evals||[]).filter(x=>+x.type===9),staff:S.staff||[],roster:(S.roster||[]).map(r=>({name:r.name,section:r.section,teacher:r.teacher,scores:[r.scores?r.scores[0]:null]})),sig:(S.settings&&S.settings.sig)||'',lh:typeof LH_P!=='undefined'?LH_P:''},location.origin);
+  if(e.data.type==='ijr-ready')f.contentWindow.postMessage({type:'ijr',savedAt:new Date().toISOString(),actions:S.actions||[],evals:(S.evals||[]).filter(x=>+x.type===9),staff:S.staff||[],roster:(S.roster||[]).map(r=>({name:r.name,section:r.section,teacher:r.teacher,scores:[r.scores?r.scores[0]:null],raw:[r.raw?r.raw[0]:null],den:[r.den?r.den[0]:null]})),sig:(S.settings&&S.settings.sig)||'',lh:typeof LH_P!=='undefined'?LH_P:''},location.origin);
   else if(e.data.type==='ijr-h')f.style.height=(e.data.h+4)+'px';
   else if(e.data.type==='ijr-st')UI.ijr={d:e.data.d,q:e.data.q}});
 function vTrack(){
