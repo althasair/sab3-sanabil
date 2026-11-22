@@ -1870,7 +1870,8 @@ async function mzPull(){const pin=prompt('اكتبي رقمكِ السري في 
   try{toast('جارٍ الجلب من الميزان…');const a=await post({action:'login',pin,app:'mizan'});if(a.user.role!=='admin')throw new Error('هذا الإجراء للنائب الأكاديمي فقط');
     const j=await post({action:'records',token:a.token});const recs=j.records||[];const list=[],abs=[];
     const deptAll=dp=>(S.staff||[]).filter(t=>norm(t.dept).includes(norm(dp))||norm(dp).includes(norm(t.dept))).map(t=>t.name);
-    const ex=(x,names,k,ti,strict)=>{[...new Set(names.filter(Boolean).flatMap(n=>/جميع/.test(n)?deptAll(x.dept):(!strict||fuzzyStaff(n)?[n]:[])))].forEach(n=>list.push({n,k,t:String(ti||''),d:x.date||''}))};
+    /* لا يُنسب العمل إلا لمن ورد اسمها نصًّا؛ عبارة «جميع معلمات القسم» لا تُوزَّع على أفراد القسم (قد يكون بينهن غائبات أو من لم يشاركن) */
+    const ex=(x,names,k,ti,strict)=>{[...new Set(names.filter(Boolean).flatMap(n=>/جميع|كل معلمات|كافة/.test(n)?[]:(!strict||fuzzyStaff(n)?[n]:[])))].forEach(n=>list.push({n,k,t:String(ti||''),d:x.date||''}))};
     recs.forEach(x=>{const d=x.d||{};switch(x.item){
       case 'AC':ex(x,[d.e1,d.e2,d.e3],/مبادر/.test(d.ty||'')?'i':'a',d.name||d.ty);break;
       case 'TA':ex(x,[d.t],d.kind==='مبادرة'?'i':'a',d.name);break;
