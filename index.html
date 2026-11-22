@@ -673,7 +673,7 @@ UI.ijr=UI.ijr||{d:0,q:'1'};
 function vIjraa(){if(!['admin','viewer'].includes(AUTH.role))return '<section class="panel"><p>هذا القسم للنائبة الأكاديمية والإدارة فقط.</p></section>';
   return '<iframe id="ijrf" src="ijraa.html?v=20261121c#d='+UI.ijr.d+'&q='+UI.ijr.q+'" title="إجراءات رفع التحصيل الأكاديمي" style="width:100%;min-height:900px;border:0;display:block;border-radius:18px;background:#FBF8F2"></iframe>'}
 addEventListener('message',e=>{if(e.origin!==location.origin||!e.data)return;const f=document.getElementById('ijrf');if(!f||e.source!==f.contentWindow)return;
-  if(e.data.type==='ijr-ready')f.contentWindow.postMessage({type:'ijr',savedAt:new Date().toISOString(),actions:S.actions||[],evals:(S.evals||[]).filter(x=>+x.type===9),staff:S.staff||[],roster:(S.roster||[]).map(r=>({name:r.name,section:r.section,teacher:r.teacher,scores:[r.scores?r.scores[0]:null],raw:[r.raw?r.raw[0]:null],den:[r.den?r.den[0]:null]})),sig:(S.settings&&S.settings.sig)||'',lh:typeof LH_P!=='undefined'?LH_P:''},location.origin);
+  if(e.data.type==='ijr-ready')f.contentWindow.postMessage({type:'ijr',savedAt:new Date().toISOString(),actions:S.actions||[],evals:(S.evals||[]).filter(x=>+x.type===9),staff:(S.staff||[]).filter(t=>!boardEx().has(norm(t.name))),roster:(S.roster||[]).map(r=>({name:r.name,section:r.section,teacher:r.teacher,scores:[r.scores?r.scores[0]:null],raw:[r.raw?r.raw[0]:null],den:[r.den?r.den[0]:null]})),sig:(S.settings&&S.settings.sig)||'',lh:typeof LH_P!=='undefined'?LH_P:''},location.origin);
   else if(e.data.type==='ijr-h')f.style.height=(e.data.h+4)+'px';
   else if(e.data.type==='ijr-st')UI.ijr={d:e.data.d,q:e.data.q}});
 function vTrack(){
@@ -1257,7 +1257,7 @@ function renderChrome(){
   const done=D.teachers.filter(x=>x.ratio>=1).length;
   $('#marq').textContent='منصة سبع سنابل · تم رصد '+S.actions.length+' إجراء لرفع التحصيل · '+new Set(T.map(t=>t.row.name)).size+' طالبة مستهدفة في '+T.length+' حالة · '+S.charters.length+' ميثاق شراكة مكتمل · '+done+' معلمة أكملت السنابل السبع · «كل إجراء يترك أثرًا»'+(S.demo?' · (بيانات تجريبية)':'');
 }
-function render(){try{renderNav();renderChrome();const v={ijraa:vIjraa,rusookh:vRusookh,home:vHome,entry:vEntry,analysis:vAnalysis,students:vStudents,teachers:vTeachers,rank:()=>AUTH.role==='teacher'?crown('سنابلي وإنجازاتي','إنجازاتي','إِنَّا لَا نُضِيعُ أَجْرَ مَنْ أَحْسَنَ عَمَلًا','الكهف: 30','')+myCardPanel()+myAchPanel():crown('تصنيف أداء المعلمات','المتميزات في العطاء','وَفِي ذَٰلِكَ فَلْيَتَنَافَسِ الْمُتَنَافِسُونَ','المطففين: 26','ترتيب المعلمات في كل بند من سبع سنابل والميزان، وكأس للمتصدرة في كل بند، ونجوم حتى سبع.')+boardPanel()+myAchPanel(),seven:vSeven,impact:vImpact,charter:vCharter,data:vData,track:vTrack,beh:()=>window.vBeh?window.vBeh():'',care:()=>window.vCare?window.vCare():'',surv:()=>window.vSurv?window.vSurv():'',stats:vStats,prio:vPrio}[UI.tab]||vHome;$('#view').innerHTML=(BOOT_ERR?recoverBar():'')+quickBar()+chIssBar()+v();setTimeout(()=>bxTools('#view section.panel, #view .st-card, #view .rcard, #view .tcard'),80)}catch(e){console.error(e);$('#view').innerHTML=recoverBar(e)}}
+function render(){try{renderNav();renderChrome();const v={ijraa:vIjraa,rusookh:vRusookh,home:vHome,entry:vEntry,analysis:vAnalysis,students:vStudents,teachers:vTeachers,rank:()=>AUTH.role==='teacher'?crown('سنابلي وإنجازاتي','إنجازاتي','إِنَّا لَا نُضِيعُ أَجْرَ مَنْ أَحْسَنَ عَمَلًا','الكهف: 30','')+myCardPanel()+myAchPanel():crown('تصنيف أداء المعلمات','المتميزات في العطاء','وَفِي ذَٰلِكَ فَلْيَتَنَافَسِ الْمُتَنَافِسُونَ','المطففين: 26','ترتيب المعلمات في كل بند من سبع سنابل والميزان، وكأس للمتصدرة في كل بند، ونجوم حتى سبع.')+boardPanel()+(isAdm()?boardExPanel():'')+myAchPanel(),seven:vSeven,impact:vImpact,charter:vCharter,data:vData,track:vTrack,beh:()=>window.vBeh?window.vBeh():'',care:()=>window.vCare?window.vCare():'',surv:()=>window.vSurv?window.vSurv():'',stats:vStats,prio:vPrio}[UI.tab]||vHome;$('#view').innerHTML=(BOOT_ERR?recoverBar():'')+quickBar()+chIssBar()+v();setTimeout(()=>bxTools('#view section.panel, #view .st-card, #view .rcard, #view .tcard'),80)}catch(e){console.error(e);$('#view').innerHTML=recoverBar(e)}}
 /* شريط ثابت أعلى الصفحة: تحديث ومزامنة، وأزرار الإجراءات واضحة أمام المعلمة */
 function quickBar(){if(!AUTH||!['teacher','coord','admin'].includes(AUTH.role))return '';const st=AUTH.role!=='admin';const show=st&&['home','entry','students'].includes(UI.tab);
   const A=[[3,'📘','حصة إثرائية'],[5,'📞','تواصل مع ولي الأمر'],[6,'🏅','تعزيز وتحفيز'],[7,'🎯','نشاط وتعلّم أقران'],[4,'✍️','تغذية راجعة']];
@@ -1769,11 +1769,15 @@ function isAdm(){try{return AUTH.role==='admin'||AUTH.role==='loading'||!AUTH.us
 function mzTT(t){return norm(String(t||'').replace(/^(استضافة )?زيارة تبادلية\s*(—.*)?$/,'زيارة تبادلية')).replace(/[^\u0621-\u064Aa-z0-9 ]/g,'').split(' ').slice(0,4).join(' ')}
 function mzUniq(L){const seen=new Set();return (L||[]).filter(x=>{if(!x||!x.k)return false;const f=fuzzyStaff(x.n);const n=norm(f?f.name:x.n);const d=String(x.d||'').slice(0,10),g=x.k==='i'?'a':x.k,tt=mzTT(x.t);
   const key=x.k==='w'?'w|'+n+'|'+(d||tt):x.k==='o'?null:(x.k==='p'||x.k==='h')&&tt?g+'|'+n+'|'+tt:g+'|'+n+'|'+d+'|'+tt;if(!key)return true;if(seen.has(key))return false;seen.add(key);return true})}
+/* معلمات خارج التصنيف (غياب طويل أو إجازة): لا يظهرن في لوحة الصدارة ولا تُنسب إليهن أعمال القسم الجماعية */
+const BOARD_EX_DEF=['وضحى سعد فيصل بن شبعان الهاجرى','لينا محمود شقير'];
+function boardExList(){return (S.settings&&Array.isArray(S.settings.boardEx))?S.settings.boardEx:BOARD_EX_DEF}
+function boardEx(){return new Set(boardExList().map(norm))}
 function boardCompute(){
-  const st=S.staff||[];const rows=new Map();const L=lastTestIdx(S);
+  const st=S.staff||[];const rows=new Map();const L=lastTestIdx(S);const EX=boardEx();
   const row=(name,t)=>{const k=norm(name);if(!rows.has(k))rows.set(k,{n:t?t.name:String(name).trim(),d:t?(t.dept||t.subject||''):'',c:!!t&&!/فنون|بدني|اعمال|مهارات/.test(norm((t.subject||'')+' '+(t.dept||''))),co:!!t&&/منسق/.test(t.role||''),s:0,a:0,i:0,v:0,h:0,w:0,p:0,o:0,r:0,m:0,rs:false,q:false});return rows.get(k)};
-  st.forEach(t=>{if((t.sections||[]).length||/منسق/.test(t.role||''))row(t.name,t)});
-  const who=n=>{const f=fuzzyStaff(n);return f?row(f.name,f):(String(n||'').trim()?row(n,null):null)};
+  st.forEach(t=>{if(EX.has(norm(t.name)))return;if((t.sections||[]).length||/منسق/.test(t.role||''))row(t.name,t)});
+  const who=n=>{const f=fuzzyStaff(n);if(EX.has(norm(f?f.name:n)))return null;return f?row(f.name,f):(String(n||'').trim()?row(n,null):null)};
   /* العدّ الواقعي: العمل الواحد يُحتسب مرة واحدة مهما تكرر تسجيله
      - الحصة الإثرائية = ردّ واحد في نموذج Forms حصة واحدة، ولو اختارت المعلمة فيه مادتين (الفيزياء والعلوم) أو مستويين، فلا تتضاعف
      - التواصل الوارد من الميزان يُحتسب من سجلات الميزان وحدها (لا يُكرَّر من نسخته في الإجراءات)
@@ -1791,6 +1795,13 @@ function boardCompute(){
   /* الانضباط: من بداية الشهر حتى اليوم، بحسب ما سُجّل في الميزان (يُعبّأ من يوم 15) */
   const now=new Date(),mon=now.toISOString().slice(0,7);let abs=null;if(now.getDate()>=15&&S.mz&&Array.isArray(S.mz.abs)){const bad=new Set(S.mz.abs.filter(x=>String(x.d||'').slice(0,7)===mon).map(x=>{const f=fuzzyStaff(x.n);return norm(f?f.name:x.n)}));abs={mon,ok:R.filter(r=>r.c&&!bad.has(norm(r.n))).map(r=>r.n)}}
   return{at:new Date().toISOString(),max,rows:R,abs}}
+function boardExPanel(){const L=boardExList();const st=(S.staff||[]).filter(t=>!L.some(n=>norm(n)===norm(t.name))).sort((a,b)=>a.name.localeCompare(b.name,'ar'));
+  return '<section class="panel"><h3>معلمات خارج التصنيف<small>غياب طويل أو إجازة · لا يظهرن في لوحة الصدارة ولا تُنسب إليهن أعمال القسم الجماعية</small></h3><div class="row" style="gap:6px;flex-wrap:wrap;margin-bottom:10px">'+
+  (L.length?L.map(n=>'<span class="pill" style="background:#F4E9EC;color:#62102A;padding:4px 10px">'+esc(nm3(n))+' <button type="button" class="btn sm" data-bxdel="'+esc(n)+'" style="margin-inline-start:6px">إرجاع</button></span>').join(''):'<span class="small muted">لا يوجد</span>')+
+  '</div><div class="row" style="gap:6px"><select id="bxSel"><option value="">اختاري معلمة…</option>'+st.map(t=>'<option value="'+esc(t.name)+'">'+esc(nm3(t.name))+' · '+esc(t.dept||'')+'</option>').join('')+'</select><button type="button" class="btn sm pri" id="bxAdd">إخراج من التصنيف</button></div></section>'}
+document.addEventListener('click',e=>{const d=e.target.closest&&e.target.closest('[data-bxdel]'),a=e.target.closest&&e.target.closest('#bxAdd');if(!d&&!a)return;
+  let L=boardExList().slice();if(d)L=L.filter(n=>n!==d.dataset.bxdel);else{const v=($('#bxSel')||{}).value;if(!v)return;if(!L.includes(v))L.push(v)}
+  S.settings.boardEx=L;save();schedulePush();render();toast(d?'أُعيدت المعلمة إلى التصنيف':'أُخرجت المعلمة من التصنيف')});
 function boardGet(){if(isAdm())return boardCompute();try{return window.__BOARD||null}catch(_){return null}}
 function bStars(r,k,max){const n=r[k];if(!n)return 0;return k==='s'?Math.max(1,Math.round(7*n/(max.s||n))):Math.min(7,n)}
 function thanksFor(r,k,max){const c=bCats().find(x=>x[0]===k);const n=r[k];if(!n)return '';const s=bStars(r,k,max);const cnt=cntTxt(n,c[2]);const cat=c[1];
