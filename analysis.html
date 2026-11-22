@@ -1423,7 +1423,21 @@ function vReading(){if(!M.stu.length)return noData();
   if(CLD.pr){prLoad();rdAllLoad();sanLoad();if(!RD.prDocs)return head('قراءة النتائج','جارٍ التحميل…');const d=RD.prDocs.find(x=>String(x.per)===String(UI.per));
     if(!d)return head('قراءة النتائج — '+esc(PERIODS[UI.per]),'لم تعتمد النائب الأكاديمي قراءة هذه الفترة بعد. تظهر القراءة هنا فور اعتمادها.')+'<div class="box"><div class="empty">بانتظار اعتماد النائب الأكاديمي.</div></div>';
     RD.doc=JSON.parse(JSON.stringify(d));RD.loaded=true;prcmLoad();if(window.__loadSigs&&!RD.sgL){RD.sgL=true;window.__loadSigs().then(()=>render())}return '<div class="rqro">'+vReadingBody()+'</div>'+prBox()}
-  rdLoad();rdAllLoad();sanLoad();prcmLoad();return vReadingBody()}
+  rdLoad();rdAllLoad();sanLoad();prcmLoad();return vpCoordApp()+vReadingBody()}
+/* اعتماد النائب الأكاديمي لقراءات المنسقات نيابةً عنهن: يُحسب ملخص كل قسم (التحصيل، الراسبات، دون 70، 70 و90 فأعلى، الفئات، المقترحات)
+   من نتائج الفترة نفسها، ويُضاف إلى وثيقة قراءة المنسقة (capp، cappAt، mjs) دون تغيير أي شيء آخر كتبته، فتظهر المؤشرات في تقرير القسم الشهري بالميزان */
+function vpCoordDocs(){return (RD.all||[]).filter(r=>r.role==='coord'&&String(r.per)===String(UI.per))}
+function vpCoordApp(){if(!CLD.admin||CLD.pr||!RD.all)return '';const L=vpCoordDocs();if(!L.length)return '<div class="box"><h3>اعتماد قراءات المنسقات — '+esc(PERIODS[UI.per])+'</h3><div class="empty">لم تحفظ أي منسقة قراءة لهذه الفترة بعد.</div></div>';
+  const n=L.filter(r=>r.capp).length;
+  return '<div class="box"><h3>اعتماد قراءات المنسقات — '+esc(PERIODS[UI.per])+' <small class="stl">('+n+' من '+L.length+' معتمدة)</small></h3><div style="display:flex;flex-wrap:wrap;gap:6px;margin:6px 0">'+L.map(r=>'<span class="pill'+(r.capp?' ok':'')+'">'+esc((r.depts||[r.dept]).join('، '))+' — أ. '+esc(short(r.name||''))+(r.capp?' ✓':'')+'</span>').join('')+'</div>'+
+    '<button class="btn pri" data-vpcapp="1"'+(RD.vpBusy?' disabled':'')+'>'+(RD.vpBusy?'جارٍ الاعتماد…':'اعتماد جميع القراءات وإرسال مؤشراتها إلى التقرير الشهري في الميزان')+'</button></div>'}
+async function vpCoordApproveAll(){if(!CLD.admin||!CLD.db)return;const L=vpCoordDocs();if(!L.length)return;RD.vpBusy=true;render();
+  const keep={dept:CLD.dept,doc:RD.doc};let ok=0;const at=new Date().toISOString();
+  try{for(const r of L){try{CLD.dept=(r.depts&&r.depts.length?r.depts:[r.dept]).map(nkA);RD.doc=r;const mjs=cSum();
+      await CLD.db.collection('reads').doc(r.uid+'__'+r.per).set({capp:true,cappAt:r.cappAt||at,cappBy:'النائب الأكاديمي',mjs},{merge:true});Object.assign(r,{capp:true,cappAt:r.cappAt||at,mjs});ok++}catch(e){console.warn(e)}}}
+  finally{CLD.dept=keep.dept;RD.doc=keep.doc;RD.vpBusy=false}
+  toast('تم اعتماد '+ok+' من '+L.length+' قراءة ✓ — تظهر مؤشراتها في تقارير الأقسام بالميزان خلال دقيقتين');render()}
+document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-vpcapp]');if(b)vpCoordApproveAll()});
 /* ---- اعتماد مديرة المدرسة وتغذيتها الراجعة (تُحفظ في prcm/{uid}.rq[الفترة]) ---- */
 async function prRqCheck(){if(!isPrincipal()||!CLD.db||!CLD.uid)return;try{const [q,m]=await Promise.all([CLD.db.collection('reads').where('role','==','admin').get(),CLD.db.collection('prcm').doc(CLD.uid).get()]);
   const rq=(m.exists&&m.data().rq)||{};const pend=[];q.forEach(d=>{const v=d.data();if(v.approved&&!(rq[String(v.per)]||{}).ok)pend.push(v.per)});
