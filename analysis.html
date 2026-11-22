@@ -1318,7 +1318,7 @@ function teamFor(secs,sub){return (RD.team||(CLD.admin?(RD.all||[]).filter(r=>r.
 async function rdSave(){if(!CLD.db||!CLD.uid)return;RD.busy=true;render();
   const P=(CLD.me||[])[0]||{};const role=CLD.admin?'admin':CLD.role;const doc=Object.assign({},RD.doc||{},{v:2,uid:CLD.uid,role,name:CLD.admin?'النائب الأكاديمي':(CLD.nm||P.name||''),dept:role==='coord'?(CLD.dept[0]||''):role==='admin'?'_admin':nkA(P.dept||''),depts:role==='coord'?CLD.dept:[nkA(P.dept||'')],per:UI.per,at:new Date().toISOString()});
   if(role==='coord'&&doc.capp){try{doc.mjs=cSum()}catch(e){console.warn(e)}}
-  try{await CLD.db.collection('reads').doc(rdId()).set(doc);RD.doc=doc;
+  try{await CLD.db.collection('reads').doc(rdId()).set(doc);RD.doc=doc;if(role==='coord'&&doc.capp&&doc.mjs)mzPushRQ(doc,doc.mjs).then(ok=>toast(ok?'وصلت مؤشرات القراءة إلى التقرير الشهري في الميزان ✓':'لم تصل المؤشرات إلى الميزان — أعيدي الاعتماد'));
     const fbs=doc.fbs||{};const W=Object.entries(fbs).filter(([to,f])=>to&&((f.sel||[]).length||f.txt)).map(([to,f])=>CLD.db.collection('fb').doc(to+'__'+UI.per+'__'+CLD.uid).set({to,by:CLD.uid,byName:role==='admin'?'النائب الأكاديمي':'المنسقة '+(doc.name||''),role,dept:role==='coord'?(CLD.dept[0]||''):(f.dept||''),per:UI.per,sel:f.sel||[],txt:f.txt||'',at:doc.at,vsig:role==='admin'&&doc.approved?(doc.sig||vpSig()||''):''}));
     await Promise.all(W);toast('تم حفظ القراءة ✓'+(W.length?' وأُرسلت التغذية الراجعة':''))}catch(e){console.error(e);toast('تعذّر الحفظ: '+(e&&e.message||e))}RD.busy=false;render()}
 function vpSigCell(vfb){const sg=((vfb||[]).find(f=>f.vsig)||{}).vsig;return '<span style="position:relative;display:inline-block;padding:6mm 0;min-width:44mm"><b style="position:relative;z-index:1">أ. آسيا الذبياني</b>'+(sg?'<img src="'+sg+'" alt="التوقيع" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-44%);height:26mm;max-width:60mm;object-fit:contain;opacity:.62;mix-blend-mode:multiply;pointer-events:none;z-index:2">':'')+'</span>'}
@@ -1432,12 +1432,27 @@ function vpCoordApp(){if(!CLD.admin||CLD.pr||!RD.all)return '';const L=vpCoordDo
   return '<div class="box"><h3>اعتماد قراءات المنسقات — '+esc(PERIODS[UI.per])+' <small class="stl">('+n+' من '+L.length+' معتمدة)</small></h3><div style="display:flex;flex-wrap:wrap;gap:6px;margin:6px 0">'+L.map(r=>'<span class="pill'+(r.capp?' ok':'')+'">'+esc((r.depts||[r.dept]).join('، '))+' — أ. '+esc(short(r.name||''))+(r.capp?' ✓':'')+'</span>').join('')+'</div>'+
     '<button class="btn pri" data-vpcapp="1"'+(RD.vpBusy?' disabled':'')+'>'+(RD.vpBusy?'جارٍ الاعتماد…':'اعتماد جميع القراءات وإرسال مؤشراتها إلى التقرير الشهري في الميزان')+'</button></div>'}
 async function vpCoordApproveAll(){if(!CLD.admin||!CLD.db)return;const L=vpCoordDocs();if(!L.length)return;RD.vpBusy=true;render();
-  const keep={dept:CLD.dept,doc:RD.doc};let ok=0;const at=new Date().toISOString();
+  const keep={dept:CLD.dept,doc:RD.doc};let ok=0,mz=0;const at=new Date().toISOString();
   try{for(const r of L){try{CLD.dept=(r.depts&&r.depts.length?r.depts:[r.dept]).map(nkA);RD.doc=r;const mjs=cSum();
-      await CLD.db.collection('reads').doc(r.uid+'__'+r.per).set({capp:true,cappAt:r.cappAt||at,cappBy:'النائب الأكاديمي',mjs},{merge:true});Object.assign(r,{capp:true,cappAt:r.cappAt||at,mjs});ok++}catch(e){console.warn(e)}}}
+      await CLD.db.collection('reads').doc(r.uid+'__'+r.per).set({capp:true,cappAt:r.cappAt||at,cappBy:'النائب الأكاديمي',mjs},{merge:true});Object.assign(r,{capp:true,cappAt:r.cappAt||at,mjs});ok++;if(await mzPushRQ(r,mjs))mz++}catch(e){console.warn(e)}}}
   finally{CLD.dept=keep.dept;RD.doc=keep.doc;RD.vpBusy=false}
-  toast('تم اعتماد '+ok+' من '+L.length+' قراءة ✓ — تظهر مؤشراتها في تقارير الأقسام بالميزان خلال دقيقتين');render()}
+  toast('تم اعتماد '+ok+' من '+L.length+' قراءة، ووصلت مؤشرات '+mz+' منها إلى تقارير الأقسام في الميزان ✓');render()}
 document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-vpcapp]');if(b)vpCoordApproveAll()});
+/* إرسال مؤشرات القراءة المعتمدة مباشرة إلى الميزان (سجل SRQ في ورقة السجلات) بجلسة الميزان نفسها، فتظهر في «تحليل وقراءة النتائج» بالتقرير الشهري */
+const MZ_API='https://script.google.com/macros/s/AKfycbwS8mm6uiL8u1uHeH78D1fLa8BQfWGQ4WidKo9vvubDwoQ0HcLKb6VPTg2r3tERHCpv/exec';
+const MZ_DEPTS=['التربية الإسلامية','اللغة العربية','اللغة الإنجليزية','الرياضيات','العلوم الاجتماعية','الأحياء','الكيمياء','الفيزياء','التربية البدنية','الحوسبة وتكنولوجيا المعلومات','المهارات الحياتية والمهنية','الفنون البصرية','إدارة الأعمال'];
+function mzDept(d){const k=nkA(d);return MZ_DEPTS.find(x=>nkA(x)===k)||[...new Set((S.staff||[]).map(t=>t.dept).filter(Boolean))].find(x=>nkA(x)===k)||d}
+async function mzPost(o){const r=await fetch(MZ_API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(o),redirect:'follow'});return r.json()}
+async function mzTok(force){let t='';try{t=force?'':(sessionStorage.getItem('mizan_token')||'')}catch(_){}if(t)return t;
+  const pin=prompt('لإرسال مؤشرات القراءة إلى التقرير الشهري في الميزان، أدخلي رقمكِ السري في الميزان:');if(!pin)return '';
+  const j=await mzPost({action:'fbToken',pin:pin.trim()});if(!j.ok){toast(j.error||'تعذّر الدخول إلى الميزان');return ''}try{sessionStorage.setItem('mizan_token',j.token||'')}catch(_){}return j.token||''}
+async function mzPushRQ(doc,mjs){let m={};try{m=JSON.parse(mjs||'{}')}catch(e){return false}if(!(m.rows||[]).length)return false;
+  const rec={id:doc.mzId||undefined,dept:mzDept((doc.depts&&doc.depts[0])||doc.dept),item:'SRQ',date:new Date().toISOString().slice(0,10),sum:'قراءة نتائج القسم — سبع سنابل',d:{t:doc.name||'',per:m.per,pn:m.pn||'',rows:m.rows,so:m.so||[],src:'sab3'}};
+  for(let k=0;k<2;k++){const tok=await mzTok(k>0);if(!tok)return false;let j;try{j=await mzPost({action:'save',token:tok,rec})}catch(e){return false}
+    if(j.ok){const id=j.record&&j.record.id;if(id&&id!==doc.mzId){doc.mzId=id;try{await CLD.db.collection('reads').doc(doc.uid+'__'+doc.per).set({mzId:id},{merge:true})}catch(e){}}return true}
+    if(rec.id&&/غير موجود|not found/i.test(j.error||'')){delete rec.id;continue}
+    if(!/الجلسة|الدخول/.test(j.error||'')){toast('الميزان: '+(j.error||'تعذّر الإرسال'));return false}}
+  return false}
 /* ---- اعتماد مديرة المدرسة وتغذيتها الراجعة (تُحفظ في prcm/{uid}.rq[الفترة]) ---- */
 async function prRqCheck(){if(!isPrincipal()||!CLD.db||!CLD.uid)return;try{const [q,m]=await Promise.all([CLD.db.collection('reads').where('role','==','admin').get(),CLD.db.collection('prcm').doc(CLD.uid).get()]);
   const rq=(m.exists&&m.data().rq)||{};const pend=[];q.forEach(d=>{const v=d.data();if(v.approved&&!(rq[String(v.per)]||{}).ok)pend.push(v.per)});
