@@ -2412,7 +2412,7 @@ async function adminLoad(){
       if(cloudAt&&!localDirty){const parts=await Promise.all([...Array(md.n||0).keys()].map(i=>CLOUD.db.collection('adm').doc('s'+i).get()));const txt=parts.map(p=>p.exists?p.data().t:'').join('');cloud=JSON.parse(txt)}}}catch(e){console.error(e);toast('تعذّر قراءة نسخة قاعدة البيانات، وتم فتح نسخة هذا الجهاز',5000)}
   if(cloud){try{if(!S.demo&&S.roster&&S.roster.length)localStorage.setItem('sab3_backup_before_cloud',JSON.stringify(S))}catch(_){}S=normState(cloud);try{localStorage.setItem(STORE,JSON.stringify(S));localStorage.setItem('sab3_last_sync',S.savedAt||cloudAt||'')}catch(_){}}
   D=derive(S);render();
-  CLOUD.unsub=CLOUD.db.collection('entries').onSnapshot(q=>{CLOUD.entries=new Map();q.forEach(d=>CLOUD.entries.set(d.id,d.data()));mergeEntries();D=derive(S);render();schedulePush();try{entDeptFix()}catch(_){}},e=>console.warn(e));
+  CLOUD.unsub=CLOUD.db.collection('entries').onSnapshot(q=>{CLOUD.entries=new Map();q.forEach(d=>CLOUD.entries.set(d.id,d.data()));entRefresh(()=>{schedulePush();try{entDeptFix()}catch(_){}try{okAutoOnce()}catch(_){}})},e=>console.warn(e));
   if(!cloud)schedulePush(500);
   loadReads();loadMizan();enrollFromMizan();
 }
@@ -2461,7 +2461,7 @@ async function viewerLoad(){
     if(m.exists){const md=m.data();const parts=await Promise.all([...Array(md.n||0).keys()].map(i=>CLOUD.db.collection('adm').doc('s'+i).get()));S=normState(JSON.parse(parts.map(p=>p.exists?p.data().t:'').join('')))}
     else AUTH.err='لا توجد بيانات منشورة بعد.'}catch(e){console.error(e);AUTH.err='تعذّر تحميل البيانات. حدّثي الصفحة أو تواصلي مع النائب الأكاديمي.'}
   D=derive(S);UI.tab=tabOK(UI.tab)?UI.tab:'home';render();loadBoard();
-  CLOUD.unsub=CLOUD.db.collection('entries').onSnapshot(q=>{CLOUD.entries=new Map();q.forEach(d=>CLOUD.entries.set(d.id,d.data()));mergeEntries();D=derive(S);render()},e=>console.warn(e));
+  CLOUD.unsub=CLOUD.db.collection('entries').onSnapshot(q=>{CLOUD.entries=new Map();q.forEach(d=>CLOUD.entries.set(d.id,d.data()));entRefresh()},e=>console.warn(e));
 }
 /* أقسام معلمات العلوم العامة: رؤى مع الأحياء، ورولا مع الكيمياء (مثل توزيع المعلمات الأصلي) */
 const STAFF_DEPT_FIX=[['رؤى صبحي','الأحياء'],['رولا عيد','الكيمياء'],['نهى محسن','الفيزياء'],['بشرى جمعه','الأحياء'],['اسراء عزت','الكيمياء']];
@@ -2615,19 +2615,27 @@ function okPend(){return S.actions.filter(a=>a.src==='teacher'&&a.eid&&!a.ok&&!a
 function okPanel(){const L=okPend();if(!L.length)return '';const by={};L.forEach(a=>{const st=(a.students||[]).length?a.students:['(الشعبة كاملة)'];st.forEach(n=>{const k=a.teacher+'|'+n+'|'+secKey(a.section)+'|'+a.subject;(by[k]=by[k]||{t:a.teacher,n,s:secKey(a.section),u:a.subject,ids:new Set(),ty:{}});by[k].ids.add(a.eid);by[k].ty[a.type]=(by[k].ty[a.type]||0)+1})});
   const G=Object.values(by).sort((x,y)=>x.t.localeCompare(y.t,'ar')||x.s.localeCompare(y.s,undefined,{numeric:true})||x.n.localeCompare(y.n,'ar'));const T=[...new Set(L.map(a=>a.teacher))];
   return '<section class="panel"><h3>بانتظار اعتمادكِ<small>'+L.length+' إجراء · '+G.length+' طالبة</small></h3><p class="small" style="background:#FFF4E5;border:1px solid #F2C98A;border-radius:10px;padding:8px 12px;line-height:1.9;text-align:justify;margin:0 0 10px"><b>'+OK_PLEDGE+'</b></p>'+
-    (AUTH.role==='admin'?(()=>{const f=L.filter(a=>APPROVE_TYPES.includes(a.type)).length,e=L.length-f;return '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:#EAF6EE;border:1.5px solid #9FD3B0;border-radius:12px;padding:10px 14px;margin:0 0 10px"><button type="button" class="btn gold" data-okall="1">✓ اعتماد كل المعلّق في المدرسة ('+L.length+')</button><span class="small">'+(f?'تغذية راجعة: <b>'+f+'</b>':'')+(f&&e?' · ':'')+(e?'حصص إثرائية فردية: <b>'+e+'</b>':'')+' · يُسجَّل الاعتماد باسمكِ، ولا تشمل الإجراءات التي أعادتها المنسقات للمعلمات</span></div>'})():'')+
+    (['admin','coord'].includes(AUTH.role)?(()=>{const f=L.filter(a=>APPROVE_TYPES.includes(a.type)).length,e=L.length-f;return '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:#EAF6EE;border:1.5px solid #9FD3B0;border-radius:12px;padding:10px 14px;margin:0 0 10px"><button type="button" class="btn gold" data-okall="1">✓ اعتماد كل المعلّق '+(AUTH.role==='coord'?'في القسم':'في المدرسة')+' بضغطة واحدة ('+L.length+')</button><span class="small">'+(f?'تغذية راجعة: <b>'+f+'</b>':'')+(f&&e?' · ':'')+(e?'حصص إثرائية فردية: <b>'+e+'</b>':'')+' · يُسجَّل الاعتماد باسمكِ، ولا تشمل الإجراءات التي أُعيدت للمعلمات</span></div>'})():'')+
     '<div class="row" style="gap:6px;flex-wrap:wrap;margin-bottom:10px">'+T.map(t=>'<button type="button" class="btn sm" data-okteach="'+esc(t)+'">اعتماد كل المعلّق لـ '+esc(nm3(t))+' ('+L.filter(a=>a.teacher===t).length+')</button>').join('')+'</div>'+
     '<div class="tbl-wrap"><table><thead><tr><th>المعلمة</th><th>الطالبة</th><th>الشعبة والمادة</th><th>الإجراءات المعلّقة</th><th></th></tr></thead><tbody>'+G.map(g=>'<tr><td class="small">'+esc(nm3(g.t))+'</td><td style="white-space:nowrap"><b>'+esc(nmStu(g.n))+'</b></td><td class="small">'+esc(g.s)+' · '+esc(g.u)+'</td><td class="small">'+Object.entries(g.ty).map(([k,n])=>KEYS[k-1].name+' ('+n+')').join('، ')+'</td><td><button type="button" class="btn sm gold" data-okstu="'+esc([...g.ids].join(','))+'">اعتماد إجراءات الطالبة ('+g.ids.size+')</button></td></tr>').join('')+'</tbody></table></div></section>'}
-async function okMany(ids){if(!ids.length||!CLOUD.ok)return;if(!confirm(OK_PLEDGE+'\n\nهل تعتمدين ('+ids.length+') إجراء؟'))return;const who=(AUTH.prof&&AUTH.prof.name)||'';const at=new Date().toISOString();let n=0;
-  for(const id of ids){try{await CLOUD.db.collection('entries').doc(id).update({ok:true,okBy:who,okAt:at,back:''});n++}catch(e){console.warn(e)}}
-  toast(n===ids.length?'تم اعتماد '+n+' إجراء ✓':'تم اعتماد '+n+' من '+ids.length+'، وتعذّر الباقي',5000)}
-async function okAllAdmin(){const L=okPend();if(!L.length||!CLOUD.ok||AUTH.role!=='admin')return;
-  if(!confirm('اعتماد كل الإجراءات المعلّقة في المدرسة ('+L.length+' إجراء) باسمكِ؟\n\nلا تشمل الإجراءات التي أعادتها المنسقات للمعلمات.'))return;
-  const who=(AUTH.prof&&AUTH.prof.name)||'';const at=new Date().toISOString();const ids=[...new Set(L.map(a=>a.eid))];let n=0;
+/* تحديث العرض مرة واحدة بعد توقف التغييرات (يمنع تعليق الصفحة عند اعتماد عدد كبير) */
+let _entT=null,_entAfter=[];function entRefresh(after){if(after)_entAfter.push(after);clearTimeout(_entT);_entT=setTimeout(()=>{const A=_entAfter;_entAfter=[];mergeEntries();D=derive(S);render();A.forEach(f=>{try{f()}catch(e){console.warn(e)}})},350)}
+/* اعتماد دفعة واحدة: كتابة مجمّعة (حتى 400 في الدفعة) بدل طلب لكل إجراء */
+async function okBatch(ids,quiet){ids=[...new Set(ids)].filter(Boolean);if(!ids.length||!CLOUD.ok)return 0;const who=(AUTH.prof&&AUTH.prof.name)||'';const at=new Date().toISOString();let n=0;
+  if(!quiet)toast('جارٍ اعتماد '+ids.length+' إجراء…',4000);
   for(let i=0;i<ids.length;i+=400){const part=ids.slice(i,i+400);
     try{const b=CLOUD.db.batch();part.forEach(id=>b.update(CLOUD.db.collection('entries').doc(id),{ok:true,okBy:who,okAt:at,back:''}));await b.commit();n+=part.length}
     catch(err){console.warn(err);for(const id of part){try{await CLOUD.db.collection('entries').doc(id).update({ok:true,okBy:who,okAt:at,back:''});n++}catch(e2){console.warn(e2)}}}}
-  toast(n===ids.length?'تم اعتماد '+n+' إجراء ✓':'تم اعتماد '+n+' من '+ids.length+'، وتعذّر الباقي',6000)}
+  if(!quiet)toast(n===ids.length?'تم اعتماد '+n+' إجراء ✓':'تم اعتماد '+n+' من '+ids.length+'، وتعذّر الباقي',6000);return n}
+async function okMany(ids){if(!ids.length||!CLOUD.ok)return;if(!confirm(OK_PLEDGE+'\n\nهل تعتمدين ('+ids.length+') إجراء؟'))return;await okBatch(ids)}
+async function okAllAdmin(){const L=okPend();if(!L.length||!CLOUD.ok||!['admin','coord'].includes(AUTH.role))return;
+  if(!confirm((AUTH.role==='coord'?OK_PLEDGE+'\n\n':'')+'اعتماد كل الإجراءات المعلّقة'+(AUTH.role==='coord'?' في قسمكِ':' في المدرسة')+' ('+L.length+' إجراء) دفعة واحدة؟\n\nلا تشمل الإجراءات التي أُعيدت للمعلمات.'))return;
+  await okBatch(L.map(a=>a.eid))}
+/* اعتماد لمرة واحدة لكل ما كان معلّقًا حتى 26 نوفمبر 2026 (بطلب النائبة الأكاديمية) — يعمل تلقائيًا عند فتح حساب الإدارة */
+let _okAutoRun=false;async function okAutoOnce(){if(_okAutoRun||AUTH.role!=='admin'||!CLOUD.ok)return;S.settings=S.settings||{};if(S.settings.okAuto1126)return;_okAutoRun=true;
+  const cut='2026-11-26T23:59:59';const ids=okPend().filter(a=>{const e=CLOUD.entries&&CLOUD.entries.get(a.eid);const t=e&&(e.at||e.ts||e.createdAt||'');return !t||String(t)<=cut}).map(a=>a.eid);
+  const n=ids.length?await okBatch(ids,true):0;if(n===ids.length){S.settings.okAuto1126=new Date().toISOString();save();schedulePush()}
+  if(ids.length)toast('تم اعتماد '+n+' إجراء كان معلّقًا ✓',6000);_okAutoRun=false}
 document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('[data-okall]'))okAllAdmin()});
 document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-okstu],[data-okteach]');if(!t)return;
   const ids=t.dataset.okstu!=null?t.dataset.okstu.split(',').filter(Boolean):okPend().filter(a=>a.teacher===t.dataset.okteach).map(a=>a.eid);okMany([...new Set(ids)])});
