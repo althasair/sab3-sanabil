@@ -1339,10 +1339,10 @@ const INNO_KEYS=[3,4,6,7,1];
 function lnkBtn(a){const u=a&&(a.link||(/^https?:/.test(a.evidence||'')?a.evidence:''));return u?' <a class="btn sm" href="'+esc(u)+'" target="_blank" rel="noopener" title="فتح عمل المعلمة">🔗 فتح الرابط</a>':''}
 UI.add=null;
 function addModal(){const A=UI.add;if(!A.inno&&!(ADD_OPTS[A.type]||[]).includes(A.opt))A.opt=(ADD_OPTS[A.type]||[''])[0];const allSecs=[...new Set(allStudents().map(x=>x.section))].sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));const subsOf=sec=>[...new Set((S.staff||[]).filter(t=>(t.sections||[]).includes(sec)).map(t=>t.subject).concat(S.roster.filter(r=>secKey(r.section)===sec).map(r=>r.subject)))].sort();const subs0=[...new Set((S.staff||[]).map(t=>t.subject).concat(S.roster.map(r=>r.subject)))].sort();const subs=subs0;if(!A.sub||!subs.includes(A.sub))A.sub=subs[0]||'';
-  let secs=[...new Set((S.staff||[]).filter(t=>subjKeys(t.subject).has(subjKey(A.sub))).flatMap(t=>t.sections||[]).concat(S.roster.filter(r=>r.subject===A.sub).map(r=>secKey(r.section))))].filter(x=>allSecs.includes(x)||['teacher','coord'].includes(AUTH.role)).sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));if(!secs.length)secs=allSecs;if(!secs.includes(A.sec))A.sec=secs[0]||'';
+  let secs=[...new Set((S.staff||[]).filter(t=>subjKeys(t.subject).has(subjKey(A.sub))).flatMap(t=>t.sections||[]).concat(S.roster.filter(r=>r.subject===A.sub).map(r=>secKey(r.section))))].filter(x=>allSecs.includes(x)||['teacher','coord'].includes(AUTH.role)).sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));if(!secs.length)secs=allSecs;const HX=honorAll(A);if(HX){const own=new Set(secs);secs=[...own].concat([...new Set(ALLN.map(x=>x.section))].filter(x=>!own.has(x)).sort((a,b)=>a.localeCompare(b,undefined,{numeric:true})))}if(!secs.includes(A.sec))A.sec=secs[0]||'';
   const stuCat={};S.roster.filter(r=>secKey(r.section)===A.sec&&r.subject===A.sub).forEach(r=>{const v=r.scores[lastTestIdx(S)]!=null?r.scores[lastTestIdx(S)]:r.scores[0];if(v!=null)stuCat[norm(r.name)]=catOf(v)});
   const tgN=new Set(D.targets.filter(t=>secKey(t.row.section)===A.sec&&t.row.subject===A.sub).map(t=>norm(t.row.name)));
-  const stu=allStudents().filter(x=>x.section===A.sec).map(x=>x.name).sort((a,b)=>(tgN.has(norm(b))-tgN.has(norm(a)))||(A.stu.includes(b)-A.stu.includes(a)));
+  const stu=(HX&&!allStudents().some(x=>x.section===A.sec)?ALLN:allStudents()).filter(x=>x.section===A.sec).map(x=>x.name).sort((a,b)=>(tgN.has(norm(b))-tgN.has(norm(a)))||(A.stu.includes(b)-A.stu.includes(a)));
   const auto=staffFor(A.sec,A.sub);if(!A.tch||A.tchAuto){A.tch=auto?auto.name:(D.targets.find(t=>t.row.subject===A.sub&&secKey(t.row.section)===A.sec)||{row:{teacher:''}}).row.teacher;A.tchAuto=true}
   const tchs=[...new Set((S.staff||[]).map(t=>t.name).concat(D.teachers.map(t=>t.name)).filter(Boolean))].sort();
   const types=KEYS.filter(k=>k.k!==2);
@@ -2375,6 +2375,8 @@ function loginOf(email){email=String(email||'');return email.endsWith('@'+LOGIN_
 function hashStr(t){let h=5381;for(let i=0;i<t.length;i++)h=(h*33)^t.charCodeAt(i);return (h>>>0).toString(36)+'.'+t.length}
 function docKey(sec,k){return (sec+'__'+k).replace(/[\/.#$\[\]]/g,'_')}
 function staffKeys(t){const out=[];const ks=[...subjKeys(t.subject)];if(!ks.length)ks.push(subjKey(t.subject));(t.sections||[]).forEach(sec=>ks.forEach(k=>out.push(docKey(secKey(sec),k))));return out}
+let ALLN=[];/* أسماء طالبات المدرسة وشعبهن (للتعزيز والتكريم من خارج شعب المعلمة) */
+function honorAll(A){return A&&A.type===6&&!A.inno&&typeof AUTH!=='undefined'&&['teacher','coord'].includes(AUTH.role)&&ALLN.length>0}
 function blankState(){return{settings:Object.assign({},DEFAULT_SETTINGS),roster:[],actions:[],charters:[],charterRecv:{},honors:[],enroll:[],staff:[],uploads:[],demo:false}}
 
 /* --- boot --- */
@@ -2501,6 +2503,8 @@ async function pushAll(){
     // 3) one document per section and subject (teachers read only theirs)
     const docs=sectionDocs();for(const [id,d] of docs)w+=setIfChanged('sec',id,d);
     // 4) لوحة الصدارة (للمعلمات والمنسقات بعد الدخول)
+    /* أسماء جميع الطالبات وشعبهن فقط (دون درجات) لتختار المعلمة طالبات من شعب أخرى في التعزيز والتكريم */
+    try{w+=setIfChanged('shared','names',{l:allStudents().map(x=>x.name+'|'+x.section)})}catch(e){console.warn(e)}
     w+=setIfChanged('shared','board',(()=>{const B=boardCompute();delete B.at;return B})());
     try{w+=setIfChanged('shared','prio',prRanksCompute())}catch(e){console.warn(e)}
     // 5) public numbers without names, for visitors
@@ -2530,6 +2534,7 @@ async function scopedLoad(){
   try{const c=await CLOUD.db.collection('shared').doc('cfg').get();if(c.exists){const cd=c.data();st.settings=Object.assign({},DEFAULT_SETTINGS,fsUnpack(cd.settings));try{const sg=await CLOUD.db.collection('shared').doc('sig').get();if(sg.exists&&sg.data().sig)st.settings.sig=sg.data().sig}catch(_){}const all=fixStaff(cd.staff||[]);
       st.staff=(AUTH.role==='coord'||AUTH.role==='viewer')?all.filter(t=>P.depts.includes(norm(t.dept))):all.filter(t=>norm(t.name)===P.nk);
       if(AUTH.role==='coord'){const me=all.find(t=>norm(t.name)===P.nk)||fuzzyStaff0(P.nk,all)||(P.name?fuzzyStaff0(P.name,all):null);if(me&&(me.sections||[]).length){P.me=me;if(!st.staff.includes(me))st.staff.push(me)}}}}catch(e){console.warn(e)}
+  try{const nd=await CLOUD.db.collection('shared').doc('names').get();ALLN=nd.exists?(nd.data().l||[]).map(x=>{const i=x.lastIndexOf('|');return{name:x.slice(0,i),section:x.slice(i+1)}}):[]}catch(e){ALLN=[];console.warn(e)}
   P.keys=[...new Set(st.staff.flatMap(staffKeys))];if(AUTH.role==='teacher'&&st.staff[0])P.name=st.staff[0].name;if((AUTH.role==='coord'||AUTH.role==='viewer')&&st.staff[0])P.dept=[...new Set(st.staff.map(t=>t.dept))].join('، ');
   if(!st.staff.length)AUTH.err=(AUTH.role==='coord'||AUTH.role==='viewer')?'لم يُعثر على معلمات قسمك في توزيع المعلمات بسبع سنابل. تواصلي مع النائب الأكاديمي.':'لم يُعثر على اسمك في توزيع المعلمات بسبع سنابل. تواصلي مع النائب الأكاديمي.';else AUTH.err='';
   const keys=P.keys;const docs=await Promise.all(keys.map(k=>CLOUD.db.collection('sec').doc(k).get().catch(()=>null)));
@@ -2543,7 +2548,7 @@ async function scopedLoad(){
 }
 async function cloudAddEntry(A,m){
   const P=AUTH.prof||{};const k=docKey(secKey(A.sec),subjKey(A.sub));
-  if(AUTH.role!=='admin'&&!(P.keys||[]).includes(k)){m.textContent='هذه الشعبة أو المادة ليست ضمن شعبك المسجلة. تواصلي مع النائب الأكاديمي.';return}
+  if(AUTH.role!=='admin'&&!(P.keys||[]).includes(k)&&!(+A.type===6&&!A.inno)){m.textContent='هذه الشعبة أو المادة ليست ضمن شعبك المسجلة. تواصلي مع النائب الأكاديمي.';return}
   const na={date:A.date,teacher:A.tch,section:A.sec,subject:A.sub,students:A.whole?[]:A.stu.slice(),whole:!!A.whole,type:A.type};
   if(S.actions.some(x=>actKey(x)===actKey(na))){m.textContent='هذا الإجراء مسجّل مسبقًا (نفس المعلمة والتاريخ والطالبات والإجراء)';return}
   const before=D.targets.filter(t=>t.ears.has(A.type)).length;
