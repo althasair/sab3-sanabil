@@ -555,7 +555,9 @@ function derive(st){
   st.actions.forEach(a=>{
     const sec=a.section?secKey(a.section):'';
     let c=targets.filter(t=>!sec||secKey(t.row.section)===sec);
-    if(a.subject){const ak=subjKey(a.subject),aks=subjKeys(a.subject);/* مادة مركّبة مثل «الجغرافيا والدراسات الاجتماعية» تطابق كلتا المادتين */c=c.filter(t=>{const rk=subjKey(t.row.subject);return rk===ak||aks.has(rk)})}
+    if(a.subject){const ak=subjKey(a.subject),aks=subjKeys(a.subject);/* مادة مركّبة مثل «الجغرافيا والدراسات الاجتماعية» تطابق كلتا المادتين */const c0=c;c=c0.filter(t=>{const rk=subjKey(t.row.subject);return rk===ak||aks.has(rk)});
+      /* إن لم توجد درجات للمادة بعينها في الشعبة: الفيزياء/الكيمياء/الأحياء تُطابق «العلوم» أو «العلوم العامة»، والتاريخ/الجغرافيا تُطابق «الدراسات الاجتماعية» (العاشر والأدبي) */
+      if(!c.length){const fam=['phy','chem','bio'].includes(ak)?'sci':['hist','geo'].includes(ak)?'soc':'';if(fam)c=c0.filter(t=>subjKey(t.row.subject)===fam)}}
     else if(a.teacher&&tNames.has(norm(a.teacher)))c=c.filter(t=>norm(t.row.teacher)===norm(a.teacher));
     if(!a.whole){c=c.filter(t=>a.students.some(n=>nameMatch(n,t.row.name)))}
     else if(a.absent&&a.absent.length){c=c.filter(t=>!a.absent.some(n=>nameMatch(n,t.row.name)))}
@@ -2635,9 +2637,9 @@ async function okAllAdmin(){const L=okPend();if(!L.length||!CLOUD.ok||!['admin',
 /* اكتمال ميثاق الشراكة الورقي لجميع طالبات المدرسة (بطلب النائبة الأكاديمية 28 نوفمبر 2026): يُسجَّل مستلمًا لكل طالبة لم يُسجَّل لها، ولا تتغير تواريخ المسجَّل سابقًا */
 function charterAllOnce(){if(AUTH.role!=='admin')return;S.settings=S.settings||{};if(S.settings.charterAll)return;const d='2026-11-28';S.charterRecv=S.charterRecv||{};let n=0;
   allStudents().forEach(x=>{const k=norm(x.name)+'|'+secKey(x.section);if(!S.charterRecv[k]){S.charterRecv[k]=d;n++}});S.settings.charterAll=d;save();D=derive(S);render();schedulePush();if(n)toast('تم تسجيل ميثاق الشراكة مكتملًا لـ '+n+' طالبة ✓',6000)}
-let _okAutoRun=false;async function okAutoOnce(){try{charterAllOnce()}catch(e){console.warn(e)}if(_okAutoRun||AUTH.role!=='admin'||!CLOUD.ok)return;S.settings=S.settings||{};if(S.settings.okAuto1126)return;_okAutoRun=true;
-  const cut='2026-11-26T23:59:59';const ids=okPend().filter(a=>{const e=CLOUD.entries&&CLOUD.entries.get(a.eid);const t=e&&(e.at||e.ts||e.createdAt||'');return !t||String(t)<=cut}).map(a=>a.eid);
-  const n=ids.length?await okBatch(ids,true):0;if(n===ids.length){S.settings.okAuto1126=new Date().toISOString();save();schedulePush()}
+let _okAutoRun=false;async function okAutoOnce(){try{charterAllOnce()}catch(e){console.warn(e)}if(_okAutoRun||AUTH.role!=='admin'||!CLOUD.ok)return;S.settings=S.settings||{};if(S.settings.okAuto1128)return;_okAutoRun=true;
+  /* إغلاق أعمال الفترة: اعتماد كل المعلّق حتى 28 نوفمبر 2026 */const cut='2026-11-28T23:59:59';const ids=okPend().filter(a=>{const e=CLOUD.entries&&CLOUD.entries.get(a.eid);const t=e&&(e.at||e.ts||e.createdAt||'');return !t||String(t)<=cut}).map(a=>a.eid);
+  const n=ids.length?await okBatch(ids,true):0;if(n===ids.length){S.settings.okAuto1128=new Date().toISOString();save();schedulePush()}
   if(ids.length)toast('تم اعتماد '+n+' إجراء كان معلّقًا ✓',6000);_okAutoRun=false}
 document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('[data-okall]'))okAllAdmin()});
 document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-okstu],[data-okteach]');if(!t)return;
