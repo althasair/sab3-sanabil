@@ -2310,7 +2310,7 @@ document.addEventListener('click',async e=>{
   if(e.target.closest('#dlPaperCh')||e.target.closest('[data-chprev]')){const pv=!!e.target.closest('[data-chprev]');if(!pv&&chIss(chRep()).st!=='ok'){toast('يُطبع الميثاق بعد اعتماد مديرة المدرسة. أرسليه لها من «اعتماد مديرة المدرسة» أعلى الصفحة، ويمكنكِ معاينته الآن.',6000);return}const st=pv?chStudents().slice(0,3):chStudents();if(!st.length){toast('لا توجد طالبات دون الحد في هذا الاختيار');return}window.__CHDRAFT=pv;setTimeout(()=>window.__CHDRAFT=false,0);offer('نماذج ميثاق الشراكة'+(UI.chSec?' - '+UI.chSec:'')+'.html',docShell('ميثاق الشراكة',st.map(paperCharter).join('')));return}
   if(e.target.closest('#dlAllCh')){if(!S.charters.length){toast('لا توجد مواثيق بعد');return}const list=S.charters.slice().sort((a,b)=>a.section.localeCompare(b.section)||a.name.localeCompare(b.name));offer('مواثيق الشراكة - كل الطالبات.html',docShell('مواثيق الشراكة',list.map(charterPage).join('')));return}
   if(e.target.closest('#tplRoster')){if(typeof XLSX==='undefined'){toast('تعذّر تحميل قارئ Excel');return}const ws=XLSX.utils.aoa_to_sheet([['اسم الطالبة','الشعبة','المادة','المعلمة','الاختبار الأول','الاختبار الثاني','الاختبار الثالث','الاختبار النهائي'],['(مثال) نورة أحمد','عاشر 1','الرياضيات','أ. اسم المعلمة',72,'','',''],['(مثال) نورة أحمد','عاشر 1','اللغة العربية','أ. اسم المعلمة',88,'','','']]);ws['!cols']=[{wch:26},{wch:12},{wch:16},{wch:20},{wch:14},{wch:14},{wch:14},{wch:14}];ws['!views']=[{RTL:true}];const wb=XLSX.utils.book_new();wb.Workbook={Views:[{RTL:true}]};XLSX.utils.book_append_sheet(wb,ws,'الطالبات');offer('قالب الطالبات والدرجات - سبع سنابل.xlsx',XLSX.write(wb,{type:'array',bookType:'xlsx'}));return}
-  if(e.target.closest('#bkOut')){offer('نسخة احتياطية - سبع سنابل.json',JSON.stringify(S));return}
+  if(e.target.closest('#bkOut')){bkWithReads().then(x=>offer('نسخة احتياطية - سبع سنابل.json',JSON.stringify(x)));return}
   if(e.target.closest('#toDemo')){S=makeDemo();refresh();toast('تم تحميل البيانات التجريبية');return}
   if(e.target.closest('#wipe')){$('#wipeConfirm').classList.remove('hide');return}
   if(e.target.closest('#wipeNo')){$('#wipeConfirm').classList.add('hide');return}
@@ -2378,7 +2378,13 @@ function hashStr(t){let h=5381;for(let i=0;i<t.length;i++)h=(h*33)^t.charCodeAt(
 function docKey(sec,k){return (sec+'__'+k).replace(/[\/.#$\[\]]/g,'_')}
 function staffKeys(t){const out=[];const ks=[...subjKeys(t.subject)];if(!ks.length)ks.push(subjKey(t.subject));(t.sections||[]).forEach(sec=>{ks.forEach(k=>out.push(docKey(secKey(sec),k)));/* الصف العاشر: مادته «العلوم» تجمع الفيزياء والكيمياء والأحياء */if(/^10-/.test(secKey(sec))&&ks.some(k=>['phy','chem','bio'].includes(k)))out.push(docKey(secKey(sec),'sci'))});return [...new Set(out)]}
 /* أي إجراء للصف العاشر باسم فيزياء أو كيمياء أو أحياء يُسجَّل «العلوم» */
-function sci10(sec,sub){return /^10-/.test(secKey(sec||''))&&['phy','chem','bio'].includes(subjKey(sub||''))?'العلوم':sub}
+function sci10(sec,sub,tch){if(!['phy','chem','bio'].includes(subjKey(sub||'')))return sub;if(/^10-/.test(secKey(sec||'')))return 'العلوم';
+  /* معلمة مادتها «العلوم» فقط (من قسم الكيمياء أو الأحياء أو الفيزياء) تُسجَّل إجراءاتها في شعبها «العلوم» في كل المستويات */
+  if(tch){const t=fuzzyStaff(tch);if(t&&(t.sections||[]).map(secKey).includes(secKey(sec))){const k=[...subjKeys(t.subject)];if(k.length===1&&k[0]==='sci')return 'العلوم'}}return sub}
+/* النسخة الاحتياطية تضم ملخص قراءات النتائج وتعليقات اعتمادها (بلا نصوص القراءة) للمراجعة */
+async function bkWithReads(){const x=Object.assign({},S);if(AUTH.role!=='admin'||!CLOUD.ok)return x;try{const [r,f]=await Promise.all([CLOUD.db.collection('reads').get(),CLOUD.db.collection('fb').get()]);
+  x.readsSum=[];r.forEach(d=>{const v=d.data();const filled=Object.values(v.items||{}).some(it=>it&&Object.values(it).some(y=>Array.isArray(y)?y.length>0:String(y==null?'':y).trim()!==''));x.readsSum.push({id:d.id,uid:v.uid||'',name:v.name||'',role:v.role||'',dept:v.dept||'',per:v.per,at:v.at||'',filled,capp:!!v.capp,approved:!!v.approved})});
+  x.fbSum=[];f.forEach(d=>{const v=d.data();x.fbSum.push({to:v.to,by:v.by,byName:v.byName||'',role:v.role||'',per:v.per,at:v.at||''})})}catch(e){console.warn(e)}return x}
 let ALLN=[];/* أسماء طالبات المدرسة وشعبهن (للتعزيز والتكريم من خارج شعب المعلمة) */
 function honorAll(A){return A&&A.type===6&&!A.inno&&typeof AUTH!=='undefined'&&['teacher','coord'].includes(AUTH.role)&&ALLN.length>0}
 function blankState(){return{settings:Object.assign({},DEFAULT_SETTINGS),roster:[],actions:[],charters:[],charterRecv:{},honors:[],enroll:[],staff:[],uploads:[],demo:false}}
@@ -2477,9 +2483,9 @@ const STAFF_GONE=['وضحى سعد فيصل بن شبعان الهاجرى','ل�
 function normState(x){if(Array.isArray(x.staff))x.staff=x.staff.filter(t=>!(t&&STAFF_GONE.some(n=>norm(n)===norm(t.name))));fixStaff(x.staff);x.roster=Array.isArray(x.roster)?x.roster.filter(r=>r&&!/^[\d.\s]+$/.test(String(r.subject||''))&&!/^(الرقم|الاسم|الرقم الشخصي|الشعبه الصفيه)$/.test(norm(r.subject||''))&&!(r.scores||[]).some(v=>v>100)):[];x.actions=Array.isArray(x.actions)?x.actions:[];x.charters=Array.isArray(x.charters)?x.charters:[];x.settings=Object.assign({},DEFAULT_SETTINGS,x.settings||{});if(!Array.isArray(x.staff)||!x.staff.length)x.staff=DEFAULT_STAFF.map(t=>Object.assign({email:'',phone:''},t));x.roster.forEach(r=>{if(!Array.isArray(r.scores))r.scores=[];while(r.scores.length<4)r.scores.push(null)});return x}
 /* ما تُدخله المنسقة يُعتمد فورًا: لا تعتمد المنسقة لنفسها */
 function coordSelf(e){if(!e||e.ok===true||e.back)return false;if(/^mz_c/.test(String(e.uid||'')))return true;const n=norm(e.teacher||'');return !!n&&(S.staff||[]).some(x=>x.role==='منسقة'&&norm(x.name)===n)}
-function entryToAct(id,e){const _a=entryToAct0(id,e);_a.subject=sci10(_a.section,_a.subject);return _a}
+function entryToAct(id,e){const _a=entryToAct0(id,e);_a.subject=sci10(_a.section,_a.subject,_a.teacher);return _a}
 function entryToAct0(id,e){return{date:e.date||'',teacher:e.teacher||e.byName||'',section:e.section||'',subject:e.subject||'',students:Array.isArray(e.students)?e.students:[],whole:!!e.whole,absent:Array.isArray(e.absent)?e.absent:[],type:+e.type||3,detail:e.detail||'',evidence:e.link||(e.evid?'صورة':''),link:e.link||'',inno:!!e.inno,evid:e.evid||'',pending:APPROVE_TYPES.includes(+e.type)&&e.ok!==true&&!coordSelf(e),aw:+e.type===3&&!e.whole&&e.ok!==true&&!coordSelf(e),ok:e.ok===true||coordSelf(e),back:e.back||'',okBy:e.okBy||(coordSelf(e)?(e.byName||e.teacher||'')+' (منسقة)':''),src:'teacher',eid:id,uid:e.uid||'',by:e.byName||''}}
-function mergeEntries(){const keep=S.actions.filter(a=>!a.eid),ev=[];keep.forEach(a=>{if(a.section&&a.subject){const x=sci10(a.section,a.subject);if(x!==a.subject)a.subject=x}});CLOUD.entries.forEach((e,id)=>{if(+e.type===8||+e.type===9)ev.push(Object.assign({eid:id},e));else keep.push(entryToAct(id,e))});S.actions=keep;S.evals=(S.evals||[]).filter(x=>!x.eid).concat(ev)}
+function mergeEntries(){const keep=S.actions.filter(a=>!a.eid),ev=[];keep.forEach(a=>{if(a.section&&a.subject){const x=sci10(a.section,a.subject,a.teacher);if(x!==a.subject)a.subject=x}});CLOUD.entries.forEach((e,id)=>{if(+e.type===8||+e.type===9)ev.push(Object.assign({eid:id},e));else keep.push(entryToAct(id,e))});S.actions=keep;S.evals=(S.evals||[]).filter(x=>!x.eid).concat(ev)}
 
 function schedulePush(ms){if(AUTH.role!=='admin'||!CLOUD.ok)return;clearTimeout(CLOUD.timer);CLOUD.timer=setTimeout(pushAll,ms==null?3500:ms)}
 let PENDING=[];
@@ -2552,7 +2558,7 @@ async function scopedLoad(){
   const uns=qs.map((q,i)=>q.onSnapshot(s=>{parts[i]=new Map();s.forEach(d=>parts[i].set(d.id,d.data()));onS()},e=>{console.warn(e);toast('تعذّر قراءة الإجراءات من قاعدة البيانات',5000)}));CLOUD.unsub=()=>uns.forEach(f=>f());
 }
 async function cloudAddEntry(A,m){
-  A.sub=sci10(A.sec,A.sub);const P=AUTH.prof||{};const k=docKey(secKey(A.sec),subjKey(A.sub));
+  A.sub=sci10(A.sec,A.sub,A.tch);const P=AUTH.prof||{};const k=docKey(secKey(A.sec),subjKey(A.sub));
   if(AUTH.role!=='admin'&&!(P.keys||[]).includes(k)&&!(+A.type===6&&!A.inno)){m.textContent='هذه الشعبة أو المادة ليست ضمن شعبك المسجلة. تواصلي مع النائب الأكاديمي.';return}
   const na={date:A.date,teacher:A.tch,section:A.sec,subject:A.sub,students:A.whole?[]:A.stu.slice(),whole:!!A.whole,type:A.type};
   if(S.actions.some(x=>actKey(x)===actKey(na))){m.textContent='هذا الإجراء مسجّل مسبقًا (نفس المعلمة والتاريخ والطالبات والإجراء)';return}
