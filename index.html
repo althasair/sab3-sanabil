@@ -561,7 +561,7 @@ function derive(st){
     else if(a.absent&&a.absent.length){c=c.filter(t=>!a.absent.some(n=>nameMatch(n,t.row.name)))}
     c.forEach(t=>{t.ears.add(a.type);t.acts.push(a)});
   });
-  {const rc=st.charterRecv||{};targets.forEach(t=>{if(rc[norm(t.row.name)+'|'+secKey(t.row.section)]){t.ears.add(2);t.paperCh=rc[norm(t.row.name)+'|'+secKey(t.row.section)]}})}
+  {const rc=st.charterRecv||{};const ALLCH=st.settings&&st.settings.charterAll;targets.forEach(t=>{if(ALLCH&&!rc[norm(t.row.name)+'|'+secKey(t.row.section)]){t.ears.add(2);t.paperCh=String(ALLCH).slice(0,10)}if(rc[norm(t.row.name)+'|'+secKey(t.row.section)]){t.ears.add(2);t.paperCh=rc[norm(t.row.name)+'|'+secKey(t.row.section)]}})}
   st.charters.forEach(ch=>{ch.items.forEach(it=>{targets.filter(t=>norm(t.row.name)===norm(ch.name)&&norm(t.row.subject)===norm(it.subject)).forEach(t=>{t.ears.add(2);t.charter=ch})})});
   const teachers={};
   targets.forEach(t=>{const k=t.row.teacher||'غير مرتبطة بمعلمة';(teachers[k]=teachers[k]||{name:k,subjects:new Set(),targets:[]}).targets.push(t);teachers[k].subjects.add(t.row.subject)});
@@ -2632,7 +2632,10 @@ async function okAllAdmin(){const L=okPend();if(!L.length||!CLOUD.ok||!['admin',
   if(!confirm((AUTH.role==='coord'?OK_PLEDGE+'\n\n':'')+'اعتماد كل الإجراءات المعلّقة'+(AUTH.role==='coord'?' في قسمكِ':' في المدرسة')+' ('+L.length+' إجراء) دفعة واحدة؟\n\nلا تشمل الإجراءات التي أُعيدت للمعلمات.'))return;
   await okBatch(L.map(a=>a.eid))}
 /* اعتماد لمرة واحدة لكل ما كان معلّقًا حتى 26 نوفمبر 2026 (بطلب النائبة الأكاديمية) — يعمل تلقائيًا عند فتح حساب الإدارة */
-let _okAutoRun=false;async function okAutoOnce(){if(_okAutoRun||AUTH.role!=='admin'||!CLOUD.ok)return;S.settings=S.settings||{};if(S.settings.okAuto1126)return;_okAutoRun=true;
+/* اكتمال ميثاق الشراكة الورقي لجميع طالبات المدرسة (بطلب النائبة الأكاديمية 28 نوفمبر 2026): يُسجَّل مستلمًا لكل طالبة لم يُسجَّل لها، ولا تتغير تواريخ المسجَّل سابقًا */
+function charterAllOnce(){if(AUTH.role!=='admin')return;S.settings=S.settings||{};if(S.settings.charterAll)return;const d='2026-11-28';S.charterRecv=S.charterRecv||{};let n=0;
+  allStudents().forEach(x=>{const k=norm(x.name)+'|'+secKey(x.section);if(!S.charterRecv[k]){S.charterRecv[k]=d;n++}});S.settings.charterAll=d;save();D=derive(S);render();schedulePush();if(n)toast('تم تسجيل ميثاق الشراكة مكتملًا لـ '+n+' طالبة ✓',6000)}
+let _okAutoRun=false;async function okAutoOnce(){try{charterAllOnce()}catch(e){console.warn(e)}if(_okAutoRun||AUTH.role!=='admin'||!CLOUD.ok)return;S.settings=S.settings||{};if(S.settings.okAuto1126)return;_okAutoRun=true;
   const cut='2026-11-26T23:59:59';const ids=okPend().filter(a=>{const e=CLOUD.entries&&CLOUD.entries.get(a.eid);const t=e&&(e.at||e.ts||e.createdAt||'');return !t||String(t)<=cut}).map(a=>a.eid);
   const n=ids.length?await okBatch(ids,true):0;if(n===ids.length){S.settings.okAuto1126=new Date().toISOString();save();schedulePush()}
   if(ids.length)toast('تم اعتماد '+n+' إجراء كان معلّقًا ✓',6000);_okAutoRun=false}
