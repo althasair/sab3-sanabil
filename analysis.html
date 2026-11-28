@@ -1163,7 +1163,7 @@ function vRFollow(){if(CLD.admin&&!RD.all)rdAllLoad();if(RF.docs==null){rfLoad()
   const grp=(A,ttl,ic,note)=>{const g={};A.forEach(x=>(g[x[0]]=g[x[0]]||[]).push(x));return '<div class="box"><h3>'+ic+' '+ttl+' ('+A.length+')<small>'+note+'</small></h3>'+(A.length?'<div class="tw"><table class="gt"><thead><tr><th style="text-align:right">القسم</th><th>العدد</th><th style="text-align:right">الأسماء</th></tr></thead><tbody>'+Object.entries(g).map(([d,a])=>'<tr><td style="text-align:right;white-space:nowrap"><b>'+esc(d)+'</b></td><td>'+a.length+'</td><td style="text-align:right;white-space:normal">'+a.map(x=>esc(shortName(x[1]))+(x[3]||'')).join('، ')+'</td></tr>').join('')+'</tbody></table></div>':'<p class="stl">لا يوجد ✓</p>')+'</div>'};
   const sumBoxes=grp(miss,'معلمات لم يسلّمن قراءة النتائج','✗','لم تُرفع القراءة بعد')+grp(noApp,'قراءات سُلّمت ولم تعتمدها المنسقة','⏳','لا يوجد تعليق/اعتماد من منسقة القسم على القراءة')+grp(coMiss,'منسقات لم يسلّمن قراءة القسم','📄','قراءة نتائج القسم');
   const apBox=(CLD.admin&&!CLD.pr)?(()=>{const T=rfToApprove(),C=(RD.all||[]).filter(r=>r.role==='coord'&&String(r.per)===String(UI.per)&&!r.capp&&rfFilled(r));
-    return '<div class="box" style="border:1.5px solid #9FD3B0;background:#EAF6EE"><h3>✓ إغلاق الفترة: اعتماد كل القراءات المسلّمة<small>تُعتمد القراءات التي عبّأتها المعلمات أو المنسقات فقط؛ ومن لم تُعبّئ لا يُعتمد لها شيء وتبقى في قائمة «لم يسلّمن»</small></h3><div class="row" style="gap:10px;align-items:center;flex-wrap:wrap"><span>قراءات معلمات بانتظار الاعتماد: <b>'+T.length+'</b></span><span>قراءات منسقات بانتظار الاعتماد: <b>'+(RD.all?C.length:'…')+'</b></span><button class="btn pri" data-rfapall="1"'+(RF.apBusy?' disabled':'')+'>'+(RF.apBusy?'جارٍ الاعتماد…':'اعتماد الكل الآن')+'</button></div></div>'})():'';
+    return '<div class="box" style="border:1.5px solid #9FD3B0;background:#EAF6EE"><h3>✓ إغلاق الفترة: اعتماد كل القراءات المسلّمة<small>تُعتمد القراءات التي عبّأتها المعلمات أو المنسقات فقط؛ ومن لم تُعبّئ لا يُعتمد لها شيء وتبقى في قائمة «لم يسلّمن»</small></h3><div class="row" style="gap:10px;align-items:center;flex-wrap:wrap"><span>قراءات معلمات بانتظار الاعتماد: <b>'+T.length+'</b></span><span>قراءات منسقات بانتظار الاعتماد: <b>'+(RD.all?C.length:'…')+'</b></span><button class="btn pri" data-rfapall="1"'+(RF.apBusy?' disabled':'')+'>'+(RF.apBusy?'جارٍ الاعتماد…':'اعتماد الكل الآن')+'</button></div><div class="row" style="gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px"><span>قراءات منسقات بلا تعليق منكِ: <b>'+(RD.all?vpCoordToComment().length:'…')+'</b></span><button class="btn gold" data-vpcmall="1"'+(RF.cmBusy?' disabled':'')+'>'+(RF.cmBusy?'جارٍ الإضافة…':'إضافة تعليق النائب الأكاديمي على قراءات المنسقات')+'</button></div></div>'})():'';
   return head('متابعة قراءة النتائج','اضغطي على اسم المعلمة لفتح قراءتها وتعليق المنسقة تحتها. «شكر» لمن سلّمت، و«تذكير» لمن لم تسلّم.')+apBox+
     '<div class="rfsum"><div><b>'+done+' / '+tot+'</b>معلمة سلّمت القراءة</div><div><b>'+cD+' / '+cT+'</b>منسقة سلّمت قراءة القسم</div><div><b>'+(tot-done)+'</b>بانتظار التذكير</div>'+(na?'<div><b>'+na+'</b>لا ينطبق (الثاني عشر فقط)</div>':'')+'<button class="btn" data-rfreload="1">تحديث</button></div>'+
     (CLD.pr?'<style>.rfbt{display:none}</style>':'')+sumBoxes+'<div class="rfg">'+boxes+'</div>'+rfModal()}
@@ -1175,6 +1175,38 @@ function rfModal(){const d=RF.open&&(RF.docs||[]).find(x=>x._id===RF.open);if(!d
   return '<div class="rfm" data-rfclose="1"><div class="rfmb"><div class="rfmh"><h3>قراءة: '+esc(d.name||'')+' <small>'+esc(PERIODS[d.per]||'')+'</small></h3><span><button class="btn" data-rfprint="1">طباعة</button> <button class="btn" data-rfclose="1">إغلاق</button></span></div><div id="rfpbody"><h3 class="rfpt">قراءة: '+esc(d.name||'')+' — '+esc(PERIODS[d.per]||'')+'</h3>'+sec+
     (others.length?'<div class="rfcm"><b>تعليقات سابقة</b>'+others.map(f=>'<div>'+esc(f.byName||'')+': '+(f.sel||[]).map(esc).join('، ')+(f.txt?' — '+esc(f.txt):'')+'</div>').join('')+'</div>':'')+
     '</div>'+(canC?'<div class="rfcm"><b>'+(CLD.admin?'تعليق النائب الأكاديمي':'تعليق المنسقة')+' على القراءة</b><div class="rfch">'+RD_OPN.map((o,i)=>'<label><input type="checkbox" data-rfo="'+i+'"'+((mine.sel||[]).includes(o)?' checked':'')+'> '+o+'</label>').join('')+'</div><textarea id="rf_txt" rows="2" placeholder="تعليق إضافي (اختياري)">'+esc(mine.txt||'')+'</textarea><button class="btn pri" data-rfsave="'+esc(d._id)+'">حفظ التعليق</button></div>':'')+'</div></div>'}
+/* تعليق النائب الأكاديمي على قراءة المنسقة: تقييم القراءة (الشمول، التفحص، ربط الحلول بالأسباب) من محتواها، ثم توصيات عامة قابلة للتطبيق من نتائج القسم نفسها */
+function vpCoordComment(r){const keep={dept:CLD.dept,doc:RD.doc};let J={rows:[]};
+  try{CLD.dept=(r.depts&&r.depts.length?r.depts:[r.dept]).map(nkA);RD.doc=JSON.parse(JSON.stringify(r));J=JSON.parse(cSum())}catch(e){console.warn(e)}finally{CLD.dept=keep.dept;RD.doc=keep.doc}
+  const items=r.items||{};const txtOf=v=>Array.isArray(v)?v.map(x=>typeof x==='object'?Object.values(x||{}).join(' '):String(x)).join(' '):String(v==null?'':v);
+  const rows=J.rows||[];const ks=rows.length?rows.map(x=>x.sub+'|'+x.l):Object.keys(items);
+  const has=(it,f)=>it&&txtOf(it[f]).trim().length>0;
+  const cov=ks.filter(k=>{const it=items[k];return it&&['hi','lo','low','high','so','sug','note'].some(f=>has(it,f))}).length;
+  const why=ks.filter(k=>{const it=items[k];return it&&['lo','low','hi','high'].some(f=>has(it,f))});
+  const whyLen=why.length?why.reduce((s,k)=>{const it=items[k];return s+['lo','low','hi','high'].map(f=>txtOf(it[f])).join(' ').length},0)/why.length:0;
+  const sol=ks.filter(k=>has(items[k],'so')).length;
+  const comp=ks.length&&cov/ks.length>=0.8,thor=ks.length&&why.length/ks.length>=0.8&&whyLen>=60,link=ks.length&&sol/ks.length>=0.8;
+  const sel=[RD_OPN[0]];if(comp&&thor)sel.push(RD_OPN[1]);if(link)sel.push(RD_OPN[6]);if(!thor)sel.push(RD_OPN[4]);if(!link)sel.push(RD_OPN[5]);
+  const ev=(comp&&thor&&link)?'جاءت قراءة القسم متميزة: شاملة لجميع المواد والمستويات، متفحصة للأسباب ومرتبطة بالأرقام، وحلولها مرتبطة بالأسباب وقابلة للتطبيق.'
+    :'جاءت قراءة القسم '+(comp?'شاملة لجميع المواد والمستويات':'جيدة، وتحتاج إلى أن تشمل جميع المواد والمستويات')+'، '+(thor?'ومتفحصة للأسباب ومرتبطة بالأرقام':'وتحتاج إلى تعمّق أكبر في تحليل الأسباب وربطها بالأرقام')+'، '+(link?'وحلولها مرتبطة بالأسباب.':'مع ربط كل حل بسببه بوضوح.');
+  const lv=l=>({10:'العاشر',11:'الحادي عشر',12:'الثاني عشر'}[+l]||l);const R=[];
+  const weak=rows.filter(x=>x.n).slice().sort((a,b)=>a.a70-b.a70).slice(0,2).filter(x=>x.a70<90||x.nf>0);
+  if(weak.length)R.push('متابعة الطالبات دون 70% في '+weak.map(x=>x.sub+' للصف '+lv(x.l)).join('، و')+' بخطة علاجية مختصرة وحصص إثرائية فردية، وقياس أثرها في اختبار نهاية الفصل.');
+  else R.push('الاستمرار في متابعة الطالبات دون 70% بخطة علاجية مختصرة وحصص إثرائية فردية، وقياس أثرها في اختبار نهاية الفصل.');
+  if(rows.some(x=>x.nf>0))R.push('حصر الطالبات الراسبات ومتابعتهن أسبوعيًا بالتنسيق مع المرشدة الأكاديمية، وإشراكهن في الحصص الإثرائية الجماعية.');
+  R.push('تكثيف الاختبارات القصيرة والتغذية الراجعة المكتوبة بعد كل اختبار، ومراجعة أخطاء الطالبات معهن.');
+  R.push('تبادل الزيارات الصفية بين معلمات القسم لنقل الممارسات الناجحة من الشعب الأعلى تحصيلًا إلى الشعب الأدنى.');
+  R.push('تفعيل ميثاق الشراكة مع أولياء أمور الطالبات المستهدفات، والتواصل الدوري معهم بتقدّم بناتهن والإجراءات المتخذة.');
+  if(rows.some(x=>x.a90>=30))R.push('الاستمرار في رعاية المتفوقات (90% فأعلى) بأنشطة إثرائية ومسابقات، حفاظًا على مستواهن.');
+  return {sel,txt:ev+'\nوأوصي بما يلي:\n'+R.map((x,i)=>(i+1)+'. '+x).join('\n')}}
+function vpCoordToComment(){return (RD.all||[]).filter(r=>r.role==='coord'&&String(r.per)===String(UI.per)&&rfFilled(r)&&r.uid&&!(RF.fbs||[]).some(f=>f.to===r.uid&&String(f.per)===String(UI.per)&&f.role==='admin'))}
+async function vpCommentAll(){if(!CLD.admin||!CLD.db||RF.cmBusy)return;if(!RD.all)await rdAllLoad();const L=vpCoordToComment();if(!L.length){toast('لا توجد قراءات منسقات بلا تعليق منكِ لهذه الفترة');return}
+  RF.cmBusy=true;render();let n=0;const at=new Date().toISOString();
+  try{for(const r of L){const c=vpCoordComment(r);const rec={to:r.uid,by:CLD.uid,byName:'النائب الأكاديمي',role:'admin',dept:r.dept||'',per:UI.per,sel:c.sel,txt:c.txt,auto:true,at};
+      try{await CLD.db.collection('fb').doc(r.uid+'__'+UI.per+'__'+CLD.uid).set(rec);RF.fbs=(RF.fbs||[]).filter(f=>!(f.to===r.uid&&String(f.per)===String(UI.per)&&f.by===CLD.uid)).concat([rec]);n++}catch(e){console.warn(e)}}
+    toast('تمت إضافة تعليقكِ على '+n+' قراءة منسقة ✓ — يمكنكِ فتح أي قراءة وتعديل التعليق',7000)}finally{RF.cmBusy=false;render()}}
+document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('[data-vpcmall]'))vpCommentAll()});
+
 /* قراءة «معبّأة»: فيها نص فعلي في أي بند */
 function rfFilled(d){return Object.values((d&&d.items)||{}).some(it=>it&&Object.values(it).some(v=>Array.isArray(v)?v.length>0:(v&&typeof v==='object')?Object.values(v).some(x=>String(x||'').trim()):String(v==null?'':v).trim()!==''))}
 function rfToApprove(){return (RF.docs||[]).filter(d=>d.role==='teacher'&&d.per===rfPer()&&rfFilled(d)&&!RF.fbs.some(f=>f.to===d.uid&&f.per===rfPer()&&f.role!=='admin'))}
@@ -1325,7 +1357,7 @@ function rdItem(k){RD.doc=RD.doc||{};RD.doc.items=RD.doc.items||{};const it=RD.d
   if(it.low&&!it.lo){it.lo=it.low;it.hi=it.high||[];it.so=it.sug||[]}['lo','hi','ch','so','prog','rm'].forEach(f=>it[f]=it[f]||[]);return it}
 function rdStu(){RD.doc=RD.doc||{};return RD.doc.stu=RD.doc.stu||{}}
 function myFb(per,role){return (RD.fb||[]).filter(f=>String(f.per)===String(per)&&(!role||f.role===role))}
-function fbHTML(L){return L.map(f=>(f.sel||[]).concat(f.txt?[f.txt]:[]).map(x=>'• '+esc(x)).join('<br>')+'<div class="stl">— '+esc(f.byName||'')+'</div>').join('<hr>')}
+function fbHTML(L){return L.map(f=>(f.sel||[]).concat(f.txt?[f.txt]:[]).map(x=>'• '+esc(x).replace(/\n/g,'<br>')).join('<br>')+'<div class="stl">— '+esc(f.byName||'')+'</div>').join('<hr>')}
 /* بند قراءة المعلمة لشعبة ومادة: المفتاح نفسه أولًا، ثم المطابقة بعد توحيد كتابة الشعبة والمادة (اللغة العربية/اللغه العربيه، 10-1/10/1) */
 function rdIt(r,sc,sub){const I=r.items||{};if(I[sc+'|'+sub])return I[sc+'|'+sub];const ns=x=>String(x||'').replace(/[\/\\_ ]/g,'-').replace(/-+/g,'-').trim(),nb=x=>nkA(x).replace(/^ال/,'');const k=Object.keys(I).find(k=>{const i=k.lastIndexOf('|');return ns(k.slice(0,i))===ns(sc)&&nb(k.slice(i+1))===nb(sub)});return k?I[k]:null}
 function teamFor(secs,sub){return (RD.team||(CLD.admin?(RD.all||[]).filter(r=>r.role==='teacher'):[])).filter(r=>String(r.per)===String(UI.per)).map(r=>({r,items:secs.map(sc=>[sc,rdIt(r,sc,sub)]).filter(x=>x[1])})).filter(x=>x.items.length)}
@@ -1413,7 +1445,7 @@ function cMerge(k,ag){const it=rdItem(k);['lo','hi','ch','so'].forEach(f=>Object
 function vCRead(){if(!M.stu.length)return noData();rdLoad();rdTeamLoad();rdFbLoad();sanLoad();
   const G=cGroups();if(!G.length)return head('قراءة نتائج القسم','')+'<div class="box"><div class="empty">لم يُعثر على مواد قسمكِ في توزيع المعلمات.</div></div>';
   const vfb=myFb(UI.per,'admin');
-  let h=head('قراءة نتائج القسم','نموذج التقرير الكمي الوصفي لكل مادة ومستوى. تنعكس فيه قراءات المعلمات وإجراءاتهن المسجلة في سبع سنابل تلقائيًا؛ اختاري ما تؤيدينه، واكتبي مشروع القسم وتغذيتكِ الراجعة لكل معلمة. تصل قراءتكِ إلى النائب الأكاديمي.')+rdSaveBar('c')+'<div class="chips noprint" style="margin:4px 0 8px"><button class="btn" data-rqrest="1" style="border-color:#2E7D52;color:#1F6B43">♻️ استرجاع قراءتي وتغذيتي الراجعة من نسخة احتياطية</button></div>'+(vfb.length?'<div class="box rqfb"><h3>التغذية الراجعة من النائب الأكاديمي</h3>'+fbHTML(vfb)+'</div>':'');
+  let h=head('قراءة نتائج القسم','نموذج التقرير الكمي الوصفي لكل مادة ومستوى. تنعكس فيه قراءات المعلمات وإجراءاتهن المسجلة في سبع سنابل تلقائيًا؛ اختاري ما تؤيدينه، واكتبي مشروع القسم وتغذيتكِ الراجعة لكل معلمة. تصل قراءتكِ إلى النائب الأكاديمي.')+rdSaveBar('c')+'<div class="chips noprint" style="margin:4px 0 8px"><button class="btn" data-rqrest="1" style="border-color:#2E7D52;color:#1F6B43">♻️ استرجاع قراءتي وتغذيتي الراجعة من نسخة احتياطية</button></div>'; /* تعليق النائب الأكاديمي يظهر في نهاية قراءة القسم */
   G.forEach(g=>{const k=g.sub+'|'+g.l;const ag=teamAgg(g.secs,g.sub);const it=cMerge(k,ag);
     const cols=g.secs.map(sec=>({h:'<bdi dir="ltr">'+sec+'</bdi>',hp:sec,s:short(teacherOf(sec,g.sub)),t:teacherOf(sec,g.sub),st:colStat(M.stu.filter(x=>x.s===sec),g.sub),tr:trackOf(sec)}));
     const lvSecs=[...new Set(M.stu.filter(x=>x.l===g.l&&(typeof x.g[g.sub]==='number'||/محروم/.test(String(x.g[g.sub]||'')))).map(x=>x.s))];const allLv=lvSecs.every(sc=>g.secs.includes(sc));const tot={h:allLv?'إجمالي المستوى':'إجمالي شعب القسم',st:totStat(M.stu.filter(x=>g.secs.includes(x.s)),g.sub)};
@@ -1431,7 +1463,7 @@ function vCRead(){if(!M.stu.length)return noData();rdLoad();rdTeamLoad();rdFbLoa
         (ag.notes.length?'<div class="rdg">ما كتبته المعلمات</div><ul class="stl">'+ag.notes.map(n=>'<li><b>أ. '+esc(short(n.t))+' — <bdi dir="ltr">'+esc(n.sc)+'</bdi>:</b> '+esc(n.n)+'</li>').join('')+'</ul>':'')+
         '<details><summary><b>تحليل الواقع بكلماتكِ</b> <small>(اختياري)</small></summary>'+txt(k,'note','أي إضافة على القراءة المكتوبة تلقائيًا',it.note,3)+'</details></div>'+
       (tchs.length?'<div class="box rdbox"><h3>التغذية الراجعة لكل معلمة <small class="stl">تظهر في نموذجها بعد الحفظ</small></h3>'+tchs.map(r=>{const f=fbs[r.uid]=fbs[r.uid]||{sel:[],txt:''};return '<details><summary><b>أ. '+esc(short(r.name))+'</b> <small>('+(f.sel.length+(f.txt?1:0))+')</small>'+(r._op?' <small style="color:#9A3B1E">(قراءتها محفوظة في «'+esc(PERIODS[r.per]||'فترة أخرى')+'»)</small>':'')+'</summary><div class="rdck">'+RD_CFB.map(x=>'<label><input type="checkbox" data-fb="'+esc(r.uid)+'" value="'+esc(x)+'"'+(f.sel.includes(x)?' checked':'')+'> <span>'+esc(x)+'</span></label>').join('')+'</div><textarea class="rqta" data-fbt="'+esc(r.uid)+'" rows="2" placeholder="إضافة خاصة بهذه المعلمة (اختياري)">'+esc(f.txt||'')+'</textarea></details>'}).join('')+'</div>':'')+'</section>'});
-  return h+rdSaveBar('c')}
+  return h+(vfb.length?'<div class="box rqfb"><h3>تعليق النائب الأكاديمي</h3>'+fbHTML(vfb)+'</div>':'')+rdSaveBar('c')}
 /* ======== النائب الأكاديمي ======== */
 function vReading(){if(!M.stu.length)return noData();
   if(CLD.pr){prLoad();rdAllLoad();sanLoad();if(!RD.prDocs)return head('قراءة النتائج','جارٍ التحميل…');const d=RD.prDocs.find(x=>String(x.per)===String(UI.per));
