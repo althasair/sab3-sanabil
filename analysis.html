@@ -1149,7 +1149,7 @@ function rfMsg(kind,t,role){const co=role==='coord';const per=PERIODS[rfPer()]||
   const body=kind==='t'?'الأستاذة الفاضلة / '+first+' المحترمة\nالسلام عليكم ورحمة الله وبركاته،\n\nأتقدم بخالص الشكر والتقدير على تسليم قراءة نتائج '+per+'؛ فالقراءة الواعية للنتائج أول طريق الدعم الصحيح لطالباتنا، وجهدكِ محل تقدير واعتزاز.\n\nمع خالص التحية،\n'+me
     :'الأستاذة الفاضلة / '+first+' المحترمة\nالسلام عليكم ورحمة الله وبركاته،\n\n'+(co?'نذكّركِ بتسليم قراءة نتائج القسم ('+per+') من صفحة «تحليل النتائج» ← «قراءة نتائج القسم»؛':'نذكّركِ بتسليم قراءة نتائج '+per+' من صفحة «تحليل النتائج» ← «قراءة نتائجي»؛')+' حرصًا على اكتمال قراءة القسم ودعم طالباتنا في الوقت المناسب. شاكرين تعاونكِ.\n\nمع خالص التحية،\n'+me;
   return {subj,body}}
-function vRFollow(){if(CLD.admin&&!RD.all)rdAllLoad();if(RF.docs==null){rfLoad();return head('متابعة قراءة النتائج','')+'<div class="box"><div class="empty">جارٍ تحميل القراءات…</div></div>'}
+function vRFollow(){if(CLD.admin&&!RD.all)rdAllLoad();if(CLD.admin&&RD.all&&RF.fbs)setTimeout(vpSigFix,600);if(RF.docs==null){rfLoad();return head('متابعة قراءة النتائج','')+'<div class="box"><div class="empty">جارٍ تحميل القراءات…</div></div>'}
   const st=rfStaff();const by={};st.forEach(t=>{const d=t.dept||'أخرى';(by[d]=by[d]||[]).push(t)});
   const isCo=t=>/منسق/.test(t.role||'');let tot=0,done=0,cT=0,cD=0,na=0;
   const boxes=Object.keys(by).sort((a,b)=>a.localeCompare(b,'ar')).map(d=>{const L=by[d];const co=L.filter(isCo),te=L.filter(t=>!isCo(t)&&(t.sections||[]).length);
@@ -1199,10 +1199,16 @@ function vpCoordComment(r){const keep={dept:CLD.dept,doc:RD.doc};let J={rows:[]}
   R.push('تفعيل ميثاق الشراكة مع أولياء أمور الطالبات المستهدفات، والتواصل الدوري معهم بتقدّم بناتهن والإجراءات المتخذة.');
   if(rows.some(x=>x.a90>=30))R.push('الاستمرار في رعاية المتفوقات (90% فأعلى) بأنشطة إثرائية ومسابقات، حفاظًا على مستواهن.');
   return {sel,txt:ev+'\nوأوصي بما يلي:\n'+R.map((x,i)=>(i+1)+'. '+x).join('\n')}}
+function vpSigNow(){return (window.__SG&&window.__SG.vp)||(typeof SG!=='undefined'&&SG.vp)||vpSig()||''}
+/* توقيع النائب الأكاديمي على تعليقاتها في قراءات المنسقات (يُضاف لكل تعليق بلا توقيع، مرة واحدة عند فتح «متابعة القراءة») */
+let _vsigRun=false;async function vpSigFix(){if(_vsigRun||!CLD.admin||CLD.pr||!CLD.db||!RD.all||!RF.fbs)return;const sg=vpSigNow();if(!sg)return;_vsigRun=true;
+  const co=new Set(RD.all.filter(r=>r.role==='coord').map(r=>r.uid));const L=RF.fbs.filter(f=>f.role==='admin'&&co.has(f.to)&&!f.vsig);let n=0;
+  for(const f of L){try{await CLD.db.collection('fb').doc(f.to+'__'+f.per+'__'+f.by).set({vsig:sg},{merge:true});f.vsig=sg;n++}catch(e){console.warn(e)}}
+  if(n)toast('تم وضع توقيعكِ على تعليقاتكِ في '+n+' قراءة منسقة ✓',6000)}
 function vpCoordToComment(){return (RD.all||[]).filter(r=>r.role==='coord'&&String(r.per)===String(UI.per)&&rfFilled(r)&&r.uid&&!(RF.fbs||[]).some(f=>f.to===r.uid&&String(f.per)===String(UI.per)&&f.role==='admin'))}
 async function vpCommentAll(){if(!CLD.admin||!CLD.db||RF.cmBusy)return;if(!RD.all)await rdAllLoad();const L=vpCoordToComment();if(!L.length){toast('لا توجد قراءات منسقات بلا تعليق منكِ لهذه الفترة');return}
   RF.cmBusy=true;render();let n=0;const at=new Date().toISOString();
-  try{for(const r of L){const c=vpCoordComment(r);const rec={to:r.uid,by:CLD.uid,byName:'النائب الأكاديمي',role:'admin',dept:r.dept||'',per:UI.per,sel:c.sel,txt:c.txt,auto:true,at};
+  try{for(const r of L){const c=vpCoordComment(r);const rec={to:r.uid,by:CLD.uid,byName:'النائب الأكاديمي',role:'admin',dept:r.dept||'',per:UI.per,sel:c.sel,txt:c.txt,auto:true,at,vsig:vpSigNow()};
       try{await CLD.db.collection('fb').doc(r.uid+'__'+UI.per+'__'+CLD.uid).set(rec);RF.fbs=(RF.fbs||[]).filter(f=>!(f.to===r.uid&&String(f.per)===String(UI.per)&&f.by===CLD.uid)).concat([rec]);n++}catch(e){console.warn(e)}}
     toast('تمت إضافة تعليقكِ على '+n+' قراءة منسقة ✓ — يمكنكِ فتح أي قراءة وتعديل التعليق',7000)}finally{RF.cmBusy=false;render()}}
 document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('[data-vpcmall]'))vpCommentAll()});
@@ -1220,7 +1226,7 @@ async function rfApproveAll(){if(!CLD.admin||!CLD.db||RF.apBusy)return;const T=r
   finally{RF.apBusy=false;render()}}
 document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('[data-rfapall]'))rfApproveAll()});
 async function rfSave(id){const d=(RF.docs||[]).find(x=>x._id===id);if(!d||!CLD.db)return;const sel=[...document.querySelectorAll('[data-rfo]')].filter(x=>x.checked).map(x=>RD_OPN[+x.dataset.rfo]);const txt=($('#rf_txt')||{}).value||'';
-  const rec={to:d.uid,by:CLD.uid,byName:CLD.admin?'النائب الأكاديمي':'المنسقة '+(CLD.nm||''),role:CLD.admin?'admin':'coord',dept:CLD.admin?(d.dept||''):(CLD.dept.includes(d.dept)?d.dept:(CLD.dept[0]||'')),per:rfPer(),sel,txt,at:new Date().toISOString()};
+  const rec={to:d.uid,by:CLD.uid,byName:CLD.admin?'النائب الأكاديمي':'المنسقة '+(CLD.nm||''),role:CLD.admin?'admin':'coord',dept:CLD.admin?(d.dept||''):(CLD.dept.includes(d.dept)?d.dept:(CLD.dept[0]||'')),per:rfPer(),sel,txt,at:new Date().toISOString()};if(CLD.admin){const sg=vpSigNow();if(sg)rec.vsig=sg}
   try{await CLD.db.collection('fb').doc(d.uid+'__'+rfPer()+'__'+CLD.uid).set(rec);RF.fbs=RF.fbs.filter(f=>!(f.to===d.uid&&f.per===rfPer()&&f.by===CLD.uid)).concat([rec]);toast('تم حفظ التعليق ✓ ويظهر للمعلمة في قراءتها');render()}catch(e){toast('تعذّر الحفظ: '+(e.message||e))}}
 document.addEventListener('click',e=>{const t=e.target;
   const o=t.closest&&t.closest('[data-rfopen]');if(o&&o.dataset.rfopen){RF.open=o.dataset.rfopen;render();return}
