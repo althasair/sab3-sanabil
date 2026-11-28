@@ -555,7 +555,7 @@ function derive(st){
   st.actions.forEach(a=>{
     const sec=a.section?secKey(a.section):'';
     let c=targets.filter(t=>!sec||secKey(t.row.section)===sec);
-    if(a.subject){const ak=subjKey(a.subject);c=c.filter(t=>subjKey(t.row.subject)===ak)}
+    if(a.subject){const ak=subjKey(a.subject),aks=subjKeys(a.subject);/* مادة مركّبة مثل «الجغرافيا والدراسات الاجتماعية» تطابق كلتا المادتين */c=c.filter(t=>{const rk=subjKey(t.row.subject);return rk===ak||aks.has(rk)})}
     else if(a.teacher&&tNames.has(norm(a.teacher)))c=c.filter(t=>norm(t.row.teacher)===norm(a.teacher));
     if(!a.whole){c=c.filter(t=>a.students.some(n=>nameMatch(n,t.row.name)))}
     else if(a.absent&&a.absent.length){c=c.filter(t=>!a.absent.some(n=>nameMatch(n,t.row.name)))}
